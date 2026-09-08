@@ -1,0 +1,24 @@
+node_modules/
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Casos clinicos reais = dado pessoal sensivel (LGPD art. 5 II e art. 11).
+# Nunca versionar: uma vez commitado, fica na historia para sempre.
+# Os casos ficticios (exemplo-*) sao a unica excecao.
+# ---------------------------------------------------------------------------
+motor/casos/*
+!motor/casos/exemplo-*.json
+
+# O corpus e material do metodo, com direito autoral. Fica fora.
+motor/corpus/fontes/*
+!motor/corpus/fontes/README.md
+motor/corpus/indice.json
+
+# Gerados
+motor/build/
+motor/node_modules/
+
+# Trabalho interno (plano, revisao do Rodrigo, roteiro e locucao do video).
+# Fica no repositorio holos, nao neste, que e publico.
+docs/

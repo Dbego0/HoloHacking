@@ -1,0 +1,17 @@
+id,dimensao,item,leitura,sistema,peso,pergunta,fonte,status
+ESP-101,proposito,ausência de direção,vive no automático sem sentido percebido,metabolico,3,Você sente que sua vida tem uma direção clara?,livro p. 56 (Propósito de Vida e Nutrição),rascunho
+ESP-102,proposito,não sabe qual é a própria contribuição,propósito não formulado,mental_emocional_espiritual,2,Você sabe dizer o que veio fazer nesta vida?,livro p. 57 (Reconexão com o Propósito),rascunho
+ESP-103,proposito,rotina desalinhada do que diz querer,incongruência entre desejo e vida,metabolico,2,Sua rotina de hoje te aproxima ou te afasta do que você quer para sua vida?,livro p. 57 (Avaliação de Alinhamento),rascunho
+ESP-201,valor,incoerência entre valor e escolha alimentar,vive o oposto do que diz valorizar,mental_emocional_espiritual,3,Suas escolhas alimentares combinam com aquilo que você diz valorizar?,livro p. 54 (A Nutrição como Expressão de Propósito e Valores),rascunho
+ESP-202,valor,não sabe nomear os próprios valores,valores não clarificados,mental_emocional_espiritual,2,Você consegue nomear três coisas que são inegociáveis para você?,livro p. 57 (Clarificação de Valores),rascunho
+ESP-203,principio,abre mão do que é inegociável,princípio cedido,acido_inflamatorio,2,Você costuma abrir mão do que é inegociável para você para agradar alguém?,livro p. 46 (princípios inegociáveis),rascunho
+ESP-301,fe,desconexão com algo maior,perda de sustentação transcendente,mental_emocional_espiritual,2,Você sente que existe algo maior te sustentando?,livro p. 38 (O Pilar Espiritual),rascunho
+ESP-302,fe,ausência de gratidão no cotidiano,não reconhece o que já tem,mental_emocional_espiritual,2,Você para para agradecer alguma coisa durante o dia?,livro p. 60 (Gratidão Consciente),rascunho
+ESP-303,fe,come sem nenhum momento de pausa,ato alimentar dessacralizado,metabolico,2,Você faz alguma pausa antes de comer ou já começa comendo?,livro p. 62 (Pausa Consciente),rascunho
+ESP-401,bloqueio,crença de não merecimento,sabota o próprio cuidado,mental_emocional_espiritual,3,Você sente que não merece as coisas boas que conquista?,livro p. 86 (Investigação de Crenças Limitantes),rascunho
+ESP-402,bloqueio,autossabotagem recorrente,boicota o que estava dando certo,mental_emocional_espiritual,3,Quando as coisas começam a dar certo você acaba boicotando?,livro p. 89 (travas mentais e emocionais),rascunho
+ESP-403,bloqueio,história limitante sobre si,narrativa herdada não questionada,mental_emocional_espiritual,2,Que história você conta sobre si mesmo que nunca questionou?,livro p. 91 (Biografia Consciente),rascunho
+ESP-404,bloqueio,saúde associada a sofrimento,acredita que cuidar dói,acido_inflamatorio,2,Você acredita que para ter saúde precisa sofrer ou se privar?,livro p. 90 (Trava da Resistência ao Prazer),rascunho
+ESP-405,bloqueio,mágoa que trava o fluxo,perdão não elaborado,detox_linfatico,3,Existe alguém que você ainda não conseguiu perdoar?,material 11/08 (padrão do Detox: acúmulo de mágoas),rascunho
+ESP-501,conexao,desconexão com a natureza,perda de vínculo com os ciclos,fungico,2,Quanto tempo faz que você passou um tempo na natureza?,livro p. 39 (alimentação como ato sagrado),rascunho
+ESP-502,conexao,come sempre sozinho e com pressa,perda da comunhão,detox_linfatico,2,Você costuma comer acompanhado ou sempre sozinho e com pressa?,livro p. 63 (Comunhão Consciente),rascunho

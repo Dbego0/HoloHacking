@@ -1,0 +1,31 @@
+sistema,faixa,registro,texto,primeiros_passos,fonte,status
+fungico,baixo,nutri,Nota baixa no Sistema Fúngico — é o sistema em maior desequilíbrio. Padrão emocional associado: estagnação e desordem.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
+fungico,baixo,paciente,Seu corpo está sinalizando estagnação — perda de vitalidade e de clareza.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
+fungico,medio,nutri,Nota intermediária no Sistema Fúngico. Há sinais presentes mas ainda não dominantes.,Investigar os marcadores de maior peso antes de intervir.,EXEMPLO-FORMATO,exemplo
+fungico,medio,paciente,Existem sinais de estagnação aparecendo. Ainda dá para reverter cedo.,Observar o que acontece com seu corpo depois das refeições.,EXEMPLO-FORMATO,exemplo
+fungico,alto,nutri,Nota alta no Sistema Fúngico — sistema em equilíbrio. Não é prioridade de conduta neste momento.,Manter observação nas próximas reavaliações.,EXEMPLO-FORMATO,exemplo
+fungico,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
+acido_inflamatorio,baixo,nutri,Nota baixa no Sistema Ácido-Inflamatório — sistema em desequilíbrio. Padrão emocional: irritação e reatividade.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
+acido_inflamatorio,baixo,paciente,Seu corpo está em estado de reatividade. Isso aparece como dor e como irritação.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
+acido_inflamatorio,medio,nutri,Nota intermediária no Sistema Ácido-Inflamatório.,Verificar marcadores de dor e de reatividade emocional.,EXEMPLO-FORMATO,exemplo
+acido_inflamatorio,medio,paciente,Há sinais de irritação — no corpo e no humor.,Observar em que momentos do dia a irritação aparece.,EXEMPLO-FORMATO,exemplo
+acido_inflamatorio,alto,nutri,Nota alta no Sistema Ácido-Inflamatório — sistema em equilíbrio.,Manter observação.,EXEMPLO-FORMATO,exemplo
+acido_inflamatorio,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
+metabolico,baixo,nutri,Nota baixa no Sistema Metabólico — sistema em desequilíbrio. Padrão emocional: vazio e falta de propósito.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
+metabolico,baixo,paciente,Existe um vazio que a comida vem tentando preencher.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
+metabolico,medio,nutri,Nota intermediária no Sistema Metabólico.,Verificar compulsão e resposta pós-refeição.,EXEMPLO-FORMATO,exemplo
+metabolico,medio,paciente,Sua energia está oscilando ao longo do dia.,Observar como você se sente depois de cada refeição.,EXEMPLO-FORMATO,exemplo
+metabolico,alto,nutri,Nota alta no Sistema Metabólico — sistema em equilíbrio.,Manter observação.,EXEMPLO-FORMATO,exemplo
+metabolico,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
+detox_linfatico,baixo,nutri,Nota baixa no Sistema Detox + Linfático — sistema em desequilíbrio. Padrão emocional: acúmulo de mágoas e emoções não processadas.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
+detox_linfatico,baixo,paciente,Há acúmulo — no corpo e no que ficou sem ser processado.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
+detox_linfatico,medio,nutri,Nota intermediária no Sistema Detox + Linfático.,Verificar retenção e sensibilidade a odores.,EXEMPLO-FORMATO,exemplo
+detox_linfatico,medio,paciente,Seu corpo está acumulando mais do que consegue eliminar.,Observar o inchaço ao longo do dia.,EXEMPLO-FORMATO,exemplo
+detox_linfatico,alto,nutri,Nota alta no Sistema Detox + Linfático — sistema em equilíbrio.,Manter observação.,EXEMPLO-FORMATO,exemplo
+detox_linfatico,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
+mental_emocional_espiritual,baixo,nutri,Nota baixa no Sistema Mental-Emocional-Espiritual — sistema em desequilíbrio. Padrão emocional: desconexão de si.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
+mental_emocional_espiritual,baixo,paciente,Existe uma desconexão de si que está sustentando o restante do quadro.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
+mental_emocional_espiritual,medio,nutri,Nota intermediária no Sistema Mental-Emocional-Espiritual.,Verificar narrativa interna e qualidade do sono.,EXEMPLO-FORMATO,exemplo
+mental_emocional_espiritual,medio,paciente,Sua mente tem trabalhado mais do que descansado.,Observar como você fala consigo mesmo durante o dia.,EXEMPLO-FORMATO,exemplo
+mental_emocional_espiritual,alto,nutri,Nota alta no Sistema Mental-Emocional-Espiritual — sistema em equilíbrio.,Manter observação.,EXEMPLO-FORMATO,exemplo
+mental_emocional_espiritual,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo

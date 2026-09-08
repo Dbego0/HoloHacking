@@ -1,0 +1,6 @@
+sistema,formula,faixa_baixa_ate,faixa_media_ate,peso_indice
+fungico,proporcional_ponderada,3,6,0.20
+acido_inflamatorio,proporcional_ponderada,3,6,0.20
+metabolico,proporcional_ponderada,3,6,0.20
+detox_linfatico,proporcional_ponderada,3,6,0.20
+mental_emocional_espiritual,proporcional_ponderada,3,6,0.20

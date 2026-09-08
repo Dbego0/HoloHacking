@@ -1,0 +1,25 @@
+id,exame,sistema,unidade,ideal_min,ideal_max,leitura_baixo,leitura_alto,fonte,status
+EXA-001,Candida albicans IgG,fungico,indice,0,0.9,,"Sugere contato imunologico com Candida. Nao e exame de rotina e isolado nao fecha diagnostico.",literatura funcional — revisar,rascunho
+EXA-002,PCR ultrassensivel,acido_inflamatorio,mg/L,0,1,,"Inflamacao silenciosa em curso.",literatura funcional — revisar,rascunho
+EXA-003,VHS,acido_inflamatorio,mm/h,0,15,,"Processo inflamatorio ativo.",literatura funcional — revisar,rascunho
+EXA-004,Acido urico,acido_inflamatorio,mg/dL,3,5.5,"Pode indicar baixa reserva antioxidante.","Carga acida elevada; associado a dor e rigidez.",literatura funcional — revisar,rascunho
+EXA-005,Glicemia de jejum,metabolico,mg/dL,70,90,"Hipoglicemia; investigar padrao de refeicoes.","Resistencia a insulina em formacao.",literatura funcional — revisar,rascunho
+EXA-006,Insulina de jejum,metabolico,uUI/mL,2,6,,"Hiperinsulinemia — o corpo pede cada vez mais para o mesmo efeito.",literatura funcional — revisar,rascunho
+EXA-007,HOMA-IR,metabolico,indice,0,1.8,,"Resistencia a insulina instalada.",literatura funcional — revisar,rascunho
+EXA-008,Hemoglobina glicada,metabolico,%,4.5,5.4,,"Media glicemica dos ultimos 3 meses elevada.",literatura funcional — revisar,rascunho
+EXA-009,Triglicerideos,metabolico,mg/dL,40,100,,"Excesso de carboidrato ou alcool; sobrecarga hepatica.",literatura funcional — revisar,rascunho
+EXA-010,HDL,metabolico,mg/dL,55,100,"Baixa protecao cardiovascular e hormonal.",,literatura funcional — revisar,rascunho
+EXA-011,TSH,metabolico,uUI/mL,0.5,2,"Possivel hipertireoidismo — encaminhar.","Tireoide pedindo mais estimulo; encaminhar ao medico.",literatura funcional — revisar,rascunho
+EXA-012,T4 livre,metabolico,ng/dL,1,1.5,"Producao tireoidiana baixa — encaminhar.",,literatura funcional — revisar,rascunho
+EXA-013,TGO (AST),detox_linfatico,U/L,10,26,,"Sobrecarga hepatica ou muscular.",literatura funcional — revisar,rascunho
+EXA-014,TGP (ALT),detox_linfatico,U/L,10,26,,"Sobrecarga hepatica.",literatura funcional — revisar,rascunho
+EXA-015,GGT,detox_linfatico,U/L,10,25,,"Marcador de estresse oxidativo e sobrecarga de detoxificacao.",literatura funcional — revisar,rascunho
+EXA-016,Bilirrubina total,detox_linfatico,mg/dL,0.2,1.2,,"Investigar via hepatica.",literatura funcional — revisar,rascunho
+EXA-017,Ureia,detox_linfatico,mg/dL,15,40,"Ingestao proteica possivelmente baixa.","Sobrecarga renal ou excesso proteico.",literatura funcional — revisar,rascunho
+EXA-018,Creatinina,detox_linfatico,mg/dL,0.6,1.1,,"Funcao renal a investigar — encaminhar.",literatura funcional — revisar,rascunho
+EXA-019,Vitamina D (25-OH),mental_emocional_espiritual,ng/mL,40,60,"Associada a humor rebaixado e baixa vitalidade.",,literatura funcional — revisar,rascunho
+EXA-020,Vitamina B12,mental_emocional_espiritual,pg/mL,500,900,"Associada a cansaco mental e formigamento.",,literatura funcional — revisar,rascunho
+EXA-021,Ferritina,mental_emocional_espiritual,ng/mL,50,150,"Reserva de ferro baixa — cansaco e queda de cabelo.","Pode ser reserva alta ou inflamacao; ler junto com a PCR.",literatura funcional — revisar,rascunho
+EXA-022,Magnesio eritrocitario,mental_emocional_espiritual,mg/dL,4.2,6.8,"Associado a ansiedade, tensao muscular e sono ruim.",,literatura funcional — revisar,rascunho
+EXA-023,Homocisteina,mental_emocional_espiritual,umol/L,4,7,,"Metilacao comprometida; associada a humor e cognicao.",literatura funcional — revisar,rascunho
+EXA-024,Cortisol matinal,mental_emocional_espiritual,ug/dL,10,18,"Exaustao adrenal — o corpo nao consegue mais responder.","Hiperalerta sustentado; estado cronico de ameaca.",literatura funcional — revisar,rascunho

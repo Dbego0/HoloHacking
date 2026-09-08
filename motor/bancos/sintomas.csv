@@ -1,0 +1,52 @@
+id,sintoma,sinonimos,sistema,peso,pergunta,fonte,status
+SNT-101,vontade intensa e recorrente de doce,fissura por açúcar;desejo de carboidrato,fungico,2,Você sente vontade forte de doce ou pão quase todo dia?,rascunho-literatura-funcional,rascunho
+SNT-102,distensão abdominal após refeição,barriga estufada;inchaço depois de comer;gases,fungico,3,Sua barriga incha ou dá gases depois das refeições?,rascunho-literatura-funcional,rascunho
+SNT-103,língua com saburra branca,língua branca;placa na língua,fungico,3,Sua língua costuma ter uma camada esbranquiçada?,rascunho-literatura-funcional,rascunho
+SNT-104,candidíase de repetição,corrimento;candidíase oral;sapinho,fungico,3,Você tem candidíase ou sapinho com frequência?,rascunho-literatura-funcional,rascunho
+SNT-105,micose recorrente,frieira;pé de atleta;micose de unha,fungico,3,Você tem micose de pele ou unha que volta sempre?,rascunho-literatura-funcional,rascunho
+SNT-106,coceira anal ou genital,prurido,fungico,2,Você sente coceira na região íntima ou anal?,rascunho-literatura-funcional,rascunho
+SNT-107,névoa mental após carboidrato,cabeça pesada;confusão depois de comer,fungico,2,Sua cabeça fica pesada ou confusa depois de comer massa ou doce?,rascunho-literatura-funcional,rascunho
+SNT-108,caspa ou coceira no couro cabeludo,dermatite seborreica,fungico,1,Você tem caspa ou coceira no couro cabeludo com frequência?,rascunho-literatura-funcional,rascunho
+SNT-109,histórico de uso repetido de antibiótico,muitos antibióticos,fungico,2,Você tomou antibiótico muitas vezes ao longo da vida?,rascunho-literatura-funcional,rascunho
+SNT-110,intolerância a álcool,fica mal com pouca bebida,fungico,2,Você passa mal com pouca bebida alcoólica?,rascunho-literatura-funcional,rascunho
+SNT-111,sinusite ou rinite crônica,nariz entupido sempre,fungico,1,Você vive com nariz entupido ou sinusite?,rascunho-literatura-funcional,rascunho
+SNT-201,dor articular sem esforço,dor nas juntas;dor sem ter feito nada,acido_inflamatorio,3,Você sente dor nas articulações mesmo sem ter feito esforço?,rascunho-literatura-funcional,rascunho
+SNT-202,rigidez ao acordar,corpo travado de manhã,acido_inflamatorio,3,Você acorda com o corpo travado que leva um tempo para soltar?,rascunho-literatura-funcional,rascunho
+SNT-203,dor muscular difusa,corpo dolorido;fibromialgia,acido_inflamatorio,2,Você sente o corpo dolorido sem causa clara?,rascunho-literatura-funcional,rascunho
+SNT-204,queimação estomacal,azia;refluxo;queimação no peito,acido_inflamatorio,2,Você sente azia ou queimação no estômago?,rascunho-literatura-funcional,rascunho
+SNT-205,dor de cabeça frequente,cefaleia;enxaqueca,acido_inflamatorio,2,Você tem dor de cabeça mais de uma vez por semana?,rascunho-literatura-funcional,rascunho
+SNT-206,pele inflamada,acne inflamatória;eczema;psoríase,acido_inflamatorio,2,Sua pele tem crises de acne inflamada eczema ou psoríase?,rascunho-literatura-funcional,rascunho
+SNT-207,gengiva que sangra,sangramento gengival;gengivite,acido_inflamatorio,2,Sua gengiva sangra ao escovar?,rascunho-literatura-funcional,rascunho
+SNT-208,piora clara com ultraprocessado,fica pior comendo besteira,acido_inflamatorio,2,Você percebe que piora quando come ultraprocessado ou açúcar?,rascunho-literatura-funcional,rascunho
+SNT-209,inchaço nas mãos ao acordar,dedos inchados de manhã;anel apertando,acido_inflamatorio,2,Suas mãos ou dedos amanhecem inchados?,rascunho-literatura-funcional,rascunho
+SNT-210,marcador inflamatório alterado no exame,PCR alta;VHS alto,acido_inflamatorio,3,Seus exames mostram PCR ou VHS acima do normal?,rascunho-literatura-funcional,rascunho
+SNT-301,sonolência forte depois do almoço,apagão pós-almoço;sono depois de comer,metabolico,3,Você fica com muito sono logo depois do almoço?,rascunho-literatura-funcional,rascunho
+SNT-302,vontade intensa e recorrente de doce,fissura por açúcar;desejo de carboidrato,metabolico,3,Você sente vontade forte de doce ou pão quase todo dia?,rascunho-literatura-funcional,rascunho
+SNT-303,fome pouco tempo depois de comer,fome rápida;come e logo tem fome,metabolico,3,Você sente fome de novo pouco tempo depois de ter comido?,rascunho-literatura-funcional,rascunho
+SNT-304,compulsão ou beliscar à noite,come depois do jantar;assalta a geladeira,metabolico,3,Você come depois do jantar mesmo sem fome real?,rascunho-literatura-funcional,rascunho
+SNT-305,acúmulo de gordura abdominal,barriga;cintura aumentando,metabolico,3,Sua gordura se concentra na barriga?,rascunho-literatura-funcional,rascunho
+SNT-306,escurecimento nas dobras da pele,acantose;pescoço escuro;axila escura,metabolico,3,A pele do seu pescoço ou axila está mais escura e aveludada?,rascunho-literatura-funcional,rascunho
+SNT-307,irritação forte se atrasa a refeição,fica mal sem comer;tremor;hipoglicemia,metabolico,2,Você fica irritado ou trêmulo se atrasa uma refeição?,rascunho-literatura-funcional,rascunho
+SNT-308,dificuldade de perder peso mesmo comendo pouco,peso empacado,metabolico,2,Você tem dificuldade de perder peso mesmo comendo pouco?,rascunho-literatura-funcional,rascunho
+SNT-309,triglicerídeos altos ou HDL baixo,alteração no lipidograma,metabolico,3,Seus exames mostram triglicerídeos altos ou HDL baixo?,rascunho-literatura-funcional,rascunho
+SNT-310,cansaço ao acordar mesmo dormindo,acorda sem energia,metabolico,2,Você acorda cansado mesmo tendo dormido o suficiente?,rascunho-literatura-funcional,rascunho
+SNT-401,retenção de líquido,inchaço em pernas e pés;perna pesada,detox_linfatico,3,Você percebe inchaço nas pernas ou nos pés no fim do dia?,rascunho-literatura-funcional,rascunho
+SNT-402,rosto inchado ao acordar,face inchada de manhã,detox_linfatico,2,Seu rosto amanhece inchado?,rascunho-literatura-funcional,rascunho
+SNT-403,intolerância a cheiros fortes,enjoo com perfume;produto de limpeza incomoda,detox_linfatico,3,Cheiros fortes te incomodam mais do que incomodam as outras pessoas?,rascunho-literatura-funcional,rascunho
+SNT-404,mal-estar com alimento gorduroso,enjoo com fritura;peso depois de gordura,detox_linfatico,2,Comida gordurosa te faz passar mal ou pesa muito?,rascunho-literatura-funcional,rascunho
+SNT-405,intestino preso,constipação;evacua a cada dois dias ou mais,detox_linfatico,3,Você evacua todos os dias?,rascunho-literatura-funcional,rascunho
+SNT-406,ressaca intensa com pouco álcool,fica mal no dia seguinte,detox_linfatico,2,Uma taça já te dá ressaca no dia seguinte?,rascunho-literatura-funcional,rascunho
+SNT-407,sensibilidade a medicamento ou cafeína,reage forte a remédio;café tira o sono,detox_linfatico,2,Você reage muito forte a medicamento ou a café?,rascunho-literatura-funcional,rascunho
+SNT-408,pele opaca e olheiras,pele sem viço;olheiras fundas,detox_linfatico,2,Sua pele está opaca ou com olheiras marcadas?,rascunho-literatura-funcional,rascunho
+SNT-409,odor corporal forte,suor com odor forte,detox_linfatico,2,Seu suor tem odor forte?,rascunho-literatura-funcional,rascunho
+SNT-410,celulite acentuada,pele em casca de laranja,detox_linfatico,1,Você tem celulite acentuada?,rascunho-literatura-funcional,rascunho
+SNT-501,sono não reparador,acorda cansado;dorme mas não descansa,mental_emocional_espiritual,3,Você acorda cansado mesmo dormindo as horas necessárias?,rascunho-literatura-funcional,rascunho
+SNT-502,dificuldade de dormir por pensamento acelerado,mente não desliga;cabeça a mil na cama,mental_emocional_espiritual,3,Você demora a dormir porque a cabeça não desliga?,rascunho-literatura-funcional,rascunho
+SNT-503,despertar de madrugada,acorda entre 3 e 5 da manhã,mental_emocional_espiritual,2,Você acorda de madrugada e custa a voltar a dormir?,rascunho-literatura-funcional,rascunho
+SNT-504,ansiedade antecipatória,preocupação com o que ainda não aconteceu,mental_emocional_espiritual,3,Você se preocupa muito com coisas que ainda nem aconteceram?,rascunho-literatura-funcional,rascunho
+SNT-505,comer para acalmar emoção,come quando fica ansioso ou triste,mental_emocional_espiritual,3,Você come para se acalmar quando fica ansioso ou triste?,livro p. 90 (Trava do Trauma Alimentar),rascunho
+SNT-506,estado de alerta constante,sempre tenso;esperando algo dar errado,mental_emocional_espiritual,3,Você sente que está sempre em alerta esperando algo dar errado?,rascunho-literatura-funcional,rascunho
+SNT-507,não percebe fome nem saciedade,come por horário;não escuta o corpo,mental_emocional_espiritual,3,Você consegue perceber quando está com fome e quando já está satisfeito?,livro p. 91 (Trava da Desconexão Corpo-Mente),rascunho
+SNT-508,dificuldade de concentração,mente dispersa;névoa mental,mental_emocional_espiritual,2,Você tem dificuldade de manter o foco em uma tarefa?,rascunho-literatura-funcional,rascunho
+SNT-509,irritabilidade,pavio curto;perde a paciência fácil,mental_emocional_espiritual,2,Você perde a paciência com facilidade?,rascunho-literatura-funcional,rascunho
+SNT-510,afastamento das pessoas,isolamento;evita convite,mental_emocional_espiritual,2,Você tem se afastado das pessoas?,rascunho-literatura-funcional,rascunho

@@ -1,0 +1,6 @@
+id,condicao,leitura,prioridade,fonte,status
+CMB-001,metabolico <= 3 E mental_emocional_espiritual <= 3,Paciente vivendo em estado crônico de ameaça,1,material HOLOSCOPE bloco 1,confirmado
+CMB-002,fungico <= 3 E metabolico <= 4,Terreno fúngico sustentado por oferta constante de açúcar,2,EXEMPLO-FORMATO,exemplo
+CMB-003,detox_linfatico <= 4 E acido_inflamatorio <= 4 E fungico >= 7,Sobrecarga sem componente fúngico — olhar fígado antes de microbiota,2,EXEMPLO-FORMATO,exemplo
+CMB-004,mental_emocional_espiritual <= 2 E indice <= 4,Dimensão mental-emocional puxando o quadro inteiro para baixo,1,EXEMPLO-FORMATO,exemplo
+CMB-005,acido_inflamatorio <= 3 E mental_emocional_espiritual <= 4,Inflamação acompanhada de reatividade emocional sustentada,2,EXEMPLO-FORMATO,exemplo

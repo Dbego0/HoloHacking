@@ -1,0 +1,356 @@
+{
+  "caso": "exemplo-01",
+  "nota": "Caso FICTICIO, criado so para exercitar o motor. Nao e paciente real e nao e material clinico. Substituir pelos casos reais anonimizados do Rodrigo assim que chegarem.",
+  "paciente_pseudonimo": "P-0001",
+  "faixa_etaria": "35-44",
+  "respostas": [
+    {
+      "marcador_id": "SNT-101",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-102",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-103",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-104",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-105",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-106",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-107",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-108",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-109",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-110",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-111",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-201",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-202",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-203",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-204",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-205",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-206",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-207",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-208",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-209",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-210",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-301",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-302",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-303",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-304",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-305",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-306",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-307",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-308",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-309",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-310",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-401",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-402",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-403",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-404",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-405",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-406",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-407",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-408",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-409",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-410",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "SNT-501",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-502",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-503",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-504",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-505",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-506",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-507",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-508",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-509",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "SNT-510",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-101",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-102",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-103",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-201",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-202",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-203",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-204",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-301",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-302",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-303",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-401",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-402",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-403",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "EMO-501",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-502",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-503",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-504",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-505",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-506",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "EMO-507",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-101",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-102",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-103",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-201",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-202",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-203",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "ESP-301",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-302",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-303",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-401",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-402",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-403",
+      "intensidade": 3
+    },
+    {
+      "marcador_id": "ESP-404",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "ESP-405",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "ESP-501",
+      "intensidade": 1
+    },
+    {
+      "marcador_id": "ESP-502",
+      "intensidade": 1
+    }
+  ]
+}

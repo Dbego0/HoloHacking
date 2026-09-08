@@ -1,0 +1,6 @@
+chave,valor,observacao
+escala_max,3,"Escala de resposta do paciente: 0 nunca / 1 as vezes / 2 frequente / 3 sempre"
+indice_maximo,100,"Teto do Indice HOLOS: 0 a 100 (27/08). As notas por sistema seguem 0 a 10. Direcao: quanto maior melhor nos dois."
+indice_casas,0,Casas decimais do Indice HOLOS
+nota_casas,1,Casas decimais da nota por sistema
+peso_secundario_fator,1,"Peso do sistema_secundario de uma emocao em relacao ao primario. Decidido 27/08: mesmo peso."

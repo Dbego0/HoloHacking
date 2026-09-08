@@ -1,0 +1,21 @@
+id,emocao,padrao_emocional,sistema_primario,sistema_secundario,peso,pergunta,fonte,status
+EMO-101,desânimo para começar as coisas,estagnação,fungico,metabolico,3,Você adia começar coisas mesmo sabendo que precisa fazer?,material 11/08 (padrão do Fúngico: estagnação e desordem),rascunho
+EMO-102,sensação de vida bagunçada,desordem,fungico,,2,Você sente que sua vida está desorganizada e não consegue pôr ordem?,material 11/08 (padrão do Fúngico: estagnação e desordem),rascunho
+EMO-103,peso para sair do lugar,inércia,fungico,mental_emocional_espiritual,2,Você sente um peso para sair do lugar mesmo querendo mudar?,material 11/08 (padrão do Fúngico),rascunho
+EMO-201,irritação com coisas pequenas,reatividade,acido_inflamatorio,mental_emocional_espiritual,3,Você se irrita com facilidade por coisas pequenas?,material 11/08 (padrão do Ácido-Inflamatório: irritação e reatividade),rascunho
+EMO-202,raiva que sobe rápido,reatividade,acido_inflamatorio,,3,Sua raiva sobe rápido e demora a passar?,material 11/08 (padrão do Ácido-Inflamatório),rascunho
+EMO-203,dificuldade de dizer não,limite ausente,acido_inflamatorio,detox_linfatico,2,Você costuma aceitar o que não quer para evitar conflito?,material 11/08 (impacto espiritual: bloqueio no plexo solar),rascunho
+EMO-204,engolir o que gostaria de dizer,poder pessoal contido,acido_inflamatorio,,2,Você engole o que gostaria de dizer para não criar problema?,material 11/08 (impacto espiritual: bloqueio no plexo solar),rascunho
+EMO-301,sensação de vazio,falta de propósito,metabolico,mental_emocional_espiritual,3,Você sente um vazio que a comida parece tentar preencher?,material 11/08 (padrão do Metabólico: vazio e falta de propósito),rascunho
+EMO-302,vida no automático,ausência de sentido,metabolico,mental_emocional_espiritual,3,Você sente que sua vida está no automático sem um sentido claro?,livro p. 56 (Propósito de Vida e Nutrição),rascunho
+EMO-303,comida como recompensa,alimento no lugar do afeto,metabolico,,2,Você usa comida como recompensa depois de um dia difícil?,livro p. 90 (Trava da Resistência ao Prazer),rascunho
+EMO-401,mágoa antiga não resolvida,acúmulo,detox_linfatico,,3,Existe alguma mágoa que você carrega há anos?,material 11/08 (padrão do Detox: acúmulo de mágoas),rascunho
+EMO-402,emoção guardada sem processar,retenção emocional,detox_linfatico,mental_emocional_espiritual,3,Você costuma guardar o que sente em vez de falar?,material 11/08 (padrão do Detox: emoções não processadas),rascunho
+EMO-403,dificuldade de receber cuidado,não se permite receber,detox_linfatico,,2,Você tem dificuldade de aceitar ajuda ou cuidado das pessoas?,material 11/08 (padrão do Detox),rascunho
+EMO-501,autocrítica severa,narrativa interna hostil,mental_emocional_espiritual,,3,Você fala consigo mesmo de um jeito que não falaria com um amigo?,livro p. 92 (Reparentalização Nutricional),rascunho
+EMO-502,pensamento tudo ou nada,perfeição,mental_emocional_espiritual,metabolico,3,Se você sai da linha um dia você sente que perdeu tudo e abandona?,livro p. 89 (Trava da Perfeição),rascunho
+EMO-503,identidade fixa sobre si,identidade limitante,mental_emocional_espiritual,,3,Você se descreve com frases como sempre fui assim ou não tenho força de vontade?,livro p. 89 (Trava da Identidade Limitante),rascunho
+EMO-504,culpa depois de comer,vergonha alimentar,mental_emocional_espiritual,metabolico,3,Você sente culpa ou vergonha depois de comer?,livro p. 90 (Trava do Trauma Alimentar),rascunho
+EMO-505,corpo visto como adversário,desconexão de si,mental_emocional_espiritual,,3,Você sente que seu corpo trabalha contra você?,livro p. 91 (Trava da Desconexão Corpo-Mente),rascunho
+EMO-506,não se sente merecedor,crença de não merecimento,mental_emocional_espiritual,,3,Você sente que não merece as coisas boas que conquista?,livro p. 93 (voz interna e aceitação),rascunho
+EMO-507,desconexão de si mesmo,não se reconhece,mental_emocional_espiritual,,3,Você olha para sua vida hoje e se reconhece nela?,material 11/08 (padrão do Mental-Emocional: desconexão de si),rascunho

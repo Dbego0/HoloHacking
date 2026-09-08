@@ -1,0 +1,8 @@
+# O app e HTML/CSS/JS puro e nao tem build. O package.json existe so para a
+# suite de testes local — se a Vercel o enxergar, tenta instalar dependencia
+# (puppeteer-core, entre outras) e o deploy quebra sem motivo.
+package.json
+package-lock.json
+node_modules/
+testes/
+demo.js

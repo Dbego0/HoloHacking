@@ -1,0 +1,26 @@
+{
+  "name": "holos-motor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "L1 — motor de pontuacao deterministico do HOLOSCOPE, e a estrutura dos agentes L2/L3",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "validar": "node src/cli.ts validar",
+    "questionario": "node src/cli.ts questionario",
+    "demo": "node src/cli.ts pontuar casos/exemplo-01.json",
+    "determinismo": "node src/cli.ts determinismo casos/exemplo-01.json",
+    "teste": "node --test src/testes.ts",
+    "check": "node src/cli.ts validar && node --test src/testes.ts",
+    "bancos": "node ferramentas/gerar-bancos.mjs",
+    "bundle": "npm run bancos && esbuild src/navegador.ts --bundle --format=iife --global-name=HOLOSCOPE --loader:.json=json --target=es2020 --minify --outfile=../holoscope.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.121.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
