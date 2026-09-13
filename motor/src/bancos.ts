@@ -14,13 +14,16 @@
 import { lerCSV, type LinhaCSV } from './csv.ts';
 import type {
   Bancos, Config, Marcador, Sistema, Regra, Combinacao, Mensagem, Politica,
-  Faixa, Registro,
+  Chacra, Eixo, Territorio, Faixa, Registro, Escala, Sentido, TipoCombinacao,
 } from './tipos.ts';
 
 /** Os bancos como saem do CSV, antes de virar Bancos. */
 export interface BancosBrutos {
   config: LinhaCSV[];
   sistemas: LinhaCSV[];
+  chacras: LinhaCSV[];
+  territorios: LinhaCSV[];
+  eixos: LinhaCSV[];
   regras: LinhaCSV[];
   sintomas: LinhaCSV[];
   emocoes: LinhaCSV[];
@@ -40,6 +43,26 @@ function sinonimos(valor: string): string[] {
   return valor ? valor.split(';').map((s) => s.trim()).filter(Boolean) : [];
 }
 
+/**
+ * Coluna `escala` do banco. Vazia vale 'frequencia', que era o comportamento
+ * unico antes destas colunas existirem: banco antigo continua lendo igual.
+ * Valor escrito errado nao vira silenciosamente o padrao — validar.ts acusa.
+ */
+function escalaDe(valor: string): Escala {
+  return valor === 'intensidade' ? 'intensidade' : 'frequencia';
+}
+
+/** Chave liga/desliga de config.csv. Ausente vale ligado. */
+function ligado(valor: string | undefined): boolean {
+  if (valor === undefined || valor === '') return true;
+  return !/^(nao|não|n|0|false|off)$/i.test(valor.trim());
+}
+
+/** Coluna `sentido`. Vazia vale 'direto', o comportamento de sempre. */
+function sentidoDe(valor: string): Sentido {
+  return valor === 'invertido' ? 'invertido' : 'direto';
+}
+
 export function normalizarBancos(bruto: BancosBrutos): Bancos {
   // ---- config ----
   const chaves: Record<string, string> = {};
@@ -47,6 +70,11 @@ export function normalizarBancos(bruto: BancosBrutos): Bancos {
 
   const config: Config = {
     escala_max: num(chaves.escala_max ?? '3', 'escala_max', 'config.csv'),
+    aprofundar_a_partir_de: num(
+      chaves.aprofundar_a_partir_de ?? '2', 'aprofundar_a_partir_de', 'config.csv'
+    ),
+    mapa_frequencias_ativo: ligado(chaves.mapa_frequencias_ativo),
+    territorios_ativo: ligado(chaves.territorios_ativo),
     indice_maximo: num(chaves.indice_maximo ?? '10', 'indice_maximo', 'config.csv'),
     indice_casas: num(chaves.indice_casas ?? '0', 'indice_casas', 'config.csv'),
     nota_casas: num(chaves.nota_casas ?? '1', 'nota_casas', 'config.csv'),
@@ -62,7 +90,41 @@ export function normalizarBancos(bruto: BancosBrutos): Bancos {
     cor: l.cor,
     padrao_emocional: l.padrao_emocional,
     impacto_espiritual: l.impacto_espiritual,
+    definicao: l.definicao ?? '',
+    fonte_definicao: l.fonte_definicao ?? '',
+    status_definicao: l.status_definicao ?? '',
   }));
+
+  // ---- chacras ----
+  // Banco novo: bruto.chacras pode nem existir num pacote antigo.
+  const chacras: Chacra[] = (bruto.chacras ?? []).map((l) => ({
+    id: l.id,
+    nome: l.chacra,
+    leitura: l.leitura,
+    ordem: l.ordem ? num(l.ordem, 'ordem', 'chacras.csv') : 0,
+    fonte: l.fonte,
+    status: l.status,
+  }));
+
+  // ---- territorios do olhar ----
+  const territorios: Territorio[] = (bruto.territorios ?? []).map((l) => ({
+    id: l.id,
+    nome: l.territorio,
+    leitura: l.leitura,
+    ordem: l.ordem ? num(l.ordem, 'ordem', 'territorios.csv') : 0,
+    fonte: l.fonte,
+    status: l.status,
+  })).sort((a, b) => a.ordem - b.ordem);
+
+  // ---- eixos terapeuticos ----
+  const eixos: Eixo[] = (bruto.eixos ?? []).map((l) => ({
+    sistema: l.sistema,
+    eixo: l.eixo,
+    praticas: l.praticas,
+    ordem: l.ordem ? num(l.ordem, 'ordem', 'eixos.csv') : 0,
+    fonte: l.fonte,
+    status: l.status,
+  })).sort((a, b) => a.ordem - b.ordem);
 
   // ---- regras ----
   const regras = new Map<string, Regra>();
@@ -85,6 +147,9 @@ export function normalizarBancos(bruto: BancosBrutos): Bancos {
       sistema: l.sistema, peso: num(l.peso, 'peso', 'sintomas.csv'),
       fonte: l.fonte, status: l.status, sinonimos: sinonimos(l.sinonimos),
       secundario: false,
+      escala: escalaDe(l.escala), sentido: sentidoDe(l.sentido),
+      chacra: l.chacra || undefined, aprofundar: l.aprofundar || undefined,
+      territorio: l.territorio || undefined,
     });
   }
 
@@ -95,6 +160,9 @@ export function normalizarBancos(bruto: BancosBrutos): Bancos {
       sistema: l.sistema_primario, peso,
       fonte: l.fonte, status: l.status, sinonimos: [],
       padrao_emocional: l.padrao_emocional, secundario: false,
+      escala: escalaDe(l.escala), sentido: sentidoDe(l.sentido),
+      chacra: l.chacra || undefined, aprofundar: l.aprofundar || undefined,
+      territorio: l.territorio || undefined,
     });
     if (l.sistema_secundario) {
       marcadores.push({
@@ -102,6 +170,9 @@ export function normalizarBancos(bruto: BancosBrutos): Bancos {
         sistema: l.sistema_secundario, peso: peso * config.peso_secundario_fator,
         fonte: l.fonte, status: l.status, sinonimos: [],
         padrao_emocional: l.padrao_emocional, secundario: true,
+        escala: escalaDe(l.escala), sentido: sentidoDe(l.sentido),
+        chacra: l.chacra || undefined, aprofundar: l.aprofundar || undefined,
+        territorio: l.territorio || undefined,
       });
     }
   }
@@ -112,12 +183,18 @@ export function normalizarBancos(bruto: BancosBrutos): Bancos {
       sistema: l.sistema, peso: num(l.peso, 'peso', 'espiritual.csv'),
       fonte: l.fonte, status: l.status, sinonimos: [],
       dimensao: l.dimensao, leitura: l.leitura, secundario: false,
+      escala: escalaDe(l.escala), sentido: sentidoDe(l.sentido),
+      chacra: l.chacra || undefined, aprofundar: l.aprofundar || undefined,
+      territorio: l.territorio || undefined,
     });
   }
 
   // ---- combinacoes ----
   const combinacoes: Combinacao[] = bruto.combinacoes.map((l) => ({
     id: l.id, condicao: l.condicao, leitura: l.leitura,
+    // vazio vale 'leitura': banco antigo continua sendo lido igual
+    tipo: (l.tipo === 'encaminhar' ? 'encaminhar' : 'leitura') as TipoCombinacao,
+    investigar: l.investigar ?? '',
     prioridade: num(l.prioridade, 'prioridade', 'combinacoes.csv'),
     fonte: l.fonte, status: l.status,
   }));
@@ -135,15 +212,28 @@ export function normalizarBancos(bruto: BancosBrutos): Bancos {
     gravidade: l.gravidade as Politica['gravidade'], resposta: l.resposta,
   }));
 
-  return { config, sistemas, regras, marcadores, combinacoes, mensagens, politicas };
+  return { config, sistemas, chacras, territorios, eixos, regras, marcadores,
+           combinacoes, mensagens, politicas };
 }
 
-/** Perguntas unicas do questionario, na ordem: sintomas, emocoes, espiritual. */
+/**
+ * Perguntas unicas do questionario, na ordem: sintomas, emocoes, espiritual.
+ *
+ * Unicas por `id`: o mesmo marcador pode pesar em dois sistemas (e pesa), mas
+ * o paciente responde uma vez so. Perguntar duas vezes a mesma coisa nao da
+ * mais informacao — da duas respostas diferentes para o mesmo fato.
+ *
+ * `escala` e `sentido` vao junto porque a tela precisa deles: e a escala que
+ * decide quais quatro rotulos aparecem no botao.
+ */
 export function montarQuestionario(bancos: Bancos) {
   const vistos = new Set<string>();
   const ordem = { sintoma: 0, emocao: 1, espiritual: 2 } as const;
   return bancos.marcadores
     .filter((m) => { if (vistos.has(m.id)) return false; vistos.add(m.id); return true; })
     .sort((a, b) => ordem[a.origem] - ordem[b.origem] || a.id.localeCompare(b.id))
-    .map((m) => ({ id: m.id, origem: m.origem, rotulo: m.rotulo, pergunta: m.pergunta }));
+    .map((m) => ({
+      id: m.id, origem: m.origem, rotulo: m.rotulo, pergunta: m.pergunta,
+      escala: m.escala, sentido: m.sentido,
+    }));
 }

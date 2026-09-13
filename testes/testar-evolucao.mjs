@@ -8,6 +8,7 @@ const p = await nav.newPage(); await p.setViewport({width:1400,height:1200});
 const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
 await p.addStyleTag({content:'*{transition:none!important;animation:none!important}'});
+await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
 
 // primeira aplicacao
@@ -19,17 +20,25 @@ const uma = await p.evaluate((r) => {
            indice: document.getElementById('holo-score-total').textContent };
 }, caso.respostas);
 ok(uma.escondida, 'com uma aplicacao so, a evolucao nao aparece');
-ok(uma.indice === '42', 'primeira aplicacao: indice ' + uma.indice);
+ok(uma.indice === '43', 'primeira aplicacao: indice ' + uma.indice);
 
 // segunda aplicacao, 12 semanas depois e melhor
 const duas = await p.evaluate((r) => {
   // envelhece a primeira para setembro
   const t = JSON.parse(localStorage.getItem('holohacking.pontuacao'));
-  t._sem_paciente[0].quando = '2026-06-09';   // 12 semanas antes de hoje
+  const pid = window.pacienteAtivoId() || '_sem_paciente';
+  t[pid][0].quando = '2026-06-09';   // 12 semanas antes de hoje
   localStorage.setItem('holohacking.pontuacao', JSON.stringify(t));
-  // respostas melhores: metade da intensidade
-  const melhor = r.map(x => ({ marcador_id: x.marcador_id,
-                               intensidade: Math.max(0, x.intensidade - 2) }));
+  // respostas melhores: duas casas na direcao de MENOS carga. Nos marcadores
+  // invertidos essa direcao e para cima, nao para baixo.
+  const sentido = {};
+  HOLOSCOPE.questionario().forEach(q => { sentido[q.id] = q.sentido; });
+  const melhor = r.map(x => ({
+    marcador_id: x.marcador_id,
+    intensidade: sentido[x.marcador_id] === 'invertido'
+      ? Math.min(3, x.intensidade + 2)
+      : Math.max(0, x.intensidade - 2),
+  }));
   window.aplicarPontuacao(HOLOSCOPE.calcular(melhor));
   const e = document.getElementById('holo-evolucao');
   return {
@@ -39,7 +48,7 @@ const duas = await p.evaluate((r) => {
     frase: e.querySelector('.evo-frase')?.textContent.replace(/\s+/g,' ').trim(),
     linhas: [...e.querySelectorAll('.evo-linha')].map(x=>x.textContent.replace(/\s+/g,' ').trim()),
     poligonos: e.querySelectorAll('polygon').length,
-    historico: JSON.parse(localStorage.getItem('holohacking.pontuacao'))._sem_paciente.length,
+    historico: JSON.parse(localStorage.getItem('holohacking.pontuacao'))[pid].length,
   };
 }, caso.respostas);
 
@@ -55,7 +64,8 @@ console.log('    ' + duas.linhas.slice(0,3).join('\n    '));
 // reaplicar no mesmo dia nao cria uma terceira
 const mesmo = await p.evaluate((r) => {
   window.aplicarPontuacao(HOLOSCOPE.calcular(r));
-  return JSON.parse(localStorage.getItem('holohacking.pontuacao'))._sem_paciente.length;
+  const pid = window.pacienteAtivoId() || '_sem_paciente';
+  return JSON.parse(localStorage.getItem('holohacking.pontuacao'))[pid].length;
 }, caso.respostas);
 ok(mesmo === 2, 'reaplicar no mesmo dia substitui, nao acumula: ' + mesmo);
 

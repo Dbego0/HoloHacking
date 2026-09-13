@@ -53,7 +53,7 @@ ok(vivo === 2, 'sobrevivem a recarregar a pagina: ' + vivo);
 
 // o arquivo guardado e o mesmo que entrou
 const conteudo = await p.evaluate(async () => {
-  const itens = await window.ArquivoStore.listar('_sem_paciente');
+  const itens = await window.ArquivoStore.listar(window.pacienteAtivoId() || '_sem_paciente');
   const pdf = itens.find(i => /pdf/i.test(i.nome));
   const r = await window.ArquivoStore.pegar(pdf.id);
   return { mime: r.mime, texto: (await r.arquivo.text()).slice(0, 8) };

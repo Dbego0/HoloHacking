@@ -93,10 +93,6 @@
       "intensidade": 3
     },
     {
-      "marcador_id": "SNT-302",
-      "intensidade": 3
-    },
-    {
       "marcador_id": "SNT-303",
       "intensidade": 3
     },
@@ -122,10 +118,6 @@
     },
     {
       "marcador_id": "SNT-309",
-      "intensidade": 3
-    },
-    {
-      "marcador_id": "SNT-310",
       "intensidade": 3
     },
     {
@@ -194,7 +186,7 @@
     },
     {
       "marcador_id": "SNT-507",
-      "intensidade": 3
+      "intensidade": 0
     },
     {
       "marcador_id": "SNT-508",
@@ -281,20 +273,16 @@
       "intensidade": 3
     },
     {
-      "marcador_id": "EMO-506",
-      "intensidade": 3
-    },
-    {
       "marcador_id": "EMO-507",
-      "intensidade": 3
+      "intensidade": 0
     },
     {
       "marcador_id": "ESP-101",
-      "intensidade": 3
+      "intensidade": 0
     },
     {
       "marcador_id": "ESP-102",
-      "intensidade": 3
+      "intensidade": 0
     },
     {
       "marcador_id": "ESP-103",
@@ -302,11 +290,11 @@
     },
     {
       "marcador_id": "ESP-201",
-      "intensidade": 3
+      "intensidade": 0
     },
     {
       "marcador_id": "ESP-202",
-      "intensidade": 3
+      "intensidade": 0
     },
     {
       "marcador_id": "ESP-203",
@@ -314,11 +302,11 @@
     },
     {
       "marcador_id": "ESP-301",
-      "intensidade": 3
+      "intensidade": 0
     },
     {
       "marcador_id": "ESP-302",
-      "intensidade": 3
+      "intensidade": 0
     },
     {
       "marcador_id": "ESP-303",
@@ -346,7 +334,7 @@
     },
     {
       "marcador_id": "ESP-501",
-      "intensidade": 1
+      "intensidade": 2
     },
     {
       "marcador_id": "ESP-502",

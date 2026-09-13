@@ -2,11 +2,22 @@
 (function(){
   "use strict";
 
-  const SUPABASE_URL = "https://sywlqaxnceojkhfrprfy.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5d2xxYXhuY2VvamtoZnJwcmZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NjI0MzcsImV4cCI6MjEwMzIzODQzN30.-M8ivZ2tFcjV85DJXWvuNYJp-TOnCXWjnqF1i2gr4TA";
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  /* De onde vem e para onde vai todo dado de paciente.
+     Ver dados.js: hoje e o navegador, e a troca por Supabase e esta linha.
 
-  const estado = { pacientes: [], ativo: null };
+     Ate 13/09 aqui havia um cliente Supabase real, apontando para o projeto
+     sywlqaxnceojkhfrprfy com a chave anonima escrita no arquivo. O app nao
+     abria sem rede, cada rodada de teste cadastrava paciente num banco de
+     verdade, e o projeto continuava de pe sem ninguem ter decidido isso. As
+     linhas que ja estao la continuam la — nada foi apagado. */
+  const sb = window.DadosLocais;
+
+  const estado = { pacientes: [], ativo: null, carregado: false };
+
+  /* A pontuacao que esta na tela agora, quando ela veio do questionario.
+     Null quando a nutricionista esta pontuando a mao — e a diferenca importa
+     na hora de salvar: do questionario vem 6,7, da regua vem 7. */
+  let pontuacaoNaTela = null;
 
   const vazioOQ3 = () => ({ data_consulta:"", quer:"", precisa:"", consegue:"", alavancas:"" });
   const vazioPQQ = () => ({ objetivo:"", r1:"", r2:"", r3:"", r4:"", r5:"", verdadeiro:"" });
@@ -152,7 +163,7 @@
   $$("[data-ir]").forEach(c => c.addEventListener("click", () => irPara(c.dataset.ir)));
 
   /* ============================================================
-     SUPABASE: CARREGAR DADOS
+     CARREGAR OS DADOS  (de onde, ver dados.js)
   ============================================================ */
   async function carregarTudo(){
     const [resPac, resOq3, resPqq, resHolo] = await Promise.all([
@@ -161,7 +172,10 @@
       sb.from("pqq").select("*").order("created_at", { ascending: false }),
       sb.from("holoscope").select("*").order("created_at", { ascending: false })
     ]);
-    if(resPac.error){ toast("Erro ao carregar pacientes."); return; }
+    // Mesmo dando errado a carga terminou: quem espera por ela nao pode
+    // ficar preso em "carregando" para sempre.
+    estado.carregado = true;
+    if(resPac.error){ toast("Erro ao carregar pacientes."); avisarTrocaDePaciente(); return; }
 
     const oq3Map = {}, pqqMap = {}, holoMap = {};
     (resOq3.data || []).forEach(o => { if(!oq3Map[o.paciente_id]) oq3Map[o.paciente_id] = o; });
@@ -180,6 +194,15 @@
     atualizarSeletores();
     carregarFormularios();
     carregarHoloscope();
+    // Ate esta linha nao se sabia de quem era a tela. As ferramentas que
+    // guardam por paciente precisam ser avisadas de que agora se sabe —
+    // sem isto, o que foi respondido antes da lista chegar fica gravado
+    // debaixo de uma chave e procurado debaixo de outra.
+    avisarTrocaDePaciente();
+  }
+
+  function avisarTrocaDePaciente(){
+    if(typeof window.aoTrocarPaciente === "function") window.aoTrocarPaciente();
   }
 
   /* ============================================================
@@ -203,11 +226,21 @@
     carregarHoloscope();
     renderizarMapa();
     // as 30 ferramentas guardam por paciente; formulario.js precisa saber
-    if(typeof window.aoTrocarPaciente === "function") window.aoTrocarPaciente();
+    avisarTrocaDePaciente();
   }
 
   // o que formulario.js enxerga daqui de dentro
   window.pacienteAtivoId = () => estado.ativo || null;
+  // false enquanto a lista de pacientes nao voltou do banco. Quem guarda por
+  // paciente tem que esperar por isto antes de gravar a primeira resposta.
+  window.pacientesCarregados = () => estado.carregado;
+  // O dashboard precisa da carteira inteira, nao so de quem esta ativo.
+  window.pacientesTodos = () => estado.pacientes.slice();
+  /* E precisa poder levar a nutricionista ate o paciente: escolher quem esta
+     ativo e abrir a tela certa sao dois gestos, e o dashboard faz os dois. */
+  window.definirPacienteAtivo = (id) => definirAtivo(id);
+  window.irParaSecao = (secao) => irPara(secao);
+  window.abrirFichaDe = (id) => abrirFicha(id);
   window.pacienteAtivoNome = () => {
     const p = pacienteAtivo();
     return p ? p.nome : null;
@@ -523,13 +556,19 @@
     // e o maximo 100; se o Rodrigo mudar um peso, a tela mentiria calada.
     // com a Pontuacao pronta, o indice e o dela; sem ela, pede ao motor
     const total = pronta ? pronta.indice : indiceDoMotor(scores);
-    $("#holo-score-total").textContent = total;
+
+    /* Paciente sem mapa nenhum mostrava "0 de 100" — que numa escala onde 100
+       e o melhor se le como o pior resultado possivel. Quem acabou de ser
+       cadastrado nao esta mal: esta por avaliar. */
+    const semMapa = !pronta && scores.every(s => s === 0) && !temMapaSalvo();
+    $("#holo-score-total").textContent = semMapa ? "—" : total;
 
     // A escala e 10 = muito bom, decisao registrada no motor. Estava invertida
     // aqui: antes, indice alto era diagnosticado como estado grave. Duas partes
     // do mesmo produto mediam ao contrario.
     let msg = "Pontue os sistemas para gerar a leitura.";
-    if(total === 0) msg = "Pontue os sistemas para gerar a leitura.";
+    if(semMapa) msg = "Aplique o questionário ou pontue os cinco sistemas à mão para gerar a leitura.";
+    else if(total === 0) msg = "Estado crônico de ameaça. Abordagem integrativa prioritária: corpo, mente e espírito.";
     else if(total < 40) msg = "Estado crônico de ameaça. Abordagem integrativa prioritária: corpo, mente e espírito.";
     else if(total < 60) msg = "Desequilíbrios significativos. Conduta nutricional recomendada.";
     else if(total < 80) msg = "Desequilíbrios moderados. Atenção aos sistemas de nota mais baixa.";
@@ -540,55 +579,107 @@
 
 
   /* ------------------------------------------------------------------------
+     TERRITORIOS DO OLHAR — o que foi perguntado, e o que ficou de fora
+
+     O metodo organiza o paciente em corpo, mente, emocoes, comportamento,
+     sistema nervoso, ambiente e historia. A promessa nao e outra nota: e
+     "ampliar e organizar o olhar" — e o que isso pede da ferramenta e mostrar
+     onde NAO se olhou. Territorio declarado sem nenhuma pergunta apontando
+     para ele nao e territorio equilibrado: e buraco.
+     --------------------------------------------------------------------- */
+
+  function desenharTerritorios(territorios){
+    const caixa = $("#holo-territorios");
+    if(!caixa) return;
+    if(!territorios || territorios.length === 0){
+      caixa.classList.add("hidden");
+      caixa.innerHTML = "";
+      return;
+    }
+
+    const vazios = territorios.filter(t => t.respondidos === 0);
+    const linhas = territorios.map(t => {
+      const semDado = t.respondidos === 0;
+      return '<li class="terr-linha' + (semDado ? " sem-dado" : "") + '">'
+        + '<span class="terr-nome">' + t.territorio
+        + (t.leitura ? '<i>' + t.leitura + "</i>" : "") + "</span>"
+        + '<span class="terr-conta">'
+        + (semDado ? "nenhuma pergunta"
+                   : t.respondidos + " de " + t.total + " respondidas")
+        + "</span>"
+        + '<span class="terr-nota">' + (t.nota === null ? "—" : t.nota.toFixed(1)) + "</span>"
+        + "</li>";
+    }).join("");
+
+    caixa.innerHTML =
+      '<div class="terr-cabeca"><span class="eyebrow">O que você olhou</span>'
+      + "<p>Os territórios do método. A nota é do que pontua; o que importa aqui "
+      + "é o que ficou sem pergunta.</p></div>"
+      + '<ul class="terr-lista">' + linhas + "</ul>"
+      + (vazios.length
+          ? '<p class="terr-buraco"><b>' + vazios.length
+            + (vazios.length === 1 ? " território" : " territórios")
+            + " sem nenhuma pergunta:</b> "
+            + vazios.map(t => t.territorio).join(", ")
+            + ". Não é equilíbrio — é o que o questionário ainda não alcança.</p>"
+          : '<p class="terr-buraco ok">Todos os territórios foram perguntados.</p>');
+    caixa.classList.remove("hidden");
+  }
+
+  /* ------------------------------------------------------------------------
+     MAPA DE FREQUENCIAS — nota por chacra
+
+     A quinta subferramenta do material. Nao tem pergunta propria: e um
+     segundo recorte das mesmas respostas, pela coluna "chacra" de cada
+     marcador. Quem agrupa e o motor; aqui so se desenha o que ele devolveu.
+
+     Enquanto chacras.csv estiver vazio isto nao aparece — e a tela diz "em
+     construcao" em vez de mostrar um quadro vazio com ar de resultado.
+     --------------------------------------------------------------------- */
+
+  function desenharFrequencias(frequencias){
+    const caixa = $("#holo-frequencias");
+    if(!caixa) return;
+    if(!frequencias || frequencias.length === 0){
+      caixa.classList.add("hidden");
+      caixa.innerHTML = "";
+      return;
+    }
+
+    // o motor ja devolve do mais travado para o mais livre
+    const travado = frequencias[0];
+    const linhas = frequencias.map(f =>
+      '<li class="freq-linha' + (f === travado ? " travado" : "") + '">'
+      + '<span class="freq-nome">' + f.chacra
+      + (f.leitura ? '<i>' + f.leitura + "</i>" : "") + "</span>"
+      + '<span class="freq-trilho"><b style="width:' + (f.nota * 10) + '%"></b></span>'
+      + '<span class="freq-nota">' + f.nota.toFixed(1) + "</span></li>").join("");
+
+    caixa.innerHTML =
+      '<div class="freq-cabeca"><span class="eyebrow">Mapa de Frequências</span>'
+      + "<p>10 = fluindo. Lido das mesmas respostas do questionário.</p></div>"
+      + '<ul class="freq-lista">' + linhas + "</ul>"
+      + '<p class="freq-leitura">Mais travado: <b>' + travado.chacra + "</b>"
+      + (travado.leitura ? " &middot; " + travado.leitura : "") + ".</p>";
+    caixa.classList.remove("hidden");
+  }
+
+  /* ------------------------------------------------------------------------
      LEITURA DO TERRENO
+
      O material promete que o HOLOSCOPE nao devolve so sintoma fisico, mas o
      padrao emocional e o impacto espiritual de cada sistema — e uma direcao
      terapeutica. A tela mostrava so o numero. Isto preenche o resto.
 
-     Os padroes vem literais do material do Rodrigo. O roteamento sistema ->
-     eixo terapeutico e leitura minha das tres listas que ele escreveu
-     (Neuroregulacao, Reprogramacao Metabolica, Inteligencia Espiritual) e
-     precisa da revisao dele antes de ir a paciente.
-     --------------------------------------------------------------------- */
+     Ate 13/09 tudo isto era um objeto escrito a mao aqui dentro, e ele ja
+     tinha divergido do banco: sistemas.csv dizia "irritacao e reatividade" e
+     o codigo dizia "irritacao, raiva, reatividade". Duas copias da mesma
+     frase, e a que aparecia para a paciente era a que o Rodrigo nao alcanca.
 
-  const TERRENO = {
-    fungico: {
-      nome: "Sistema Fúngico",
-      emocional: "estagnacao e desordem",
-      espiritual: "perda de vitalidade e clareza",
-      eixos: [["Reprogramação Metabólica", "microbiota, anti-inflamatório, nutrientes"],
-              ["Inteligência Espiritual", "práticas contemplativas, consciência"]]
-    },
-    inflamatorio: {
-      nome: "Sistema Ácido-Inflamatório",
-      emocional: "irritação, raiva, reatividade",
-      espiritual: "bloqueio no plexo solar",
-      eixos: [["Reprogramação Metabólica", "anti-inflamatório, detoxificação"],
-              ["Neuroregulação", "estratégias vagais, respiração"]]
-    },
-    metabolico: {
-      nome: "Sistema Metabólico",
-      emocional: "vazio, falta de propósito",
-      espiritual: "dessintonização do corpo como templo",
-      eixos: [["Reprogramação Metabólica", "metabolismo, suplementação, nutrientes"],
-              ["Neuroregulação", "dopamina natural, sono"],
-              ["Inteligência Espiritual", "propósito, autopercepção"]]
-    },
-    detox: {
-      nome: "Sistema Detox + Linfático",
-      emocional: "acúmulo de mágoas, emoções não processadas",
-      espiritual: "bloqueio do fluxo",
-      eixos: [["Reprogramação Metabólica", "detoxificação, microbiota"],
-              ["Neuroregulação", "respiração, grounding"]]
-    },
-    mental: {
-      nome: "Sistema Mental-Emocional-Espiritual",
-      emocional: "desconexão de si",
-      espiritual: "queda de frequência geral",
-      eixos: [["Neuroregulação", "estratégias vagais, sono, mindfulness"],
-              ["Inteligência Espiritual", "coerência interna, journaling, consciência"]]
-    }
-  };
+     Agora nada disto vive aqui:
+       nome, padrao emocional, impacto espiritual  ->  bancos/sistemas.csv
+       os tres eixos terapeuticos e suas praticas  ->  bancos/eixos.csv
+     --------------------------------------------------------------------- */
 
   // As chaves do motor sao as dos bancos; as da tela sao abreviadas.
   const CHAVE_MOTOR = {
@@ -598,6 +689,38 @@
     detox: "detox_linfatico",
     mental: "mental_emocional_espiritual"
   };
+
+  /* O terreno dos cinco sistemas, montado dos bancos uma vez. Se o motor nao
+     carregou, devolve vazio: a tela mostra a nota e omite a leitura, em vez
+     de inventar texto. */
+  let terrenoCache = null;
+  function terreno(){
+    if(terrenoCache) return terrenoCache;
+    const saida = {};
+    let doMotor = [], todosEixos = [];
+    try {
+      if(window.HOLOSCOPE){
+        doMotor = window.HOLOSCOPE.sistemas ? window.HOLOSCOPE.sistemas() : [];
+        todosEixos = window.HOLOSCOPE.eixos ? window.HOLOSCOPE.eixos() : [];
+      }
+    } catch(e){ console.error("motor:", e); }
+
+    sistemas.forEach(chave => {
+      const id = CHAVE_MOTOR[chave];
+      const s = doMotor.find(x => x.id === id);
+      if(!s) return;
+      saida[chave] = {
+        nome: s.nome,
+        definicao: s.definicao,
+        rascunho: s.status_definicao !== "confirmado",
+        emocional: s.padrao_emocional,
+        espiritual: s.impacto_espiritual,
+        eixos: todosEixos.filter(e => e.sistema === id).map(e => [e.eixo, e.praticas])
+      };
+    });
+    if(doMotor.length) terrenoCache = saida;   // so guarda se veio do motor
+    return saida;
+  }
 
   function notasParaMotor(scores){
     const notas = {};
@@ -718,16 +841,23 @@
 
     // as duas notas mais baixas: e por onde a conduta comeca
     const ordem = sistemas
-      .map((s, i) => ({ chave: s, nota: scores[i], dado: TERRENO[s] }))
+      .map((s, i) => ({ chave: s, nota: scores[i], dado: terreno()[s] }))
       .sort((a, b) => a.nota - b.nota);
     const criticos = ordem.slice(0, 2);
 
     let html = '<h4 class="leitura-titulo">O terreno por tras do numero</h4>';
     html += '<div class="leitura-sistemas">';
     for(const c of criticos){
+      /* A definicao vem primeiro: antes de dizer o padrao emocional, a tela
+         diz o que o sistema e. Enquanto ela for rascunho, aparece marcada —
+         quem le precisa saber que aquilo ainda nao passou pelo autor. */
       html += '<div class="leitura-sistema">'
             + '<div class="leitura-cabeca"><b>' + c.dado.nome + '</b>'
             + '<span class="leitura-nota">' + c.nota.toFixed(1) + '</span></div>'
+            + (c.dado.definicao
+                ? '<p class="leitura-definicao">' + c.dado.definicao
+                  + (c.dado.rascunho ? '<i>definição em revisão</i>' : "") + '</p>'
+                : "")
             + '<p><em>padrão emocional</em>' + c.dado.emocional + '</p>'
             + '<p><em>impacto espiritual</em>' + c.dado.espiritual + '</p>'
             + '</div>';
@@ -743,18 +873,63 @@
         eixos.set(nome, atual);
       }
     }
-    // LEITURAS COMBINADAS — vem do motor, nao daqui.
-    // combinacoes.csv e avaliado contra as cinco notas. Enquanto nao existe a
-    // tela do questionario, e a nutricionista quem pontua; a leitura ja e do
-    // banco do metodo.
+    /* O QUE A COMBINACAO DIZ — vem do motor, nao daqui.
+
+       Duas coisas mudaram de nome e de peso aqui, e as duas sao do metodo:
+
+       1. "Leitura combinada" virou HIPOTESE. O metodo e explicito: o HOLOSCOPE
+          nao interpreta sintoma como diagnostico definitivo. O que o
+          cruzamento devolve e algo a investigar, e a tela passa a dizer o que
+          conferir antes de concluir.
+
+       2. Combinacao com tipo=encaminhar nao e leitura clinica: e o sistema
+          reconhecendo que aquilo sai do escopo da nutricao. Vai em bloco
+          proprio, na frente de tudo. */
     const combinadas = pronta ? pronta.combinacoes : combinacoesDoMotor(scores);
-    if(combinadas.length > 0){
-      html += '<h4 class="leitura-titulo">Leitura combinada</h4><div class="leitura-combinadas">';
-      for(const c of combinadas){
-        html += '<div class="leitura-combinada"><b>' + c.leitura + '</b>'
+    const encaminhar = combinadas.filter(c => c.tipo === "encaminhar");
+    const hipoteses  = combinadas.filter(c => c.tipo !== "encaminhar");
+
+    if(encaminhar.length > 0){
+      html += '<h4 class="leitura-titulo alerta">Fora do escopo da nutrição</h4>'
+            + '<div class="leitura-encaminhar">';
+      for(const c of encaminhar){
+        html += '<div class="leitura-item"><b>' + c.leitura + '</b>'
+              + (c.investigar ? '<em>' + c.investigar + '</em>' : "")
               + '<span>' + c.id + ' &middot; ' + c.condicao + '</span></div>';
       }
       html += '</div>';
+    }
+
+    if(hipoteses.length > 0){
+      html += '<h4 class="leitura-titulo">Hipótese a investigar</h4>'
+            + '<div class="leitura-combinadas">';
+      for(const c of hipoteses){
+        html += '<div class="leitura-combinada"><b>' + c.leitura + '</b>'
+              + (c.investigar
+                  ? '<em class="leitura-investigar">Conferir antes de concluir: '
+                    + c.investigar + '</em>'
+                  : "")
+              + '<span>' + c.id + ' &middot; ' + c.condicao + '</span></div>';
+      }
+      html += '</div>';
+    }
+
+    /* APROFUNDAR — o passo 4 do metodo.
+       "O HOLOSCOPE nao e uma lista de perguntas": o que separa formulario de
+       anamnese e a pergunta que vem DEPOIS da resposta alta. O motor devolve
+       as que foram ganhas; se nenhum marcador tem a coluna preenchida, isto
+       simplesmente nao aparece. */
+    const aprofundar = pronta && pronta.aprofundamentos ? pronta.aprofundamentos : [];
+    if(aprofundar.length > 0){
+      html += '<h4 class="leitura-titulo">Para aprofundar na consulta</h4>'
+            + '<p class="leitura-nota">Pelo que pesou mais. A resposta alta abre a '
+            + 'pergunta seguinte — é onde o mapa vira conversa.</p>'
+            + '<ol class="leitura-aprofundar">';
+      for(const a of aprofundar){
+        html += '<li><span class="apro-de">' + a.rotulo + '</span>'
+              + '<b>' + a.pergunta + '</b></li>';
+      }
+      html += '</ol>';
     }
 
     html += '<h4 class="leitura-titulo">Direcao terapeutica</h4><div class="leitura-eixos">';
@@ -854,34 +1029,54 @@
     window.desenharPontuacao(r);
   };
 
-  window.desenharPontuacao = function(r){
+  window.desenharPontuacao = function(r, restaurando){
+    pontuacaoNaTela = r;        // e daqui que "Salvar HOLOSCOPE" tira os decimais
     // as notas na ordem que a tela usa
     const porSistema = {};
     r.sistemas.forEach(s => { porSistema[s.sistema] = s.nota; });
     const notas = ORDEM_MOTOR.map(id => porSistema[id] ?? 0);
 
+    // Sistema que nao recebeu nenhuma resposta nao tem nota — e a tela diz
+    // isso com um traco. Mostrar o 10 que a conta devolve seria anunciar
+    // equilibrio onde so ha ausencia de dado.
+    const semDado = {};
+    r.sistemas.forEach(s => { if(!s.avaliavel) semDado[s.sistema] = true; });
+
     sistemas.forEach((s, i) => {
       const el = $("#holo-" + s);
+      const vazio = semDado[ORDEM_MOTOR[i]];
       el.value = Math.round(notas[i]);
       el.disabled = true;                       // virou resultado, nao entrada
       el.closest(".holo-card").classList.add("calculado");
-      $("#val-" + s).textContent = notas[i].toFixed(1);
+      el.closest(".holo-card").classList.toggle("sem-dado", !!vazio);
+      $("#val-" + s).textContent = vazio ? "—" : notas[i].toFixed(1);
     });
 
     updateRadar(notas, r);                      // desenha com o decimal, nao com o arredondado
     desenharTriada(r.triada);
+    desenharFrequencias(r.frequencias);
+    desenharTerritorios(r.territorios);
     if(window.redesenharEvolucao) window.redesenharEvolucao();
 
     $("#holo-score-total").textContent = r.indice;
+
+    const faltando = r.sistemas.filter(s => !s.avaliavel).map(s => s.nome);
     $("#holo-origem").innerHTML =
-      "Calculado a partir de <b>" + r.cobertura.respondidos + "</b> respostas"
+      "Calculado a partir de <b>" + r.cobertura.respondidos + "</b> de "
+      + r.cobertura.total + " respostas"
       + (r.cobertura.percentual < 100
-          ? ' &middot; cobertura ' + r.cobertura.percentual + '%'
+          ? ' &middot; <b class="holo-parcial">questionário incompleto ('
+            + r.cobertura.percentual + '%)</b>'
           : "")
-      + ' &middot; <button type="button" class="btn-relink" id="btn-repontuar">pontuar à mão</button>';
+      + ' &middot; <button type="button" class="btn-relink" id="btn-repontuar">pontuar à mão</button>'
+      + (faltando.length
+          ? '<span class="holo-sem-dado">Sem resposta nenhuma em: ' + faltando.join(", ")
+            + '. Estes sistemas ficaram fora do Índice.</span>'
+          : "");
 
     const rel = $("#btn-repontuar");
     if(rel) rel.addEventListener("click", () => {
+      pontuacaoNaTela = null;   // a partir daqui quem manda e a regua
       sistemas.forEach(s => {
         const el = $("#holo-" + s);
         el.disabled = false;
@@ -890,10 +1085,15 @@
       });
       $("#holo-origem").textContent = "";
       desenharTriada(null);   // pontuando a mao nao ha Triada: ela vem das respostas
+      desenharFrequencias(null);
+      desenharTerritorios(null);
       updateRadar(sistemas.map(s => parseInt($("#holo-" + s).value) || 0));
     });
 
-    // o questionario fecha; o mapa e o que importa agora
+    // Acabou de calcular: o questionario fecha, o mapa e o que importa agora.
+    // Restaurando o mapa de outro paciente, nao — quem estava no meio do
+    // questionario continua nele, agora com as perguntas do novo paciente.
+    if(restaurando) return;
     const q = document.getElementById("holoscope-questionario");
     const m = document.getElementById("holoscope-manual");
     if(q && m){ q.classList.add("hidden"); m.classList.remove("hidden"); }
@@ -981,14 +1181,57 @@
     caixa.classList.remove("hidden");
   }
 
+  /* Este paciente ja tem um HOLOSCOPE gravado?
+     A ficha vazia vem de vazioHolo(), que nao tem id; a linha que veio do
+     banco tem. E o que separa "nota zero" de "mapa nenhum". */
+  function temMapaSalvo(){
+    const p = pacienteAtivo();
+    return !!(p && p.holoscope && p.holoscope.id);
+  }
+
   function carregarHoloscope(){
     const p = pacienteAtivo();
     const h = p ? p.holoscope : vazioHolo();
+    pontuacaoNaTela = null;                 // trocou de paciente, trocou o mapa
+
+    /* Tudo o que a tela mostrava pertencia ao paciente anterior. A Triada e a
+       linha de origem nao eram apagadas aqui: abrir a Carla logo depois da
+       Marina mostrava a Triada da Marina, com o nome da Carla no seletor.
+       Numa ferramenta clinica isso nao e um detalhe de interface. */
+    desenharTriada(null);
+    desenharFrequencias(null);
+    desenharTerritorios(null);
+    const origem = $("#holo-origem");
+    if(origem) origem.innerHTML = "";
+
+    // a evolucao e por paciente: quem nao tem duas aplicacoes nao mostra nada
+    if(window.redesenharEvolucao) window.redesenharEvolucao();
+
+    /* O mapa que este paciente realmente tem.
+
+       Havia dois lugares guardando a mesma coisa: o historico de pontuacao,
+       gravado sozinho quando o questionario e aplicado, e a linha `holoscope`,
+       gravada so quando alguem aperta "Salvar HOLOSCOPE". Esta tela lia a
+       segunda e a ficha lia a primeira — entao aplicar o questionario, trocar
+       de paciente e voltar deixava a ficha dizendo "Indice 43" e o HOLOSCOPE
+       dizendo que nao havia mapa. O historico e mais rico (tem os decimais, a
+       Triada e as combinacoes), entao e ele que manda. */
+    const ultima = p && window.ultimaPontuacao ? window.ultimaPontuacao(p.id) : null;
+    if(ultima){ window.desenharPontuacao(ultima, true); return; }
+
     const ids = ["holo-fungico","holo-inflamatorio","holo-metabolico","holo-detox","holo-mental"];
     const vals = [h.sistema_fungico||0, h.sistema_acido_inflamatorio||0, h.sistema_metabolico||0, h.sistema_detox_linfatico||0, h.sistema_mental_emocional||0];
     ids.forEach((id, i) => {
-      $("#" + id).value = vals[i];
-      $("#val-" + sistemas[i]).textContent = vals[i];
+      const el = $("#" + id);
+      // a regua anda de um em um; o numero ao lado guarda o decimal que veio
+      // do motor, senao 6,7 vira 7 so por ter passado por aqui
+      el.value = Math.round(vals[i]);
+      // depois de um calculo as reguas ficam travadas. Sem destravar aqui, o
+      // paciente seguinte nao podia ser pontuado a mao.
+      el.disabled = false;
+      el.closest(".holo-card").classList.remove("calculado", "sem-dado");
+      $("#val-" + sistemas[i]).textContent = Number.isInteger(vals[i])
+        ? String(vals[i]) : vals[i].toFixed(1);
     });
     updateRadar(vals);
   }
@@ -997,6 +1240,7 @@
     const input = $("#holo-" + s);
     const valEl = $("#val-" + s);
     input.addEventListener("input", () => {
+      pontuacaoNaTela = null;   // mexeu na regua, o mapa nao e mais o do motor
       valEl.textContent = input.value;
       const scores = sistemas.map(s2 => parseInt($("#holo-" + s2).value) || 0);
       updateRadar(scores);
@@ -1007,8 +1251,24 @@
     const p = pacienteAtivo();
     if(!p){ toast("Selecione um paciente para salvar o HOLOSCOPE."); return; }
 
-    const scores = sistemas.map(s => parseInt($("#holo-" + s).value) || 0);
-    const total = Math.round(scores.reduce((a, b) => a + b, 0) * 2);
+    /* Duas coisas que estavam erradas aqui, e as duas apareciam juntas:
+
+       1. o total era "soma das reguas x 2", escrito a mao. Com as notas
+          6,7 / 6,7 / 0,8 / 6,7 / 0,7 a tela mostrava Indice 43 e o toast
+          dizia "Score: 46" — porque a regua arredonda antes de somar. Duas
+          contas para o mesmo numero sempre terminam assim. O motor expoe
+          indiceDeNotas() justamente para nao existir uma segunda.
+
+       2. o que ia para a ficha eram as reguas arredondadas, entao reabrir
+          um mapa salvo devolvia 7 onde o motor tinha calculado 6,7. */
+    const scores = pontuacaoNaTela
+      ? ORDEM_MOTOR.map(id => {
+          const s = pontuacaoNaTela.sistemas.find(x => x.sistema === id);
+          return s ? s.nota : 0;
+        })
+      : sistemas.map(s => parseInt($("#holo-" + s).value) || 0);
+
+    const total = pontuacaoNaTela ? pontuacaoNaTela.indice : indiceDoMotor(scores);
 
     const dados = {
       paciente_id: p.id,

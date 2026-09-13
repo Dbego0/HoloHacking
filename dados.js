@@ -1,0 +1,207 @@
+/* ===========================================================================
+   DADOS — a camada de persistencia do app
+   ===========================================================================
+
+   Hoje guarda no navegador. Amanha guarda no Supabase. O resto do app nao
+   sabe a diferenca, e e esse o ponto.
+
+   O app.js falava direto com um cliente Supabase real, com URL e chave
+   escritas nele — e app.js e servido aberto para quem abrir a pagina. Isso
+   queria dizer tres coisas que ninguem tinha pedido: nao dava para trabalhar
+   sem rede, cada rodada de teste gravava paciente num banco de verdade, e a
+   credencial estava publicada.
+
+   Este arquivo implementa o PEDACO da interface do Supabase que o app usa —
+   exatamente tres chamadas, nem uma a mais:
+
+     from(tabela).select("*").order(coluna, { ascending })   ->  { data, error }
+     from(tabela).insert(obj).select().single()              ->  { data, error }
+     from(tabela).delete().eq("id", id)                      ->  { data, error }
+
+   Trocar por Supabase de verdade e trocar a linha que define `sb` no app.js.
+   Nenhuma tela muda, nenhuma funcao muda. Se um dia este arquivo precisar de
+   uma quarta operacao, e sinal de que o app cresceu — e ela entra aqui, nao
+   espalhada pelas telas.
+
+   NAO guarda arquivo: exame em PDF e foto de laudo vivem no IndexedDB, em
+   arquivo-store.js, porque localStorage nao aguenta binario.
+   =========================================================================== */
+
+(function () {
+  "use strict";
+
+  var PREFIXO = "holohacking.dados.";
+  var TABELAS = ["pacientes", "oq3", "pqq", "holoscope"];
+
+  /* ---------- o disco de hoje ------------------------------------------- */
+
+  function ler(tabela) {
+    try {
+      var cru = localStorage.getItem(PREFIXO + tabela);
+      var v = cru ? JSON.parse(cru) : [];
+      return Array.isArray(v) ? v : [];
+    } catch (e) {
+      // Navegador anonimo, cota estourada, JSON corrompido: devolver lista
+      // vazia e melhor do que derrubar a tela inteira.
+      return [];
+    }
+  }
+
+  function escrever(tabela, linhas) {
+    try {
+      localStorage.setItem(PREFIXO + tabela, JSON.stringify(linhas));
+      return null;
+    } catch (e) {
+      return { message: "não foi possível gravar neste navegador (" + e.name + ")" };
+    }
+  }
+
+  function novoId() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    // Fallback para navegador antigo ou pagina servida sem https.
+    return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
+  /* ---------- a consulta -------------------------------------------------
+
+     Acumula o que foi pedido e so executa quando alguem espera o resultado.
+     E o que permite escrever a chamada na mesma ordem do Supabase.          */
+
+  function Consulta(tabela) {
+    this.tabela = tabela;
+    this.acao = null;        // "select" | "insert" | "delete"
+    this.valores = null;
+    this.ordem = null;
+    this.filtro = null;
+    this.umSo = false;
+  }
+
+  Consulta.prototype.select = function () {
+    // Depois de insert(), .select() so diz "me devolva a linha gravada".
+    if (this.acao !== "insert") this.acao = "select";
+    return this;
+  };
+
+  Consulta.prototype.order = function (coluna, opcoes) {
+    this.ordem = { coluna: coluna, crescente: !!(opcoes && opcoes.ascending) };
+    return this;
+  };
+
+  Consulta.prototype.insert = function (valores) {
+    this.acao = "insert";
+    this.valores = valores;
+    return this;
+  };
+
+  Consulta.prototype.delete = function () {
+    this.acao = "delete";
+    return this;
+  };
+
+  Consulta.prototype.eq = function (coluna, valor) {
+    this.filtro = { coluna: coluna, valor: valor };
+    return this;
+  };
+
+  Consulta.prototype.single = function () {
+    this.umSo = true;
+    return this;
+  };
+
+  Consulta.prototype.executar = function () {
+    var linhas = ler(this.tabela);
+
+    if (this.acao === "insert") {
+      var linha = {};
+      for (var k in this.valores) {
+        if (Object.prototype.hasOwnProperty.call(this.valores, k)) linha[k] = this.valores[k];
+      }
+      linha.id = linha.id || novoId();
+      linha.created_at = linha.created_at || new Date().toISOString();
+      linhas.push(linha);
+      var erroEscrita = escrever(this.tabela, linhas);
+      if (erroEscrita) return { data: null, error: erroEscrita };
+      return { data: this.umSo ? linha : [linha], error: null };
+    }
+
+    if (this.acao === "delete") {
+      var f = this.filtro;
+      var sobraram = f
+        ? linhas.filter(function (l) { return l[f.coluna] !== f.valor; })
+        : [];
+      var erroApagar = escrever(this.tabela, sobraram);
+      if (erroApagar) return { data: null, error: erroApagar };
+      return { data: null, error: null };
+    }
+
+    // select
+    var saida = linhas.slice();
+    if (this.filtro) {
+      var g = this.filtro;
+      saida = saida.filter(function (l) { return l[g.coluna] === g.valor; });
+    }
+    if (this.ordem) {
+      var col = this.ordem.coluna;
+      var sinal = this.ordem.crescente ? 1 : -1;
+      saida.sort(function (a, b) {
+        var x = a[col], y = b[col];
+        if (x === y) return 0;
+        if (x == null) return 1;
+        if (y == null) return -1;
+        return (x > y ? 1 : -1) * sinal;
+      });
+    }
+    if (this.umSo) return { data: saida[0] || null, error: saida.length ? null : { message: "nada encontrado" } };
+    return { data: saida, error: null };
+  };
+
+  /* Thenable: `await consulta` e `Promise.all([...consultas])` funcionam sem
+     ninguem precisar chamar .executar() na mao. */
+  Consulta.prototype.then = function (aoResolver, aoFalhar) {
+    var resultado;
+    try {
+      resultado = this.executar();
+    } catch (e) {
+      return Promise.resolve().then(function () {
+        var r = { data: null, error: { message: String(e && e.message || e) } };
+        return aoResolver ? aoResolver(r) : r;
+      });
+    }
+    return Promise.resolve(resultado).then(aoResolver, aoFalhar);
+  };
+
+  /* ---------- a interface publica --------------------------------------- */
+
+  window.DadosLocais = {
+    from: function (tabela) { return new Consulta(tabela); },
+
+    /** Onde os dados estao, em uma frase — para a tela poder dizer ao usuario. */
+    onde: "neste navegador",
+
+    /** Tudo o que existe, para levar embora ou trazer de volta. E por aqui que
+        a migracao para o Supabase vai passar quando ela acontecer. */
+    exportar: function () {
+      var pacote = { versao: 1, quando: new Date().toISOString(), tabelas: {} };
+      TABELAS.forEach(function (t) { pacote.tabelas[t] = ler(t); });
+      return pacote;
+    },
+
+    importar: function (pacote) {
+      if (!pacote || !pacote.tabelas) throw new Error("pacote sem tabelas");
+      TABELAS.forEach(function (t) {
+        if (Array.isArray(pacote.tabelas[t])) escrever(t, pacote.tabelas[t]);
+      });
+    },
+
+    /** Quantas linhas em cada tabela. Util no console e na tela de ajuste. */
+    resumo: function () {
+      var r = {};
+      TABELAS.forEach(function (t) { r[t] = ler(t).length; });
+      return r;
+    },
+
+    apagarTudo: function () {
+      TABELAS.forEach(function (t) { localStorage.removeItem(PREFIXO + t); });
+    }
+  };
+})();

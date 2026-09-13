@@ -1,6 +1,6 @@
 /**
  * Exames, documentos e relatorio dentro do app.
- * O caso de exemplo tem Metabolico 0.4 e Mental 0.7 — bem baixos — e os
+ * O caso de exemplo tem Mental 0.7 e Metabolico 0.8 — bem baixos — e os
  * outros tres altos. Entao exame alterado no metabolico deve CONFIRMAR, e
  * exame alterado no detox (nota 6.7) deve DIVERGIR.
  */
@@ -16,6 +16,7 @@ await p.setViewport({ width: 1500, height: 1200 });
 const ruim = []; p.on('pageerror', e => ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
+await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
 
 // --- a secao existe e abre -------------------------------------------------
@@ -117,9 +118,12 @@ const rel = await p.evaluate(() => {
   };
 });
 ok(rel.existe, 'o relatorio e montado');
-ok(rel.indice === '42', 'indice no relatorio: ' + rel.indice);
+ok(rel.indice === '43', 'indice no relatorio: ' + rel.indice);
 ok(rel.sistemas === 5, rel.sistemas + ' sistemas, do pior para o melhor');
-ok(/Metab/.test(rel.primeiro || ''), 'comeca pelo mais baixo: ' + rel.primeiro);
+const maisBaixo = await p.evaluate((respostas) =>
+  [...HOLOSCOPE.calcular(respostas).sistemas].sort((a, b) => a.nota - b.nota)[0].nome,
+  caso.respostas);
+ok(rel.primeiro === maisBaixo, 'comeca pelo mais baixo: ' + rel.primeiro);
 ok(rel.temTriada && rel.temExames, 'traz Triada e Exames');
 ok(/amea/.test(rel.combinada || ''), 'traz a leitura combinada');
 

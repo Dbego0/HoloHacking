@@ -9,6 +9,7 @@ await p.setViewport({width:1400,height:1100});
 const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
 await p.addStyleTag({content:'*{transition:none!important;animation:none!important}'});
+await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
 
 function verFicha(){ return p.evaluate(() => {
@@ -43,12 +44,12 @@ await p.evaluate((r) => {
 }, caso.respostas);
 
 const mapeado = await verFicha();
-ok(mapeado.indice === '42', 'a ficha mostra o Indice: ' + mapeado.indice);
+ok(mapeado.indice === '43', 'a ficha mostra o Indice: ' + mapeado.indice);
 ok(mapeado.triada.length === 3, 'mostra a Triada: ' + mapeado.triada.join(' '));
 ok(/amea/.test(mapeado.combinada||''), 'mostra a leitura combinada');
 ok(mapeado.alertas.some(a=>/nenhuma ferramenta/i.test(a)),
    'ACUSA mapeado sem conduta: ' + (mapeado.alertas.find(a=>/nenhuma ferramenta/i.test(a))||''));
-ok(mapeado.linhas.some(l=>/87 de 87/.test(l)), 'questionario completo na lista');
+ok(mapeado.linhas.some(l=>/84 de 84/.test(l)), 'questionario completo na lista');
 
 // --- aplica uma ferramenta ---------------------------------------------------
 await p.evaluate(() => {

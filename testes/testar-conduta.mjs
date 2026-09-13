@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer-core';
 import { readFileSync } from 'node:fs';
-const caso = JSON.parse(readFileSync('caso.json','utf8'));
+const caso = JSON.parse(readFileSync(new URL('caso.json', import.meta.url), 'utf8'));
 const nav = await puppeteer.launch({ executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',
   headless:'new', args:['--hide-scrollbars'] });
 const p = await nav.newPage();
@@ -8,6 +8,7 @@ await p.setViewport({width:1500,height:1300});
 const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
 await p.addStyleTag({content:'*{transition:none!important;animation:none!important}'});
+await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
 
 const r = await p.evaluate((respostas) => {
@@ -25,11 +26,13 @@ const r = await p.evaluate((respostas) => {
     modulos: [...document.querySelectorAll('.conduta-modulo')].map(e => e.textContent),
     porques: [...document.querySelectorAll('.conduta-porque')].map(e => e.textContent),
     criticos: [...document.querySelectorAll('.leitura-cabeca b')].map(e => e.textContent),
+    maisBaixo: [...HOLOSCOPE.calcular(respostas).sistemas]
+      .sort((a, b) => a.nota - b.nota)[0].nome,
   };
 }, caso.respostas);
 
 ok(r.itens.length === 3, r.itens.length + ' ferramentas indicadas');
-ok(/Metab/.test(r.criticos[0]), 'sistema mais baixo: ' + r.criticos[0]);
+ok(r.criticos[0] === r.maisBaixo, 'comeca pelo sistema mais baixo: ' + r.criticos[0]);
 console.log('  ---');
 r.itens.forEach((n,i) => console.log('    ' + r.modulos[i].padEnd(9) + n + '  — ' + r.porques[i]));
 console.log('  ---');

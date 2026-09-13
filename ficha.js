@@ -20,67 +20,24 @@
   "use strict";
 
   var SEM_PACIENTE = "_sem_paciente";
-  var DIAS_REAVALIACAO = 28;
-
-  var NOME_SISTEMA = {
-    fungico: "Fúngico",
-    acido_inflamatorio: "Ácido-Inflamatório",
-    metabolico: "Metabólico",
-    detox_linfatico: "Detox + Linfático",
-    mental_emocional_espiritual: "Mental–Emocional–Espiritual"
-  };
 
   function paciente() {
     try { return (window.pacienteAtivoId && window.pacienteAtivoId()) || SEM_PACIENTE; }
     catch (e) { return SEM_PACIENTE; }
   }
-  function caixa(chave) {
-    try { return (JSON.parse(localStorage.getItem(chave)) || {})[paciente()] || null; }
-    catch (e) { return null; }
-  }
   function escapar(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
-  function diasDesde(iso) {
-    if (!iso) return null;
-    var d = new Date(iso);
-    if (isNaN(d)) return null;
-    return Math.floor((Date.now() - d.getTime()) / 86400000);
-  }
 
-  /* ---------- juntar o que existe ---------------------------------------- */
+  /* ---------- juntar o que existe ----------------------------------------
+
+     As regras moraram para panorama.js: o dashboard precisa das mesmas, para
+     todos os pacientes, e regra clinica em dois lugares diverge. Aqui fica so
+     a leitura do paciente que esta aberto.                                  */
 
   function reunir() {
-    var pont = window.ultimaPontuacao ? window.ultimaPontuacao() : null;
-    var historico = window.historicoPontuacao ? window.historicoPontuacao() : [];
-    var ferr = caixa("holohacking.ferramentas") || {};
-    var quest = caixa("holohacking.questionario") || {};
-    var exames = caixa("holohacking.exames") || {};
-
-    var preenchidas = Object.keys(ferr).filter(function (id) {
-      var campos = ferr[id];
-      return Object.keys(campos).some(function (k) {
-        return campos[k] !== "" && campos[k] != null;
-      });
-    });
-
-    var totalPerguntas = 87;
-    try {
-      if (window.HOLOSCOPE && window.HOLOSCOPE.questionario) {
-        totalPerguntas = window.HOLOSCOPE.questionario().length;
-      }
-    } catch (e) { /* fica em 87 */ }
-
-    return {
-      pontuacao: pont,
-      historico: historico,
-      respondidas: Object.keys(quest).length,
-      totalPerguntas: totalPerguntas,
-      ferramentas: preenchidas,
-      exames: Object.keys(exames).length,
-      valoresExames: exames
-    };
+    return window.Panorama.doPaciente(paciente());
   }
 
   function nomeFerramenta(id) {
@@ -96,53 +53,7 @@
   /* ---------- o que precisa de atencao ----------------------------------- */
 
   function alertas(d) {
-    var saida = [];
-
-    if (!d.pontuacao && d.respondidas === 0) {
-      saida.push({ grau: "abrir", texto: "Sem HOLOSCOPE aplicado.",
-                   acao: "holoscope", botao: "Aplicar agora" });
-    } else if (!d.pontuacao && d.respondidas > 0) {
-      saida.push({ grau: "aviso",
-                   texto: "Questionário parado em " + d.respondidas + " de " +
-                          d.totalPerguntas + " — o mapa não foi gerado.",
-                   acao: "holoscope", botao: "Continuar" });
-    }
-
-    // o achado que ninguem via: mapeado e nunca conduzido
-    if (d.pontuacao && d.ferramentas.length === 0) {
-      saida.push({ grau: "aviso",
-                   texto: "O mapa foi feito e nenhuma ferramenta foi aplicada. " +
-                          "Sem conduta, o diagnóstico não vira jornada.",
-                   acao: "holoscope", botao: "Ver por onde começar" });
-    }
-
-    if (d.pontuacao && d.pontuacao.quando) {
-      var dias = diasDesde(d.pontuacao.quando);
-      if (dias !== null && dias >= DIAS_REAVALIACAO) {
-        saida.push({ grau: "aviso",
-                     texto: "Última aplicação há " + dias + " dias. " +
-                            "A reavaliação de 4 semanas venceu.",
-                     acao: "holoscope", botao: "Reaplicar" });
-      }
-    }
-
-    // exame alterado onde ele nao se queixa
-    if (d.exames > 0 && d.pontuacao && window.HOLOSCOPE && window.HOLOSCOPE.lerExames) {
-      var notas = {};
-      d.pontuacao.sistemas.forEach(function (s) { notas[s.sistema] = s.nota; });
-      try {
-        var r = window.HOLOSCOPE.lerExames(d.valoresExames, notas);
-        var divergem = r.confronto.filter(function (c) { return c.concordancia === "diverge"; });
-        divergem.forEach(function (c) {
-          saida.push({ grau: "aviso",
-                       texto: "Sistema " + (NOME_SISTEMA[c.sistema] || c.sistema) +
-                              ": relato e exame não batem.",
-                       acao: "aba:exames", botao: "Ver exames" });
-        });
-      } catch (e) { /* sem alerta e melhor do que alerta errado */ }
-    }
-
-    return saida;
+    return window.Panorama.alertas(d);
   }
 
   /* ---------- desenhar ---------------------------------------------------- */

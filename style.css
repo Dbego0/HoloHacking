@@ -28,6 +28,10 @@
   --input-borda:rgba(29,58,46,.18);
   --citacao-clara-fundo:rgba(20,80,59,.06);
   --halo:rgba(201,163,90,.1);
+  /* O dourado da marca mede 2,21:1 contra o creme — abaixo dos 3:1 que uma
+     barra precisa para ser vista. Um passo mais escuro, mesma familia. */
+  --dash-barra:#a87f31;
+  --dash-trilho:rgba(29,58,46,.09);
 }
 body.escuro{
   --sup-fundo:#07211a;
@@ -42,6 +46,9 @@ body.escuro{
   --input-borda:rgba(201,163,90,.3);
   --citacao-clara-fundo:rgba(201,163,90,.08);
   --halo:rgba(201,163,90,.05);
+  /* no escuro o dourado da marca ja passa com folga */
+  --dash-barra:#c9a35a;
+  --dash-trilho:rgba(201,163,90,.14);
   --sombra:0 18px 50px rgba(0,0,0,.4);
   color-scheme:dark;
 }
@@ -1138,6 +1145,11 @@ body.escuro .btn-tema .icone-lua{display:none}
   border-left:2px solid var(--dourado);padding:12px 0 12px 14px;
   font-size:.88rem;font-weight:300;color:var(--texto-suave);
 }
+/* ressalva no topo do questionario: carregando, ou sem paciente escolhido */
+.q-aviso{
+  border-left:2px solid var(--dourado-suave);padding:12px 0 12px 14px;
+  margin:0 0 18px;font-size:.84rem;font-weight:300;color:var(--texto-suave);
+}
 
 /* a regua deixa de ser entrada quando o mapa veio do questionario */
 .holo-card.calculado .holo-range-wrap{opacity:.55}
@@ -1148,6 +1160,12 @@ body.escuro .btn-tema .icone-lua{display:none}
 }
 .holo-origem b{color:var(--dourado);font-weight:600}
 .holo-origem:empty{display:none}
+/* questionario pela metade nao pode passar por mapa pronto */
+.holo-origem .holo-parcial{color:#b4553c}
+.holo-origem .holo-sem-dado{display:block;margin-top:4px;opacity:.85}
+/* sistema sem nenhuma resposta: a regua nao esta em zero, ela esta em branco */
+.holo-card.sem-dado{opacity:.5}
+.holo-card.sem-dado .holo-valor{color:var(--texto-suave)}
 .btn-relink{
   border:none;background:none;padding:0;cursor:pointer;
   color:var(--dourado);font-size:.74rem;font-weight:400;
@@ -1421,6 +1439,249 @@ body.escuro .btn-tema .icone-lua{display:none}
   .fic-alerta{flex-direction:column;align-items:flex-start;gap:10px}
   .fic-linha{grid-template-columns:1fr auto}
   .fic-ir-min{grid-column:2}
+}
+
+/* =========================================================================
+   DASHBOARD — o trabalho de hoje
+   ========================================================================= */
+
+.dash-cabeca{margin-bottom:30px}
+.dash-cabeca p{margin-top:10px}
+
+.dash-bloco{margin-bottom:34px}
+.dash-titulo{
+  font-family:var(--fonte-display);font-size:1.32rem;font-weight:500;
+  color:var(--titulo);margin:0 0 4px;display:flex;align-items:baseline;gap:10px;
+}
+.dash-titulo em{
+  font-style:normal;font-family:var(--fonte-corpo);font-size:.72rem;font-weight:500;
+  color:var(--dourado);border:1px solid var(--dourado-suave);border-radius:999px;
+  padding:2px 9px;line-height:1.4;
+}
+.dash-sub{font-size:.85rem;font-weight:300;color:var(--texto-suave);margin:0 0 16px;max-width:46rem}
+.dash-vazio{
+  font-size:.9rem;font-weight:300;color:var(--texto-suave);
+  border-left:2px solid var(--borda-suave);padding:10px 0 10px 14px;margin:12px 0 0;
+}
+
+/* ---------- quem precisa de atencao ---------- */
+.dash-pendentes{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.dash-pendente{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+  border-left:2px solid var(--dourado-suave);
+  padding:14px 18px;
+}
+.dash-pendente.abrir{border-left-color:var(--dourado)}
+.dash-quem{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dash-quem b{font-weight:500;color:var(--texto);font-size:.98rem}
+.dash-porque{font-size:.8rem;font-weight:300;color:var(--texto-suave);line-height:1.45}
+.dash-ir{
+  border:1px solid var(--borda-suave);background:none;cursor:pointer;
+  color:var(--dourado);font-family:inherit;font-size:.78rem;font-weight:400;
+  padding:7px 14px;white-space:nowrap;transition:border-color .15s,background .15s;
+}
+.dash-ir:hover{border-color:var(--dourado);background:var(--halo)}
+.dash-ir:focus-visible{outline:2px solid var(--dourado);outline-offset:2px}
+
+/* ---------- os numeros ---------- */
+.dash-numeros{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:2px;margin-bottom:34px;
+}
+.dash-tile{
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+  padding:18px 20px;display:flex;flex-direction:column;gap:4px;
+}
+.dash-tile b{
+  font-family:var(--fonte-display);font-size:2.1rem;font-weight:500;line-height:1;
+  color:var(--titulo);font-variant-numeric:lining-nums tabular-nums;
+}
+.dash-tile span{font-size:.76rem;font-weight:300;color:var(--texto-suave);line-height:1.4}
+
+/* ---------- o terreno da carteira ----------
+   Uma serie so: barra unica, rotulo direto em cada linha, sem legenda. */
+.dash-terreno{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.dash-barra{
+  display:grid;grid-template-columns:minmax(9rem,14rem) 1fr 2.2rem;
+  align-items:center;gap:14px;padding:9px 0;
+}
+.dash-barra-nome{font-size:.85rem;font-weight:300;color:var(--texto)}
+.dash-barra-trilho{
+  height:8px;background:var(--dash-trilho);border-radius:0 4px 4px 0;
+  display:block;min-width:0;
+}
+.dash-barra-trilho i{
+  display:block;height:100%;background:var(--dash-barra);
+  border-radius:0 4px 4px 0;
+}
+.dash-barra-n{
+  font-size:.9rem;font-weight:500;color:var(--texto);text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- ainda sem paciente ---------- */
+.dash-primeiro{
+  display:flex;flex-wrap:wrap;align-items:center;gap:16px 22px;
+  border:1px solid var(--dourado-suave);padding:20px 24px;margin-bottom:34px;
+}
+.dash-primeiro p{margin:0;font-size:.95rem;font-weight:300;color:var(--texto-suave);flex:1 1 18rem}
+
+@media (max-width:640px){
+  .dash-pendente{grid-template-columns:auto 1fr;row-gap:12px}
+  .dash-ir{grid-column:2;justify-self:start}
+  .dash-barra{grid-template-columns:1fr 2.2rem;row-gap:6px}
+  .dash-barra-nome{grid-column:1/-1}
+}
+
+/* a definicao do sistema, dentro da leitura do terreno */
+.leitura-definicao{
+  font-size:.86rem;font-weight:300;line-height:1.55;color:var(--texto);
+  margin:10px 0 14px;padding-bottom:12px;border-bottom:1px solid var(--borda-suave);
+}
+.leitura-definicao i{
+  display:block;margin-top:6px;font-style:normal;
+  font-size:.66rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--texto-suave);
+}
+
+/* =========================================================================
+   HIPOTESE, ENCAMINHAMENTO E APROFUNDAMENTO
+   ========================================================================= */
+
+.leitura-titulo.alerta{color:#b4553c}
+.leitura-nota{
+  font-size:.8rem;font-weight:300;color:var(--texto-suave);
+  margin:-6px 0 14px;max-width:44rem;
+}
+
+/* o que sai do escopo vem antes de tudo, e parece diferente de leitura */
+.leitura-encaminhar{display:flex;flex-direction:column;gap:2px;margin-bottom:26px}
+.leitura-encaminhar .leitura-item{
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+  border-left:2px solid #b4553c;padding:14px 18px;
+  display:flex;flex-direction:column;gap:4px;
+}
+.leitura-encaminhar b{font-weight:500;color:var(--texto);font-size:.96rem}
+.leitura-encaminhar em{font-style:normal;font-size:.84rem;color:var(--texto-suave)}
+.leitura-encaminhar span{font-size:.7rem;color:var(--texto-suave);opacity:.75}
+
+/* a hipotese diz o que conferir antes de virar conclusao */
+.leitura-investigar{
+  display:block;font-style:normal;font-size:.82rem;font-weight:300;
+  color:var(--texto-suave);margin-top:4px;
+}
+
+/* a pergunta que vem depois */
+.leitura-aprofundar{
+  list-style:none;margin:0 0 26px;padding:0;
+  display:flex;flex-direction:column;gap:2px;counter-reset:apro;
+}
+.leitura-aprofundar li{
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+  padding:13px 18px;display:flex;flex-direction:column;gap:3px;
+}
+.apro-de{
+  font-size:.68rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dourado);
+}
+.leitura-aprofundar b{font-weight:400;color:var(--texto);font-size:.96rem;line-height:1.5}
+
+/* a mesma fronteira, no documento que vai embora com o paciente */
+.rel-fronteira{
+  font-size:.76rem;font-weight:300;line-height:1.55;color:var(--texto-suave);
+  margin:10px 0 0;padding-top:10px;border-top:1px solid var(--borda-suave);
+  max-width:44rem;
+}
+
+/* a fronteira do HOLOSCOPE: o que ele e, e o que ele nao e */
+.holo-fronteira{
+  border-left:2px solid var(--dourado-suave);
+  padding:12px 0 12px 16px;margin:26px 0 0;
+  font-size:.82rem;font-weight:300;line-height:1.6;color:var(--texto-suave);
+  max-width:52rem;
+}
+.holo-fronteira b{color:var(--texto);font-weight:500}
+
+/* =========================================================================
+   TERRITORIOS DO OLHAR — cobertura, nao mais uma nota
+   ========================================================================= */
+
+.holo-territorios{
+  border:1px solid var(--borda-suave);background:var(--sup-card);
+  padding:24px 26px;margin-top:22px;
+}
+.terr-cabeca p{font-size:.8rem;font-weight:300;color:var(--texto-suave);margin:6px 0 18px;max-width:44rem}
+.terr-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.terr-linha{
+  display:grid;grid-template-columns:1fr auto 3rem;align-items:baseline;gap:14px;
+  padding:10px 0;border-bottom:1px solid var(--borda-suave);
+}
+.terr-linha:last-child{border-bottom:none}
+.terr-nome{display:flex;flex-direction:column;gap:1px;font-size:.9rem;color:var(--texto)}
+.terr-nome i{font-style:normal;font-size:.74rem;font-weight:300;color:var(--texto-suave)}
+.terr-conta{font-size:.78rem;font-weight:300;color:var(--texto-suave);white-space:nowrap}
+.terr-nota{
+  font-size:.9rem;font-weight:500;color:var(--texto);text-align:right;
+  font-variant-numeric:lining-nums tabular-nums;
+}
+.terr-linha.sem-dado{opacity:.62}
+.terr-linha.sem-dado .terr-conta{color:#b4553c;opacity:1}
+.terr-buraco{
+  font-size:.84rem;font-weight:300;color:var(--texto-suave);
+  margin:18px 0 0;padding-top:14px;border-top:1px solid var(--borda-suave);
+}
+.terr-buraco b{color:var(--texto);font-weight:500}
+.terr-buraco.ok{color:var(--texto-suave)}
+
+@media (max-width:640px){
+  .terr-linha{grid-template-columns:1fr 3rem}
+  .terr-conta{grid-column:1/-1;margin-top:2px}
+}
+
+/* =========================================================================
+   MAPA DE FREQUENCIAS — uma serie so, barra unica, rotulo em cada linha
+   ========================================================================= */
+
+.holo-frequencias{
+  border:1px solid var(--borda-suave);background:var(--sup-card);
+  padding:24px 26px;margin-top:22px;
+}
+.freq-cabeca p{
+  font-size:.8rem;font-weight:300;color:var(--texto-suave);margin:6px 0 18px;
+}
+.freq-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.freq-linha{
+  display:grid;grid-template-columns:minmax(9rem,15rem) 1fr 2.6rem;
+  align-items:center;gap:14px;padding:8px 0;
+}
+.freq-nome{display:flex;flex-direction:column;gap:1px;font-size:.88rem;color:var(--texto)}
+.freq-nome i{font-style:normal;font-size:.74rem;font-weight:300;color:var(--texto-suave)}
+.freq-trilho{height:8px;background:var(--dash-trilho);border-radius:0 4px 4px 0;display:block;min-width:0}
+.freq-trilho b{display:block;height:100%;background:var(--dash-barra);border-radius:0 4px 4px 0}
+.freq-linha.travado .freq-nome{color:var(--dourado);font-weight:500}
+.freq-nota{
+  font-size:.92rem;font-weight:500;color:var(--texto);text-align:right;
+  font-variant-numeric:lining-nums tabular-nums;
+}
+.freq-leitura{
+  font-size:.85rem;font-weight:300;color:var(--texto-suave);
+  margin:18px 0 0;padding-top:14px;border-top:1px solid var(--borda-suave);
+}
+.freq-leitura b{color:var(--dourado);font-weight:500}
+
+/* a subferramenta que ainda nao entrega diz isso, em vez de prometer */
+.holo-subtool.em-construcao{opacity:.62}
+.selo-construcao{
+  font-family:var(--fonte-corpo);font-size:.6rem;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave);
+  border:1px solid var(--borda-suave);border-radius:999px;padding:2px 8px;
+  margin-left:8px;white-space:nowrap;vertical-align:middle;
+}
+
+@media (max-width:640px){
+  .freq-linha{grid-template-columns:1fr 2.6rem;row-gap:6px}
+  .freq-nome{grid-column:1/-1}
 }
 
 @media print{

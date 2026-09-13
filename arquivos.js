@@ -378,6 +378,9 @@
       "<h3>Mapa HOLOS" + (nome ? " &middot; " + escapar(nome) : "") + "</h3>" +
       '<p class="rel-meta">' + hoje() + " &middot; Índice HOLOS <b>" + p.indice +
         "</b> de " + p.indice_maximo + " &middot; cobertura " + p.cobertura.percentual + "%</p>" +
+      '<p class="rel-fronteira">Avaliação nutricional integral construída a partir ' +
+        "do que o paciente relata. Não é exame, não é diagnóstico médico e não " +
+        "substitui avaliação clínica.</p>" +
       "</header>";
 
     if (p.triada) {
@@ -426,8 +429,8 @@
     }
 
     html += '<footer class="rel-rodape">Documento gerado pelo HoloHacking. ' +
-      'Os marcadores e as faixas ainda estão em revisão pelo autor do método — ' +
-      'este relatório não substitui avaliação clínica.</footer></article>';
+      'Os marcadores e as faixas ainda estão em revisão pelo autor do método. ' +
+      'Queixa que sugira doença deve ser encaminhada ao médico.</footer></article>';
 
     alvo.innerHTML = html;
 

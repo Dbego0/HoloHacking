@@ -10,6 +10,9 @@ import { lerCSV } from '../src/csv.ts';
 const ARQUIVOS = {
   config: 'bancos/config.csv',
   sistemas: 'bancos/sistemas.csv',
+  chacras: 'bancos/chacras.csv',
+  territorios: 'bancos/territorios.csv',
+  eixos: 'bancos/eixos.csv',
   regras: 'bancos/regras.csv',
   sintomas: 'bancos/sintomas.csv',
   emocoes: 'bancos/emocoes.csv',

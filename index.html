@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HoloHacking — Plataforma clínica da Nutrição Holística</title>
+<!-- A marca na aba: o app fica aberto o dia inteiro ao lado de outras abas.
+     Sem isto o navegador pedia /favicon.ico e levava 404 em toda visita. -->
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -101,6 +104,15 @@
 
       <!-- ============ DASHBOARD ============ -->
       <section class="secao ativa" id="secao-dashboard">
+        <!-- O TRABALHO DE HOJE. Desenhado por dashboard.js a partir de
+             Panorama.carteira(): quem precisa de atencao, o tamanho da
+             carteira e o terreno que mais aparece nela. Vem antes de tudo
+             porque e o que a nutricionista abre o app para ver. -->
+        <div id="dash-trabalho"></div>
+
+        <!-- O METODO. Some assim que existe o primeiro paciente: quem ja
+             esta atendendo nao precisa da apresentacao todo dia. -->
+        <div id="dash-metodo">
         <svg class="marca-hero" width="78" height="73" viewBox="0 0 64 60" aria-hidden="true"><use href="#logo-simbolo"/></svg>
         <div class="secao-cabeca">
           <span class="eyebrow">Bem-vinda a plataforma</span>
@@ -134,6 +146,8 @@
           <div class="citacao">
             <p>"Nem sempre o melhor plano e o mais completo. O melhor plano e aquele que o paciente consegue transformar em vida."</p>
           </div>
+        </div>
+
         </div>
 
         <div class="grade-pilares">
@@ -174,7 +188,7 @@
         <div class="secao-cabeca">
           <span class="eyebrow">HOLOSCOPE&reg; &mdash; Scanner Integral</span>
           <h2>O mapa <em>invisível</em> da saúde humana</h2>
-          <p>O HOLOSCOPE revela, em minutos, aquilo que levaria meses para ser identificado: padrões emocionais, sistemas em desequilíbrio, terreno espiritual, vulnerabilidades metabólicas e conexões entre corpo-mente-espírito.</p>
+          <p>O HOLOSCOPE organiza, numa leitura só, o que o paciente relata sobre corpo, emoção e propósito — e mostra por onde a conduta começa: quais sistemas pesam mais, o que aparece junto e qual ferramenta responde a isso.</p>
         </div>
 
         <div class="barra-paciente">
@@ -183,11 +197,12 @@
           <span class="aviso">Selecione um paciente para aplicar o HOLOSCOPE.</span>
         </div>
 
-        <!-- Dois caminhos: responder as 87 perguntas, ou pontuar os cinco
-               sistemas a mao. O segundo era o unico que existia. -->
+        <!-- Dois caminhos: responder o questionario, ou pontuar os cinco
+               sistemas a mao. O segundo era o unico que existia.
+               A contagem do botao e escrita por questionario.js, do motor. -->
           <div class="holo-modos">
             <button type="button" class="btn-verde" id="btn-abrir-questionario">
-              Aplicar questionário &mdash; 87 perguntas
+              Aplicar questionário
             </button>
             <span>ou pontue os cinco sistemas à mão, abaixo</span>
           </div>
@@ -206,7 +221,7 @@
           <div class="holo-sistemas">
             <div class="holo-card" data-sistema="fungico">
               <h5>Fúngico</h5>
-              <p class="holo-desc">Cândida, fungos, biofilme</p>
+              <p class="holo-desc">Doce, inchaço, saburra, coceira e névoa depois do carboidrato</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Estagnação e desordem</span>
                 <span class="holo-espiritual">Perda de vitalidade</span>
@@ -219,7 +234,7 @@
             </div>
             <div class="holo-card" data-sistema="inflamatorio">
               <h5>Ácido-Inflamatório</h5>
-              <p class="holo-desc">Inflamação silenciosa, acidose, dor crônica</p>
+              <p class="holo-desc">Dor, rigidez ao acordar, azia e pele em crise</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Irritação, raiva</span>
                 <span class="holo-espiritual">Bloqueio no plexo solar</span>
@@ -232,7 +247,7 @@
             </div>
             <div class="holo-card" data-sistema="metabolico">
               <h5>Metabólico</h5>
-              <p class="holo-desc">Resistência a insulina, metabolismo lento</p>
+              <p class="holo-desc">Sono depois de comer, fome que volta rápido, gordura na barriga</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Vazio, falta de propósito</span>
                 <span class="holo-espiritual">Dessintonização do corpo</span>
@@ -245,7 +260,7 @@
             </div>
             <div class="holo-card" data-sistema="detox">
               <h5>Detox + Linfático</h5>
-              <p class="holo-desc">Sobrecarga hepática, retenção, intoxicação</p>
+              <p class="holo-desc">Inchaço, intestino lento, sensibilidade a cheiro e a remédio</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Mágoas acumuladas</span>
                 <span class="holo-espiritual">Bloqueio do fluxo</span>
@@ -257,8 +272,8 @@
               </div>
             </div>
             <div class="holo-card" data-sistema="mental">
-              <h5>Mental-Emocional</h5>
-              <p class="holo-desc">Ansiedade, auto-sabotagem, narrativas internas</p>
+              <h5>Mental-Emocional-Espiritual</h5>
+              <p class="holo-desc">Sono, ansiedade, autocrítica e o comer para acalmar</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Desconexão de si</span>
                 <span class="holo-espiritual">Queda de frequência</span>
@@ -289,9 +304,29 @@
                marcadores, nao das notas dos cinco sistemas. -->
           <div class="holo-triada hidden" id="holo-triada"></div>
 
+          <!-- Mapa de Frequencias: nota por chacra, lida das MESMAS respostas
+               do questionario pela coluna "chacra" dos marcadores. Fica
+               escondido enquanto chacras.csv nao tiver mapeamento — e hoje
+               nao tem, de proposito. -->
+          <div class="holo-frequencias hidden" id="holo-frequencias"></div>
+
+          <!-- A cobertura do olhar: o que foi perguntado e o que ficou de
+               fora, pelos territorios do metodo. Escondido enquanto
+               territorios.csv nao tiver nenhum declarado. -->
+          <div class="holo-territorios hidden" id="holo-territorios"></div>
+
           <!-- padrao emocional, impacto espiritual e direcao terapeutica.
                Preenchido por lerTerreno() em app.js. -->
           <div class="holo-leitura" id="holo-leitura"></div>
+
+          <!-- A fronteira. Ficava so no rodape do relatorio impresso; a tela
+               onde a nutricionista abre o mapa junto com a paciente nao dizia
+               nada. Fica fixa: aparece com mapa e sem mapa. -->
+          <p class="holo-fronteira">
+            O HOLOSCOPE é uma <b>avaliação nutricional integral</b> construída a partir
+            do que o paciente relata. Não é exame, não é diagnóstico médico e não
+            substitui avaliação clínica.
+          </p>
 
           <div class="holo-subtools">
             <div class="holo-subtool">
@@ -303,16 +338,16 @@
               <p>Inflamação, metabolismo, detox, microbiota</p>
             </div>
             <div class="holo-subtool">
-              <h6>SoulIndex</h6>
-              <p>Alinhamento, propósito, energia vital</p>
+              <h6>Terreno Espiritual</h6>
+              <p>Propósito, valores, fé e bloqueios</p>
             </div>
             <div class="holo-subtool">
               <h6>Triada HOLOS</h6>
               <p>Integração físico-mental-espiritual</p>
             </div>
-            <div class="holo-subtool">
-              <h6>Mapa de Frequências</h6>
-              <p>Queda vibracional e blocos de consciência</p>
+            <div class="holo-subtool em-construcao">
+              <h6>Mapa de Frequências <span class="selo-construcao">em revisão</span></h6>
+              <p>Onde o fluxo está travado, lido das mesmas respostas do questionário. Parado até a correspondência chacra&ndash;marcador ser revisada.</p>
             </div>
           </div>
 
@@ -702,8 +737,14 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- A persistencia e uma camada so, e ela e trocavel: hoje dados.js guarda no
+     navegador, amanha o mesmo lugar guarda no Supabase. Vem antes do app.js
+     porque e o app que a consome. -->
+<script src="/dados.js"></script>
 <script src="/holoscope.js"></script>
+<!-- as regras de "o que falta neste paciente", usadas pela ficha e pelo
+     dashboard. Uma copia so, senao elas divergem. -->
+<script src="/panorama.js"></script>
 <script src="/ferramentas.js"></script>
 <script src="/formulario.js"></script>
 <script src="/app.js"></script>
@@ -712,6 +753,7 @@
 <script src="/arquivos.js"></script>
 <script src="/ficha.js"></script>
 <script src="/evolucao.js"></script>
+<script src="/dashboard.js"></script>
 <script src="/caso-marina.js"></script>
 <script src="/demo.js"></script>
 </body>
