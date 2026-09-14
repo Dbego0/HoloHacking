@@ -33,6 +33,15 @@
 (function () {
   "use strict";
 
+  /* A versao do MANIFESTO, nao do app e nao do backup. Ela e explicita de
+     proposito: inferi-la da quantidade de entradas faria "acrescentei uma
+     caixa" e "mudei a forma de descrever as caixas" virarem a mesma coisa, e
+     sao coisas diferentes. Incrementa quando a ESTRUTURA muda — um campo novo
+     obrigatorio, um vocabulario novo, uma forma nova — e nao quando uma
+     entrada e acrescentada. O Backup V2 grava este numero para que uma
+     restauracao futura saiba com que gramatica o pacote foi escrito. */
+  var MANIFESTO_VERSAO = 1;
+
   var PREFIXO_TABELA = "holohacking.dados.";
 
   /* O valor que as caixas por paciente usam como chave quando NAO ha paciente
@@ -507,6 +516,248 @@
     });
   }
 
+  /* ========================================================================
+     BACKUP V2 — a copia completa, verificavel
+
+     O V1 leva 8 dos 13 armazenamentos. Os quatro que ele deixa para tras tem
+     dado clinico que ninguem consegue regerar: as respostas, a serie de
+     pontuacoes, os exames e os documentos. O V2 leva as 12 entradas que o
+     manifesto marca com exportar:true — e le essa lista do manifesto, nao de
+     uma segunda lista escrita aqui, que seria a mesma divergencia de novo.
+
+     BACKUP E CAPTURA, NAO TRANSFORMACAO. Nada e recalculado, normalizado,
+     migrado, reordenado ou limpo. Se ha dado orfao hoje, ele VAI no pacote:
+     e justamente o dado que so o backup pode salvar, ja que nenhuma tela o
+     mostra. Quem quiser saber que ele existe le o diagnostico, que viaja no
+     pacote como resumo tecnico e nao decide nada.
+
+     Nesta rodada o V2 e SO GERADOR. Nao existe importador, e o botao de
+     exportar da interface continua chamando o V1. Gerar e 100% leitura.
+     ===================================================================== */
+
+  var FORMATO_BACKUP = "holohacking-backup";
+  var VERSAO_BACKUP = 2;
+
+  /* ---------- serializacao canonica ---------------------------------------
+     Duas copias do mesmo conteudo tem que produzir o mesmo hash, e a ordem em
+     que as propriedades foram escritas num objeto e acidente de implementacao
+     — nao e informacao. Entao as chaves saem ordenadas. Arrays NAO sao
+     ordenados: neles a ordem e o dado (a serie de pontuacoes e cronologica).
+     Primitivas passam como estao, inclusive null, 0, false e "". */
+  function canonicalizar(v) {
+    if (v === null || typeof v !== "object") return v;
+    if (Array.isArray(v)) return v.map(canonicalizar);
+    var saida = {};
+    Object.keys(v).sort().forEach(function (k) { saida[k] = canonicalizar(v[k]); });
+    return saida;
+  }
+
+  function textoCanonico(v) { return JSON.stringify(canonicalizar(v)); }
+
+  /* ---------- sha-256 -----------------------------------------------------
+     crypto.subtle existe em contexto seguro — https e tambem 127.0.0.1, que e
+     onde os testes rodam. Se faltar, o pacote sai com o hash nulo e diz por
+     que, em vez de sair com um hash falso. */
+  function temCrypto() {
+    return !!(window.crypto && window.crypto.subtle && window.crypto.subtle.digest);
+  }
+
+  function hexDe(buffer) {
+    var b = new Uint8Array(buffer), h = "";
+    for (var i = 0; i < b.length; i++) h += b[i].toString(16).padStart(2, "0");
+    return h;
+  }
+
+  function sha256DeBytes(bytes) {
+    if (!temCrypto()) return Promise.resolve(null);
+    return window.crypto.subtle.digest("SHA-256", bytes).then(hexDe);
+  }
+
+  function sha256DeTexto(texto) {
+    return sha256DeBytes(new TextEncoder().encode(texto));
+  }
+
+  /* ---------- base64 ------------------------------------------------------
+     btoa nao aceita uma string enorme de uma vez em todo navegador, e
+     String.fromCharCode.apply estoura a pilha com arrays grandes. Em blocos
+     nao estoura nem um nem outro. */
+  function base64De(buffer) {
+    var b = new Uint8Array(buffer), bloco = 0x8000, partes = [];
+    for (var i = 0; i < b.length; i += bloco) {
+      partes.push(String.fromCharCode.apply(null, b.subarray(i, i + bloco)));
+    }
+    return btoa(partes.join(""));
+  }
+
+  /* ---------- os documentos ----------------------------------------------
+     listarTudo() devolve so sete campos de metadado; pegar(id) devolve o
+     registro inteiro. E do registro inteiro que se tira o backup, para que um
+     campo acrescentado no futuro viaje junto sem ninguem lembrar de vir aqui.
+     O blob sai do registro e vira conteudo_base64; todo o resto passa como
+     esta. Cada documento leva o SHA-256 dos SEUS bytes, para que uma
+     restauracao possa conferir arquivo por arquivo, e nao so o pacote todo. */
+  function lerDocumentos() {
+    if (!(window.ArquivoStore && window.ArquivoStore.listarTudo)) {
+      return Promise.resolve({ arquivos: [], indisponivel: true, bytes: 0, bytesBase64: 0 });
+    }
+    return window.ArquivoStore.listarTudo().then(function (lista) {
+      var ids = (lista || []).map(function (i) { return i.id; });
+      return ids.reduce(function (cadeia, id) {
+        return cadeia.then(function (acc) {
+          return window.ArquivoStore.pegar(id).then(function (registro) {
+            if (!registro) return acc;
+            var blob = registro.arquivo;
+            if (!blob || typeof blob.arrayBuffer !== "function") {
+              /* Registro sem blob: guarda o metadado e diz que o conteudo
+                 faltava, em vez de fingir um arquivo vazio. */
+              var semBlob = {};
+              Object.keys(registro).forEach(function (k) {
+                if (k !== "arquivo") semBlob[k] = registro[k];
+              });
+              semBlob.conteudo_base64 = null;
+              semBlob.sha256 = null;
+              semBlob.conteudo_ausente = true;
+              acc.arquivos.push(semBlob);
+              return acc;
+            }
+            return blob.arrayBuffer().then(function (buffer) {
+              return sha256DeBytes(buffer).then(function (sha) {
+                var saida = {};
+                Object.keys(registro).forEach(function (k) {
+                  if (k !== "arquivo") saida[k] = registro[k];
+                });
+                var b64 = base64De(buffer);
+                saida.conteudo_base64 = b64;
+                saida.bytes = buffer.byteLength;
+                saida.sha256 = sha;
+                acc.arquivos.push(saida);
+                acc.bytes += buffer.byteLength;
+                acc.bytesBase64 += b64.length;
+                return acc;
+              });
+            });
+          });
+        });
+      }, Promise.resolve({ arquivos: [], indisponivel: false, bytes: 0, bytesBase64: 0 }));
+    }, function () {
+      return { arquivos: [], indisponivel: true, bytes: 0, bytesBase64: 0 };
+    });
+  }
+
+  /* ---------- contagens ---------------------------------------------------
+     Derivadas do conteudo que ACABOU de ser montado, nunca do disco de novo:
+     contar duas vezes fontes diferentes e como uma restauracao passa sem
+     ninguem notar que faltou alguma coisa. Sao numeros tecnicos — nenhum
+     deles quer dizer nada de clinica. */
+  function contar(conteudo, docs) {
+    var c = {};
+    Object.keys(conteudo.dados).forEach(function (id) {
+      var v = conteudo.dados[id];
+      c[id] = Array.isArray(v) ? v.length : Object.keys(v || {}).length;
+    });
+    c.arquivos = conteudo.arquivos.length;
+    c.bytes_documentos = docs.bytes;
+    /* A serie de pontuacoes e um array por paciente: o numero de pacientes
+       com serie nao diz quantas medidas existem. */
+    var pont = conteudo.dados.pontuacao || {};
+    c.pontuacoes_total = Object.keys(pont).reduce(function (n, k) {
+      return n + (Array.isArray(pont[k]) ? pont[k].length : 1);
+    }, 0);
+    return c;
+  }
+
+  /** Monta o pacote inteiro. Assincrono por causa do IndexedDB e do SHA-256.
+      Nao toca no DOM e nao escreve nada — e leitura, do comeco ao fim. */
+  function gerarBackupV2() {
+    var entradas = exportaveis();
+    var conteudo = { dados: {}, arquivos: [] };
+
+    entradas.forEach(function (e) {
+      if (e.forma === FORMA.LISTA) {
+        conteudo.dados[e.id] = adaptadorLista.lerTudo(e);
+      } else if (e.forma === FORMA.MAPA) {
+        /* O mapa INTEIRO, chaves orfas incluidas. O exportador nao limpa
+           estado inconsistente: o dado orfao e justamente o que so o backup
+           alcanca, ja que nenhuma tela o mostra. */
+        conteudo.dados[e.id] = adaptadorMapa.lerTudo(e);
+      }
+      /* A loja entra por lerDocumentos(), abaixo. */
+    });
+
+    return lerDocumentos().then(function (docs) {
+      conteudo.arquivos = docs.arquivos;
+
+      return diagnosticarIntegridade().then(function (diag) {
+        var texto = textoCanonico(conteudo);
+        return sha256DeTexto(texto).then(function (sha) {
+          var pacote = {
+            formato: FORMATO_BACKUP,
+            versao: VERSAO_BACKUP,
+            criado_em: new Date().toISOString(),
+            manifesto_versao: MANIFESTO_VERSAO,
+            /* Quais armazenamentos este pacote diz carregar. Uma restauracao
+               confere isto contra o manifesto dela antes de tocar em disco. */
+            armazenamentos: entradas.map(function (e) { return e.id; }),
+            integridade: {
+              contagens: contar(conteudo, docs),
+              sha256_conteudo: sha,
+              /* O hash e do campo conteudo serializado canonicamente, e nao
+                 do pacote: incluir o proprio hash no que se faz hash nao
+                 fecha. Fica dito aqui para quem for conferir do outro lado. */
+              algoritmo: "sha256(json-canonico(conteudo))",
+              sha_indisponivel: sha === null ? "crypto.subtle ausente" : undefined
+            },
+            /* Resumo TECNICO. Nao impede o export, nao descarta nada, e nao
+               carrega informacao clinica: so diz se o estado esta coerente. */
+            diagnostico: {
+              ok: diag.ok,
+              quantidade_orfaos: diag.orfaos.length,
+              quantidade_sem_paciente: diag.sem_paciente.length
+            },
+            /* Numeros para decidirmos DEPOIS se precisa de aviso, limite, zip
+               ou export em varios arquivos. Nenhum limiar e imposto aqui:
+               inventar um MB de corte seria inventar regra. */
+            tamanho: {
+              bytes_documentos_originais: docs.bytes,
+              bytes_documentos_base64: docs.bytesBase64,
+              bytes_conteudo_json: texto.length
+            },
+            conteudo: conteudo
+          };
+          if (docs.indisponivel) pacote.integridade.indexeddb = "indisponivel";
+          /* O tamanho do pacote inteiro so da para medir depois de monta-lo. */
+          pacote.tamanho.bytes_pacote_json = JSON.stringify(pacote).length;
+          return pacote;
+        });
+      });
+    });
+  }
+
+  /** O pacote como texto. Separado da geracao de proposito: quem so quer
+      inspecionar o objeto nao precisa pagar a serializacao. */
+  function serializarBackupV2(pacote) {
+    return JSON.stringify(pacote, null, 2);
+  }
+
+  /** Converte em Blob e pede o download. E o unico ponto deste arquivo que
+      toca no documento, e ele NAO TEM CONSUMIDOR nesta rodada: o botao de
+      Exportar da interface continua chamando o V1, porque ainda nao existe
+      importador V2 e um backup que ninguem sabe restaurar e pior do que um
+      backup incompleto — da a sensacao de estar salvo. */
+  function baixarBackupV2(pacote) {
+    var texto = serializarBackupV2(pacote);
+    var blob = new Blob([texto], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "holohacking-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    return { bytes: texto.length, nome: a.download };
+  }
+
   /* ---------- a interface publica --------------------------------------- */
 
   window.Armazenamento = {
@@ -533,6 +784,16 @@
     adaptador: adaptador,
     adaptadores: ADAPTADORES,
 
-    diagnosticarIntegridade: diagnosticarIntegridade
+    diagnosticarIntegridade: diagnosticarIntegridade,
+
+    MANIFESTO_VERSAO: MANIFESTO_VERSAO,
+    FORMATO_BACKUP: FORMATO_BACKUP,
+    VERSAO_BACKUP: VERSAO_BACKUP,
+    gerarBackupV2: gerarBackupV2,
+    serializarBackupV2: serializarBackupV2,
+    baixarBackupV2: baixarBackupV2,
+    canonicalizar: canonicalizar,
+    textoCanonico: textoCanonico,
+    sha256DeTexto: sha256DeTexto
   };
 })();
