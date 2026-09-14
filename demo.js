@@ -276,7 +276,7 @@
       quadro: function (p) { animarLinhas(p, .04, .2); } },
 
     /* 3 — o questionario, respondendo de verdade */
-    { dur: 13, legenda: "87 perguntas · 15 minutos",
+    { dur: 13, legenda: "84 perguntas · 15 minutos",
       entrar: function () {
         mostrarPainel(false);
         try { localStorage.removeItem("holohacking.questionario"); } catch (e) {}
@@ -330,7 +330,7 @@
       quadro: function (p) { rolarAte("#holo-triada", p, .05, .55); } },
 
     /* 7 — a virada, app de verdade */
-    { dur: 9, continua: true, momento: true, legenda: "Não era disciplina. Era diagnóstico.",
+    { dur: 9, continua: true, momento: true, legenda: "Não era disciplina. Era terreno.",
       entrar: function () { mostrarPainel(false); },
       quadro: function (p) { rolarAte(".leitura-combinada", p, .05, .5); } },
 

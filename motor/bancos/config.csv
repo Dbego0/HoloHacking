@@ -4,3 +4,6 @@ indice_maximo,100,"Teto do Indice HOLOS: 0 a 100 (27/08). As notas por sistema s
 indice_casas,0,Casas decimais do Indice HOLOS
 nota_casas,1,Casas decimais da nota por sistema
 peso_secundario_fator,1,"Peso do sistema_secundario de uma emocao em relacao ao primario. Decidido 27/08: mesmo peso."
+aprofundar_a_partir_de,2,"A partir de que carga a pergunta de aprofundamento e oferecida (0 a escala_max)"
+mapa_frequencias_ativo,nao,"Liga o Mapa de Frequencias. Em nao, chacras.csv continua inteiro e o mapa nao e calculado nem mostrado. Desligado em 13/09: o mapeamento chacra-marcador e proposta, nao metodo."
+territorios_ativo,nao,"Liga a cobertura por territorio do olhar. Em nao, territorios.csv continua inteiro e o painel nao aparece. Desligado em 13/09 pelo mesmo motivo."

@@ -8,6 +8,7 @@ await p.setViewport({width:1500,height:1300});
 const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
 await p.addStyleTag({content:'*{transition:none!important;animation:none!important}'});
+await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
 
 const antes = await p.evaluate(() => {
@@ -36,7 +37,7 @@ const r = await p.evaluate((respostas) => {
 }, caso.respostas);
 
 ok(r.visivel, 'com o questionario, a Triada aparece');
-ok(r.notas.join(' ') === '3.8 3.2 2.0', 'valores do motor: ' + r.notas.join(' · '));
+ok(r.notas.join(' ') === '4.0 3.3 2.0', 'valores do motor: ' + r.notas.join(' · '));
 ok(r.eixos.join(',') === 'Físico,Mental,Espiritual', 'eixos: ' + r.eixos.join(' · '));
 ok(r.menor === 'Espiritual', 'aponta a dimensao mais baixa: ' + r.menor);
 ok(r.poligonos === 5, r.poligonos + ' poligonos (4 da moldura + a area)');

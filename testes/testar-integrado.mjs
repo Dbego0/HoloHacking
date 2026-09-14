@@ -9,7 +9,7 @@ await p.addStyleTag({content:'*{transition:none!important;animation:none!importa
 const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
 
 ok(await p.evaluate(()=>!!window.HOLOSCOPE), 'motor carregado dentro do app');
-ok(await p.evaluate(()=>HOLOSCOPE.resumo().marcadores)===87, '87 marcadores disponiveis');
+ok(await p.evaluate(()=>HOLOSCOPE.resumo().marcadores)===84, '84 marcadores disponiveis');
 
 /** Pontua os 5 sistemas pela interface e le o que a tela mostra. */
 async function pontuar(v){
@@ -28,7 +28,7 @@ async function pontuar(v){
 }
 
 // o caso do exemplo, com as notas REAIS do motor
-const a = await pontuar([6.7,6.7,0.4,6.7,0.7].map(Math.round));
+const a = await pontuar([6.7,6.7,0.8,6.7,0.7].map(Math.round));
 ok(a.combinadas.length>0, 'combinacao do banco disparou: ' + (a.combinadas[0]||'nenhuma'));
 ok((a.ids[0]||'').startsWith('CMB-001'), 'e a CMB-001: ' + (a.ids[0]||'-'));
 

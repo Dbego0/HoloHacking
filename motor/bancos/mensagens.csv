@@ -1,31 +1,31 @@
 sistema,faixa,registro,texto,primeiros_passos,fonte,status
-fungico,baixo,nutri,Nota baixa no Sistema Fúngico — é o sistema em maior desequilíbrio. Padrão emocional associado: estagnação e desordem.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
-fungico,baixo,paciente,Seu corpo está sinalizando estagnação — perda de vitalidade e de clareza.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
-fungico,medio,nutri,Nota intermediária no Sistema Fúngico. Há sinais presentes mas ainda não dominantes.,Investigar os marcadores de maior peso antes de intervir.,EXEMPLO-FORMATO,exemplo
-fungico,medio,paciente,Existem sinais de estagnação aparecendo. Ainda dá para reverter cedo.,Observar o que acontece com seu corpo depois das refeições.,EXEMPLO-FORMATO,exemplo
-fungico,alto,nutri,Nota alta no Sistema Fúngico — sistema em equilíbrio. Não é prioridade de conduta neste momento.,Manter observação nas próximas reavaliações.,EXEMPLO-FORMATO,exemplo
-fungico,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
-acido_inflamatorio,baixo,nutri,Nota baixa no Sistema Ácido-Inflamatório — sistema em desequilíbrio. Padrão emocional: irritação e reatividade.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
-acido_inflamatorio,baixo,paciente,Seu corpo está em estado de reatividade. Isso aparece como dor e como irritação.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
-acido_inflamatorio,medio,nutri,Nota intermediária no Sistema Ácido-Inflamatório.,Verificar marcadores de dor e de reatividade emocional.,EXEMPLO-FORMATO,exemplo
-acido_inflamatorio,medio,paciente,Há sinais de irritação — no corpo e no humor.,Observar em que momentos do dia a irritação aparece.,EXEMPLO-FORMATO,exemplo
-acido_inflamatorio,alto,nutri,Nota alta no Sistema Ácido-Inflamatório — sistema em equilíbrio.,Manter observação.,EXEMPLO-FORMATO,exemplo
-acido_inflamatorio,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
-metabolico,baixo,nutri,Nota baixa no Sistema Metabólico — sistema em desequilíbrio. Padrão emocional: vazio e falta de propósito.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
-metabolico,baixo,paciente,Existe um vazio que a comida vem tentando preencher.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
-metabolico,medio,nutri,Nota intermediária no Sistema Metabólico.,Verificar compulsão e resposta pós-refeição.,EXEMPLO-FORMATO,exemplo
-metabolico,medio,paciente,Sua energia está oscilando ao longo do dia.,Observar como você se sente depois de cada refeição.,EXEMPLO-FORMATO,exemplo
-metabolico,alto,nutri,Nota alta no Sistema Metabólico — sistema em equilíbrio.,Manter observação.,EXEMPLO-FORMATO,exemplo
-metabolico,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
-detox_linfatico,baixo,nutri,Nota baixa no Sistema Detox + Linfático — sistema em desequilíbrio. Padrão emocional: acúmulo de mágoas e emoções não processadas.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
-detox_linfatico,baixo,paciente,Há acúmulo — no corpo e no que ficou sem ser processado.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
-detox_linfatico,medio,nutri,Nota intermediária no Sistema Detox + Linfático.,Verificar retenção e sensibilidade a odores.,EXEMPLO-FORMATO,exemplo
-detox_linfatico,medio,paciente,Seu corpo está acumulando mais do que consegue eliminar.,Observar o inchaço ao longo do dia.,EXEMPLO-FORMATO,exemplo
-detox_linfatico,alto,nutri,Nota alta no Sistema Detox + Linfático — sistema em equilíbrio.,Manter observação.,EXEMPLO-FORMATO,exemplo
-detox_linfatico,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
-mental_emocional_espiritual,baixo,nutri,Nota baixa no Sistema Mental-Emocional-Espiritual — sistema em desequilíbrio. Padrão emocional: desconexão de si.,Priorizar este sistema na conduta inicial.,EXEMPLO-FORMATO,exemplo
-mental_emocional_espiritual,baixo,paciente,Existe uma desconexão de si que está sustentando o restante do quadro.,Começar pelo que o seu plano indicar para este sistema.,EXEMPLO-FORMATO,exemplo
-mental_emocional_espiritual,medio,nutri,Nota intermediária no Sistema Mental-Emocional-Espiritual.,Verificar narrativa interna e qualidade do sono.,EXEMPLO-FORMATO,exemplo
-mental_emocional_espiritual,medio,paciente,Sua mente tem trabalhado mais do que descansado.,Observar como você fala consigo mesmo durante o dia.,EXEMPLO-FORMATO,exemplo
-mental_emocional_espiritual,alto,nutri,Nota alta no Sistema Mental-Emocional-Espiritual — sistema em equilíbrio.,Manter observação.,EXEMPLO-FORMATO,exemplo
-mental_emocional_espiritual,alto,paciente,Esse sistema está em equilíbrio hoje.,Seguir com o que já está funcionando.,EXEMPLO-FORMATO,exemplo
+fungico,baixo,nutri,O Fúngico é o terreno mais carregado deste mapa. Os sinais de mucosa e pele aparecem junto com a vontade recorrente de doce — e o padrão emocional que o material associa a ele é estagnação e desordem.,"Priorizar este sistema. Começar pela oferta de açúcar e pelo histórico de antibiótico, e observar se os sinais de mucosa voltam em ciclo.",rascunho 13/09,rascunho
+fungico,baixo,paciente,"Seu corpo vem dando sinais de que o terreno está desorganizado: aquilo que volta sempre — na pele, na boca, no intestino — costuma andar junto com a vontade forte de doce.","Observar o que acontece com seu corpo nas horas depois de comer massa ou doce, e anotar o que você percebe.",rascunho 13/09,rascunho
+fungico,medio,nutri,"O Fúngico tem sinais presentes, mas ainda não dominantes. Vale olhar quais marcadores pesaram antes de intervir aqui.","Conferir os marcadores de maior peso do sistema antes de montar conduta específica.",rascunho 13/09,rascunho
+fungico,medio,paciente,"Existem sinais aparecendo neste terreno, e ainda dá para agir cedo.",Observar o que muda no seu corpo depois das refeições com mais açúcar.,rascunho 13/09,rascunho
+fungico,alto,nutri,O Fúngico está equilibrado hoje. Não é prioridade de conduta neste momento.,Manter observação nas próximas reavaliações.,rascunho 13/09,rascunho
+fungico,alto,paciente,Este terreno está bem hoje.,Seguir com o que já está funcionando.,rascunho 13/09,rascunho
+acido_inflamatorio,baixo,nutri,"O Ácido-Inflamatório é o terreno mais carregado deste mapa: dor sem causa mecânica clara, rigidez ao acordar e mucosas reagindo mais do que deveriam. O padrão emocional associado é irritação e reatividade.","Priorizar este sistema. Investigar sono, o que antecede as crises de dor, e a relação com ultraprocessado. Dor articular persistente é queixa médica — encaminhar.",rascunho 13/09,rascunho
+acido_inflamatorio,baixo,paciente,"Seu corpo está reagindo mais do que precisaria — e isso aparece de dois jeitos ao mesmo tempo: na dor e na paciência que fica curta.","Reparar em que momentos do dia a dor e a irritação aparecem, e o que veio antes.",rascunho 13/09,rascunho
+acido_inflamatorio,medio,nutri,"O Ácido-Inflamatório tem sinais presentes sem dominar o quadro. Vale conferir os marcadores de dor e o par emocional antes de intervir.",Verificar os marcadores de dor e de reatividade emocional.,rascunho 13/09,rascunho
+acido_inflamatorio,medio,paciente,Há sinais de irritação aparecendo — no corpo e no humor.,Observar em que momentos do dia a irritação aparece.,rascunho 13/09,rascunho
+acido_inflamatorio,alto,nutri,O Ácido-Inflamatório está equilibrado hoje.,Manter observação.,rascunho 13/09,rascunho
+acido_inflamatorio,alto,paciente,Este terreno está bem hoje.,Seguir com o que já está funcionando.,rascunho 13/09,rascunho
+metabolico,baixo,nutri,"O Metabólico é o terreno mais carregado deste mapa: a energia oscila ao longo do dia e o comer acompanha essa oscilação. O padrão emocional associado é vazio e falta de propósito — e é o sistema onde sinal do corpo e comportamento alimentar se sustentam um ao outro.","Priorizar este sistema. Mapear o dia alimentar do café ao último horário, e o que acontece na hora antes da compulsão noturna. Alteração de exame relatada pede avaliação médica.",rascunho 13/09,rascunho
+metabolico,baixo,paciente,"Sua energia tem oscilado muito ao longo do dia, e a comida vem tentando dar conta disso. Existe um vazio nessa conta que não é fome.","Reparar em que horas do dia a vontade aparece, e o que aconteceu antes.",rascunho 13/09,rascunho
+metabolico,medio,nutri,O Metabólico tem sinais presentes sem dominar o quadro. Vale conferir a compulsão e a resposta depois das refeições.,Verificar compulsão e resposta pós-refeição.,rascunho 13/09,rascunho
+metabolico,medio,paciente,Sua energia está oscilando ao longo do dia.,Observar como você se sente depois de cada refeição.,rascunho 13/09,rascunho
+metabolico,alto,nutri,O Metabólico está equilibrado hoje.,Manter observação.,rascunho 13/09,rascunho
+metabolico,alto,paciente,Este terreno está bem hoje.,Seguir com o que já está funcionando.,rascunho 13/09,rascunho
+detox_linfatico,baixo,nutri,"O Detox + Linfático é o terreno mais carregado deste mapa: o que entra não está saindo na mesma medida — retenção, intestino lento, e sensibilidade aumentada a cheiro, álcool e medicamento. O padrão emocional associado é acúmulo de mágoas e emoções não processadas.","Priorizar este sistema. Conferir hábito intestinal de verdade, água, e a que exatamente a paciente reage. Sensibilidade forte a medicamento é assunto de quem prescreve.",rascunho 13/09,rascunho
+detox_linfatico,baixo,paciente,"Há acúmulo — e ele aparece tanto no corpo, no inchaço e no intestino, quanto no que ficou sem ser dito ou resolvido.",Reparar no inchaço ao longo do dia e no que muda quando a semana é mais corrida.,rascunho 13/09,rascunho
+detox_linfatico,medio,nutri,O Detox + Linfático tem sinais presentes sem dominar o quadro. Vale conferir retenção e sensibilidade a odores.,Verificar retenção e sensibilidade a odores.,rascunho 13/09,rascunho
+detox_linfatico,medio,paciente,Seu corpo está acumulando um pouco mais do que consegue eliminar.,Observar o inchaço ao longo do dia.,rascunho 13/09,rascunho
+detox_linfatico,alto,nutri,O Detox + Linfático está equilibrado hoje.,Manter observação.,rascunho 13/09,rascunho
+detox_linfatico,alto,paciente,Este terreno está bem hoje.,Seguir com o que já está funcionando.,rascunho 13/09,rascunho
+mental_emocional_espiritual,baixo,nutri,"O Mental-Emocional-Espiritual é o terreno mais carregado deste mapa: sono, estado de alerta e a narrativa interna aparecem juntos. É o sistema que descreve em que estado a paciente chega para tudo o mais — e por isso costuma sustentar os outros quatro.","Priorizar este sistema, e conduzir os outros a partir dele. Investigar a rotina das duas horas antes de dormir. Sofrimento mental com isolamento pede avaliação em saúde mental, em paralelo ao nutricional.",rascunho 13/09,rascunho
+mental_emocional_espiritual,baixo,paciente,"O que aparece aqui não é falta de disciplina: é o estado em que você tem chegado para o dia. O sono, o alerta constante e o jeito como você fala consigo mesma estão sustentando o resto.","Reparar no que passa pela sua cabeça na hora de dormir, e em que frase você diz a si mesma quando algo não sai como queria.",rascunho 13/09,rascunho
+mental_emocional_espiritual,medio,nutri,O Mental-Emocional-Espiritual tem sinais presentes sem dominar o quadro. Vale conferir a narrativa interna e a qualidade do sono.,Verificar narrativa interna e qualidade do sono.,rascunho 13/09,rascunho
+mental_emocional_espiritual,medio,paciente,Sua mente tem trabalhado mais do que descansado.,Observar como você fala consigo mesma durante o dia.,rascunho 13/09,rascunho
+mental_emocional_espiritual,alto,nutri,O Mental-Emocional-Espiritual está equilibrado hoje.,Manter observação.,rascunho 13/09,rascunho
+mental_emocional_espiritual,alto,paciente,Este terreno está bem hoje.,Seguir com o que já está funcionando.,rascunho 13/09,rascunho

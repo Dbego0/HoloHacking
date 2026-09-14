@@ -1,6 +1,6 @@
 /**
  * Exames, documentos e relatorio dentro do app.
- * O caso de exemplo tem Metabolico 0.4 e Mental 0.7 — bem baixos — e os
+ * O caso de exemplo tem Mental 0.7 e Metabolico 0.8 — bem baixos — e os
  * outros tres altos. Entao exame alterado no metabolico deve CONFIRMAR, e
  * exame alterado no detox (nota 6.7) deve DIVERGIR.
  */
@@ -16,6 +16,7 @@ await p.setViewport({ width: 1500, height: 1200 });
 const ruim = []; p.on('pageerror', e => ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
+await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
 
 // --- a secao existe e abre -------------------------------------------------
@@ -23,21 +24,28 @@ const base = await p.evaluate(() => {
   document.querySelector('.nav-item[data-secao="pacientes"]').click();
   document.getElementById('vista-lista-pacientes').classList.add('hidden');
   document.getElementById('vista-ficha').classList.remove('hidden');
+  document.querySelector('[data-aba="documentos"]').click();
   return {
     visivel: !document.getElementById('ficha-arquivos').classList.contains('hidden'),
     abas: [...document.querySelectorAll('#ficha-arquivos .aba')].map(b => b.textContent.trim()),
-    exames: document.querySelectorAll('#aba-exames .ex-linha').length,
-    blocos: [...document.querySelectorAll('#aba-exames .ex-bloco h4')].map(h => h.textContent),
+    exames: document.querySelectorAll('#ex-corpo .ex-linha').length,
+    blocos: [...document.querySelectorAll('#ex-corpo .ex-bloco h4')].map(h => h.textContent),
+    cartoes: [...document.querySelectorAll('#aba-documentos .arq-titulo')].map(h => h.textContent),
   };
 });
 ok(base.visivel, 'a secao Arquivos abre');
-ok(base.abas.join(',') === 'Exames,Documentos,Relatório', 'abas: ' + base.abas.join(' · '));
+ok(base.abas.join(',') === 'Visão clínica,Linha do tempo,Formulários,Documentos,Relatório',
+   'as cinco abas: ' + base.abas.join(' · '));
+/* Exames e documentos eram duas abas, e a separacao estava errada: os valores
+   saem do PDF. Agora e um lugar so, em dois passos. */
+ok(base.cartoes.join(' / ') === 'O que o paciente trouxe / Os valores do exame',
+   'o papel e os numeros no mesmo lugar: ' + base.cartoes.join(' · '));
 ok(base.exames === 24, base.exames + ' exames no formulario');
 ok(base.blocos.length === 5, 'agrupados nos ' + base.blocos.length + ' sistemas');
 
 // --- sem mapa, o exame nao tem com o que confrontar ------------------------
 const semMapa = await p.evaluate(() => {
-  const l = [...document.querySelectorAll('#aba-exames .ex-linha')]
+  const l = [...document.querySelectorAll('#ex-corpo .ex-linha')]
     .find(x => x.dataset.exame === 'EXA-005');
   l.querySelector('input').value = '115';
   l.querySelector('input').dispatchEvent(new Event('input', { bubbles: true }));
@@ -68,7 +76,7 @@ const conf = await p.evaluate(() => {
   document.getElementById('vista-ficha').classList.remove('hidden');
   // metabolico esta baixo (0.4) e detox esta alto (6.7)
   const por = {};
-  [...document.querySelectorAll('#aba-exames .ex-linha')].forEach(l => por[l.dataset.exame] = l);
+  [...document.querySelectorAll('#ex-corpo .ex-linha')].forEach(l => por[l.dataset.exame] = l);
   por['EXA-005'].querySelector('input').value = '115';   // metabolico, alterado
   por['EXA-015'].querySelector('input').value = '78';    // detox GGT, alterado
   por['EXA-005'].querySelector('input').dispatchEvent(new Event('input', { bubbles: true }));
@@ -117,9 +125,12 @@ const rel = await p.evaluate(() => {
   };
 });
 ok(rel.existe, 'o relatorio e montado');
-ok(rel.indice === '42', 'indice no relatorio: ' + rel.indice);
+ok(rel.indice === '43', 'indice no relatorio: ' + rel.indice);
 ok(rel.sistemas === 5, rel.sistemas + ' sistemas, do pior para o melhor');
-ok(/Metab/.test(rel.primeiro || ''), 'comeca pelo mais baixo: ' + rel.primeiro);
+const maisBaixo = await p.evaluate((respostas) =>
+  [...HOLOSCOPE.calcular(respostas).sistemas].sort((a, b) => a.nota - b.nota)[0].nome,
+  caso.respostas);
+ok(rel.primeiro === maisBaixo, 'comeca pelo mais baixo: ' + rel.primeiro);
 ok(rel.temTriada && rel.temExames, 'traz Triada e Exames');
 ok(/amea/.test(rel.combinada || ''), 'traz a leitura combinada');
 

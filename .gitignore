@@ -22,3 +22,6 @@ motor/node_modules/
 # Trabalho interno (plano, revisao do Rodrigo, roteiro e locucao do video).
 # Fica no repositorio holos, nao neste, que e publico.
 docs/
+
+# Capturas de tela dos testes: geradas a cada rodada, nao sao fonte.
+/*.png

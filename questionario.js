@@ -1,5 +1,5 @@
 /* ===========================================================================
-   QUESTIONARIO DO HOLOSCOPE — as 87 perguntas
+   QUESTIONARIO DO HOLOSCOPE — as 84 perguntas
    ===========================================================================
 
    As perguntas NAO estao escritas aqui. Vem de HOLOSCOPE.questionario(), que
@@ -7,12 +7,25 @@
    ela muda na tela sem ninguem tocar em codigo.
 
    Tres blocos, que sao as tres subferramentas do material:
-     BioRoot    sintomas do corpo      51
-     NeuroScan  emocoes e padroes      20
-     SoulIndex  terreno espiritual     16
+     BioRoot             sintomas do corpo      49
+     NeuroScan           emocoes e padroes      19
+     Terreno Espiritual  proposito, valor, fe   16
 
-   Escala 0 a 3, quatro botoes. Nao e campo de digitar: consulta de 15 minutos
-   nao comporta escrever 87 vezes.
+   Eram 87. Tres perguntas saiam repetidas — a mesma frase em dois marcadores,
+   respondida duas vezes e contada duas vezes. Ver o relatorio de revisao.
+
+   Quatro botoes, e os rotulos deles vem do marcador:
+
+     frequencia    Nunca / As vezes / Frequente / Sempre
+     intensidade   Nada / Um pouco / Bastante / Muito
+
+   Porque "sua gordura se concentra na barriga?" nao tem frequencia: responder
+   "as vezes" ali nao quer dizer nada. Nao e campo de digitar — consulta de 15
+   minutos nao comporta escrever 84 vezes.
+
+   O SENTIDO da pergunta (se o 3 e a pior ou a melhor resposta) tambem vem do
+   banco, e quem aplica e o motor. Esta tela nao converte nada: ela mostra o
+   que a pessoa marcou.
 
    As respostas sao guardadas a cada toque, por paciente. Fechar no meio e
    voltar depois nao perde nada — 15 minutos de consulta nao podem ir embora
@@ -26,23 +39,44 @@
   "use strict";
 
   var CHAVE = "holohacking.questionario";
-  var ESCALA = ["Nunca", "Às vezes", "Frequente", "Sempre"];
   var SEM_PACIENTE = "_sem_paciente";
+
+  var ESCALAS = {
+    frequencia:  ["Nunca", "Às vezes", "Frequente", "Sempre"],
+    intensidade: ["Nada", "Um pouco", "Bastante", "Muito"]
+  };
 
   var BLOCOS = [
     { origem: "sintoma",    sigla: "BioRoot",   titulo: "Raízes físicas",
       sub: "inflamação, metabolismo, detox, microbiota" },
     { origem: "emocao",     sigla: "NeuroScan", titulo: "Padrões emocionais",
       sub: "ansiedade, sabotadores, gatilhos" },
-    { origem: "espiritual", sigla: "SoulIndex", titulo: "Terreno espiritual",
-      sub: "alinhamento, propósito, energia vital" }
+    { origem: "espiritual", sigla: "Terreno Espiritual", titulo: "Propósito, valores e fé",
+      sub: "alinhamento, pertencimento, bloqueios" }
   ];
 
-  var perguntas = null;      // as 87, carregadas do motor uma vez
+  var perguntas = null;      // as 84, carregadas do motor uma vez
   var caixa = null;
+  var ligado = false;        // o ouvinte de clique e um so, para sempre
 
   function motorPronto() {
     return !!(window.HOLOSCOPE && window.HOLOSCOPE.questionario);
+  }
+
+  /* ---------- de quem sao estas respostas -------------------------------- */
+
+  /* A lista de pacientes vem do banco por uma chamada assincrona. Enquanto ela
+     nao chega, pacienteAtivoId() e null — e foi assim que as respostas se
+     perdiam: as primeiras iam para "_sem_paciente" e, quando a lista chegava,
+     passavam a ser procuradas debaixo do id do paciente. Ninguem apagou nada;
+     elas foram gravadas com uma chave e lidas com outra.
+
+     Por isso a tela so desenha depois que a lista chegou. */
+  function pacientesProntos() {
+    try {
+      return typeof window.pacientesCarregados !== "function" ||
+             window.pacientesCarregados();
+    } catch (e) { return true; }
   }
 
   function pacienteAtual() {
@@ -72,6 +106,20 @@
     localStorage.setItem(CHAVE, JSON.stringify(t));
   }
 
+  /* Respostas que ainda existem no banco de hoje. Marcador removido numa
+     revisao deixa resposta orfa guardada; ela nao pode contar no progresso
+     nem ir para o motor, que a recusaria. */
+  function respostasValidas() {
+    var dadas = respostasDoPaciente();
+    var validas = {};
+    if (!perguntas) return validas;
+    for (var i = 0; i < perguntas.length; i++) {
+      var id = perguntas[i].id;
+      if (dadas[id] !== undefined) validas[id] = dadas[id];
+    }
+    return validas;
+  }
+
   /* ---------- desenhar --------------------------------------------------- */
 
   function escapar(s) {
@@ -80,16 +128,32 @@
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
+  function rotulos(q) {
+    return ESCALAS[q.escala] || ESCALAS.frequencia;
+  }
+
   function desenhar() {
     if (!motorPronto()) {
       caixa.innerHTML = '<p class="q-erro">O motor não carregou. ' +
         "Sem ele não há perguntas — confira se holoscope.js está sendo servido.</p>";
       return;
     }
+    if (!pacientesProntos()) {
+      caixa.innerHTML = '<p class="q-aviso">Carregando o paciente…</p>';
+      return;
+    }
     if (!perguntas) perguntas = window.HOLOSCOPE.questionario();
 
-    var dadas = respostasDoPaciente();
-    var html = '<div class="q-topo">' +
+    var dadas = respostasValidas();
+    var html = "";
+
+    if (pacienteAtual() === SEM_PACIENTE) {
+      html += '<p class="q-aviso">Nenhum paciente selecionado. As respostas ficam ' +
+        "guardadas neste navegador, mas não entram na ficha de ninguém — " +
+        "escolha um paciente antes de aplicar o questionário.</p>";
+    }
+
+    html += '<div class="q-topo">' +
       '<div class="q-progresso"><i></i></div>' +
       '<div class="q-linha"><span class="q-conta"></span>' +
       '<span class="q-acoes">' +
@@ -107,13 +171,14 @@
       for (var i = 0; i < doBloco.length; i++) {
         var q = doBloco[i];
         var v = dadas[q.id];
+        var escala = rotulos(q);
         html += '<div class="q-item" data-marcador="' + q.id + '">' +
           '<p class="q-pergunta">' + escapar(q.pergunta) + "</p>" +
           '<div class="q-botoes">';
         for (var k = 0; k < 4; k++) {
           html += '<button type="button" class="q-btn' +
             (String(v) === String(k) ? " marcado" : "") +
-            '" data-valor="' + k + '"><b>' + k + "</b>" + ESCALA[k] + "</button>";
+            '" data-valor="' + k + '"><b>' + k + "</b>" + escala[k] + "</button>";
         }
         html += "</div></div>";
       }
@@ -128,7 +193,7 @@
 
   function atualizarProgresso() {
     if (!perguntas) return;
-    var n = Object.keys(respostasDoPaciente()).length;
+    var n = Object.keys(respostasValidas()).length;
     var pc = Math.round(n / perguntas.length * 100);
     var barra = caixa.querySelector(".q-progresso i");
     if (barra) barra.style.width = pc + "%";
@@ -139,7 +204,12 @@
     }
   }
 
+  /* Um ouvinte so, no container, para a vida inteira da pagina. Ele estava
+     sendo pendurado a cada desenho: trocar de paciente tres vezes fazia o
+     mesmo clique gravar tres vezes. */
   function ligar() {
+    if (ligado) return;
+    ligado = true;
     caixa.addEventListener("click", function (ev) {
       var b = ev.target.closest(".q-btn");
       if (b) {
@@ -164,7 +234,7 @@
   /* ---------- calcular: daqui em diante quem manda e o motor ------------- */
 
   function calcular() {
-    var dadas = respostasDoPaciente();
+    var dadas = respostasValidas();
     var respostas = Object.keys(dadas).map(function (id) {
       return { marcador_id: id, intensidade: dadas[id] };
     });
@@ -173,9 +243,17 @@
       return;
     }
 
+    /* O que o paciente tem alem do questionario: exames lancados e o que as
+       ferramentas mediram. Nao muda nota nenhuma — serve para as combinacoes
+       poderem cruzar relato com exame, que e a leitura sistemica do metodo. */
+    var contexto = {};
+    try {
+      if (window.Panorama && window.Panorama.contexto) contexto = window.Panorama.contexto();
+    } catch (e) { /* sem contexto o mapa sai igual, so com menos cruzamento */ }
+
     var r;
     try {
-      r = window.HOLOSCOPE.calcular(respostas);
+      r = window.HOLOSCOPE.calcular(respostas, contexto);
     } catch (e) {
       mostrarAviso("O motor recusou as respostas: " + e.message);
       return;
@@ -198,6 +276,11 @@
 
   /* ---------- abrir e fechar --------------------------------------------- */
 
+  function aberto() {
+    var tela = document.getElementById("holoscope-questionario");
+    return tela && !tela.classList.contains("hidden");
+  }
+
   function abrir() {
     document.getElementById("holoscope-manual").classList.add("hidden");
     document.getElementById("holoscope-questionario").classList.remove("hidden");
@@ -210,21 +293,30 @@
     document.getElementById("holoscope-manual").classList.remove("hidden");
   }
 
+  /* O botao anunciava "87 perguntas" escrito na mao no HTML, e continuou
+     anunciando 87 depois que passaram a ser 84. Quem sabe quantas sao e o
+     motor. */
+  function rotularBotao(botao) {
+    if (!botao || !motorPronto()) return;
+    if (!perguntas) perguntas = window.HOLOSCOPE.questionario();
+    botao.innerHTML = "Aplicar question\u00e1rio &mdash; " + perguntas.length + " perguntas";
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     caixa = document.getElementById("q-lista");
     if (!caixa) return;
     var abrirBtn = document.getElementById("btn-abrir-questionario");
     if (abrirBtn) abrirBtn.addEventListener("click", abrir);
+    rotularBotao(abrirBtn);
     var voltar = document.getElementById("btn-voltar-manual");
     if (voltar) voltar.addEventListener("click", fechar);
 
-    // trocar de paciente troca o questionario inteiro
+    // trocar de paciente troca o questionario inteiro — e a chegada da lista
+    // de pacientes conta como troca, porque ate ali nao se sabia de quem era
     var anterior = window.aoTrocarPaciente;
     window.aoTrocarPaciente = function () {
       if (typeof anterior === "function") anterior();
-      if (!document.getElementById("holoscope-questionario").classList.contains("hidden")) {
-        desenhar();
-      }
+      if (aberto()) desenhar();
     };
   });
 })();

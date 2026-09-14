@@ -1,6 +1,6 @@
 /**
  * O criterio do plano: pagina em branco no navegador, chamar a pontuacao com
- * o caso de exemplo, ver Indice 42 com CMB-001 disparando — o mesmo que sai
+ * o caso de exemplo, ver Indice 43 com CMB-001 disparando — o mesmo que sai
  * hoje no terminal.
  */
 import puppeteer from 'puppeteer-core';
@@ -35,9 +35,9 @@ const r = await p.evaluate((respostas) => {
 const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
 if (r.erro) { console.log('  FALHA', r.erro); process.exit(1); }
 
-ok(r.resumo.marcadores === 87, 'motor carregou ' + r.resumo.marcadores + ' marcadores');
-ok(r.perguntas === 87, r.perguntas + ' perguntas montadas');
-ok(r.indice === 42, 'INDICE = ' + r.indice + '  (esperado 42)');
+ok(r.resumo.marcadores === 84, 'motor carregou ' + r.resumo.marcadores + ' marcadores');
+ok(r.perguntas === 84, r.perguntas + ' perguntas montadas');
+ok(r.indice === 43, 'INDICE = ' + r.indice + '  (esperado 43)');
 ok(r.cobertura === 100, 'cobertura ' + r.cobertura + '%');
 ok(r.combinacoes.some(c => c.startsWith('CMB-001')), 'CMB-001 disparou');
 ok(r.escopoBloqueia === false, 'escopo bloqueia pergunta de medicamento');

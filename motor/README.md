@@ -64,17 +64,39 @@ nunca as respostas cruas — assim ele não tem como repontuar por conta própri
 
 ### A conta
 
-Cada marcador tem um `peso` de 1 a 3 e o paciente responde numa escala de 0 a 3
-(nunca / às vezes / frequente / sempre).
+Cada marcador tem um `peso` de 1 a 3 e o paciente responde numa escala de 0 a 3.
+Que régua ele vê, e para que lado ela puxa, são duas colunas do banco:
+
+| `escala` | os quatro botões |
+| --- | --- |
+| `frequencia` | Nunca · Às vezes · Frequente · Sempre |
+| `intensidade` | Nada · Um pouco · Bastante · Muito |
+
+Existem as duas porque um estado não tem frequência: em *"sua gordura se
+concentra na barriga?"*, responder "às vezes" não quer dizer nada.
+
+| `sentido` | o que o 3 significa |
+| --- | --- |
+| `direto` | mais carga — *"você sente dor nas articulações?"* |
+| `invertido` | menos carga — *"você sente que sua vida tem uma direção clara?"* |
 
 ```
-obtido(S) = Σ peso × intensidade   dos marcadores do sistema S
-maximo(S) = Σ peso × 3
+carga(m)  = sentido == invertido ? 3 − resposta : resposta
+
+obtido(S) = Σ peso × carga(m)    dos marcadores RESPONDIDOS do sistema S
+maximo(S) = Σ peso × 3           dos mesmos marcadores respondidos
 carga(S)  = obtido / maximo × 10           →  quanto o paciente marcou
 nota(S)   = 10 − carga(S)                  →  0 a 10, 10 = muito bom
 
 Indice HOLOS = Σ nota(S) × peso_indice(S) × 10   →  0 a 100, 100 = muito bom
 ```
+
+**Só marcador respondido entra na conta** — nos dois lados dela. Somando o banco
+inteiro no `maximo`, a pergunta em branco valia "nunca": dez respostas no pior
+grau e o resto vazio davam Índice 86. Sistema sem nenhuma resposta sai marcado
+com `avaliavel: false`, fica fora do Índice (os pesos dos outros são
+renormalizados) e nenhuma combinação que o leia dispara. Ausência de dado não é
+sinal de saúde.
 
 **Tudo lê na mesma direção: quanto maior, melhor** (D1, 27/08). Os sistemas vão
 de 0 a 10; o Índice HOLOS, de 0 a 100. Vale para os 5 sistemas,
@@ -84,16 +106,135 @@ mas só para auditoria — o número do método é a `nota`.
 As condições de `combinacoes.csv` são escritas em **nota**, que é a língua do Rodrigo:
 `metabolico <= 3` quer dizer "Metabólico em desequilíbrio".
 
+### Os nove passos, e onde o app está
+
+O método descreve o HOLOSCOPE como uma sequência, não como um formulário:
+*escutar → mapear → identificar padrões → **aprofundar** → **formular
+hipóteses** → investigar → priorizar → intervir → acompanhar.* O app pulava do
+mapa direto para a conduta. Os dois passos do meio entraram em 13/09:
+
+**Aprofundar** é a coluna `aprofundar` de cada marcador — a pergunta a fazer
+quando a resposta veio alta. *"Como tem sido seu sono?"* e, se veio mal, *"o que
+acontece nos dias em que você dorme pior?"*. O motor já sabe o que pesou;
+devolve em `aprofundamentos`, ordenado pelo que pesou mais, a partir da carga
+em `config.csv · aprofundar_a_partir_de`. **A coluna está vazia** — o texto das
+84 é do método.
+
+**Hipótese** é o que a combinação passou a ser. Na tela, "Leitura combinada"
+virou *"Hipótese a investigar"*, e cada linha traz o campo `investigar` — o que
+conferir antes de concluir. Hipótese sem ele é conclusão disfarçada, e o
+validador avisa.
+
+**Encaminhar** é o `tipo` da combinação. `tipo=encaminhar` não é leitura
+clínica: é o sistema reconhecendo que aquilo sai do escopo da nutrição. Sai em
+bloco próprio, antes de tudo.
+
+### Os territórios do olhar
+
+`territorios.csv` + a coluna `territorio` nos marcadores. **Não é mais uma
+nota** — é cobertura: o que foi perguntado e o que ficou de fora. Território
+declarado sem nenhuma pergunta apontando para ele aparece com um traço e a
+frase que importa: *não é equilíbrio, é o que o questionário não alcança*.
+
+Isso resolve também o ambiente, que o método pede e o questionário não tem:
+**marcador com `sistema` vazio é pergunta de contexto** — cobre território, é
+legível por `marcador.<ID>` nas combinações, e **não pontua em sistema nenhum**.
+O ambiente explica a conduta; ele não mede o corpo.
+
 **Triada** — físico / mental / espiritual — sai da *origem* do marcador:
 sintomas são o eixo físico, emoções o mental, espiritual o espiritual.
-Não precisa de tabela nova.
+Não precisa de tabela nova. Conta **por id, não por linha**: a emoção que pesa
+num sistema primário e num secundário tem duas linhas, e somar as duas fazia
+nove das dezenove emoções valerem o dobro das outras no eixo mental.
 
-**Mapa de Frequências** — nota por chacra, das linhas de `espiritual.csv` com
-`dimensao=chacra`. 10 = fluindo.
+**Mapa de Frequências** — nota por chacra. **Não tem pergunta própria**: é um
+*segundo recorte das mesmas respostas*. Cada marcador diz, na coluna `chacra`,
+a qual deles responde — e a maioria não responde a nenhum. 10 = fluindo, e a
+lista sai do mais travado para o mais livre, que é onde a conduta começa.
 
-**Combinações** — as condições em `combinacoes.csv` são avaliadas contra as
-notas. Não usa `eval`: o parser aceita só `<sistema> <operador> <número>`
-ligados por ` E ` / ` OU `, sem precedência, da esquerda para a direita.
+É daí que sai a "conexão invisível" do material: ela não é inventada, ela cai
+fora da mesma tabela — como o marcador que pesa em dois sistemas.
+
+Conta **por id e só o que foi respondido**, pelas mesmas razões da Tríada.
+
+#### Como preencher (está em construção)
+
+`chacras.csv` está **vazio de propósito**: qual marcador responde a qual chacra
+é conteúdo do método, e o livro não menciona chacra em nenhuma das 145 páginas.
+O mecanismo está pronto e testado; falta o mapeamento. São dois passos:
+
+**1. Declarar os chacras** em `bancos/chacras.csv`:
+
+```csv
+id,chacra,leitura,ordem,fonte,status
+plexo_solar,plexo solar,poder pessoal e limite,3,<de onde saiu>,rascunho
+cardiaco,cardíaco,afeto, perdão e vínculo,4,<de onde saiu>,rascunho
+```
+
+`ordem` é a posição anatômica, da base para o topo — só ordena, não entra em
+conta nenhuma. Sem `fonte` o validador recusa a linha.
+
+**2. Marcar, nos marcadores que já existem, a qual chacra cada um responde** —
+a coluna `chacra` em `sintomas.csv`, `emocoes.csv` e `espiritual.csv`, com o
+`id` declarado acima. Deixar em branco é o normal: a maior parte dos 84 não
+responde a chacra nenhum.
+
+```csv
+ESP-203,principio,abre mão do que é inegociável,...,Você abre mão...?,plexo_solar,livro p. 46,rascunho
+EMO-204,engolir o que gostaria de dizer,...,Você engole...?,plexo_solar,material 11/08,rascunho
+```
+
+Há semente disso no próprio banco: `sistemas.csv` já diz que o impacto
+espiritual do Ácido-Inflamatório é *"bloqueio no plexo solar"*.
+
+O validador cobre os dois passos — recusa chacra sem nome ou sem fonte, recusa
+marcador apontando para chacra que não existe (um erro de digitação criaria um
+chacra a mais, calado) e avisa quando um chacra declarado não tem nenhum
+marcador apontando para ele. Nenhuma pergunta nova, nenhuma linha de código.
+
+**Combinações** — **é aqui que mora a leitura sistêmica**, e é o que separa
+"uma IA que lê exames" de "uma IA que interpreta o estado humano". Não usa
+`eval`: o parser aceita `<nome> <operador> <número>` ligados por ` E ` / ` OU `,
+sem precedência, da esquerda para a direita.
+
+Até 13/09 `<nome>` só podia ser um dos cinco sistemas ou `indice`. Com cinco
+números na mão o exemplo do próprio material — *"cortisol elevado + compulsão
+noturna + padrão de rejeição"* — não era escrevível: virava
+`metabolico <= 3 E mental_emocional_espiritual <= 3`, o **reflexo agregado** do
+achado, não o achado. Hoje o vocabulário é:
+
+| `<nome>` | o que vale | faixa |
+| --- | --- | --- |
+| `metabolico` (um dos 5) | a nota do sistema | 0–10 |
+| `indice` | o Índice HOLOS | 0–100 |
+| `triada.fisico` · `.mental` · `.espiritual` | o eixo da Tríada | 0–10 |
+| `chacra.<id>` | a nota do chacra | 0–10 |
+| `marcador.<ID>` | a **carga** daquela resposta | 0–3 |
+| `exame.<ID>` | o valor lançado no Holoscan | a unidade do exame |
+| `ferramenta.<id>.<campo>` | o número que a ferramenta mediu | o da ferramenta |
+
+```
+exame.EXA-005 >= 100 E marcador.SNT-304 >= 2 E triada.mental <= 3
+```
+
+Duas coisas que valem por regra:
+
+**`marcador.` lê a carga, não a resposta crua.** Numa pergunta `invertido` o 3
+é a melhor resposta possível e vale 0 de carga — a condição lê a mesma coisa
+que a nota leu, senão as duas discordariam sobre o mesmo paciente.
+
+**Condição que depende de dado inexistente não dispara.** Exame em branco não
+vale zero, pergunta sem resposta não vale "nunca", sistema sem nenhuma resposta
+não entra. Vale para todos os nomes da tabela, sem exceção.
+
+O validador confere cada nome contra os bancos: `marcador.SNT-999` ou
+`chacra.plexo-solra` são **erro**, não regra que nunca dispara em silêncio.
+A única exceção é `ferramenta.`, porque o catálogo de ferramentas vive no app
+e não nos bancos — ali ele avisa em vez de recusar.
+
+**Exame não pontua, exame cruza.** O Índice continua saindo só do questionário;
+o exame entra em `calcular(respostas, contexto)` para as combinações poderem
+lê-lo. Há teste travando que o Índice é idêntico com e sem contexto.
 
 Nenhuma regra clínica está escrita em código. Se você precisar editar um arquivo
 `.ts` para mudar uma regra do método, a regra está no lugar errado.
@@ -231,22 +372,34 @@ Tudo em CSV, para o Rodrigo editar sozinho — hoje e daqui a três anos.
 | Arquivo | O que guarda | Linhas |
 | --- | --- | --- |
 | `bancos/sistemas.csv` | Os 5 sistemas, nome e padrões associados | 5 |
+| `bancos/chacras.csv` | O Mapa de Frequências — **vazio, em construção** | 0 |
+| `bancos/eixos.csv` | Os 3 eixos terapêuticos por sistema — a entrega | 11 |
+| `bancos/territorios.csv` | Os territórios do olhar — **vazio, em construção** | 0 |
 | `bancos/regras.csv` | Fórmula, cortes de faixa, peso no Índice | 5 |
 | `bancos/config.csv` | Escala, teto do Índice, arredondamento | 6 |
-| `bancos/sintomas.csv` | Sintoma × sistema × peso | 12 |
-| `bancos/emocoes.csv` | Emoção × padrão × sistema primário e secundário | 7 |
-| `bancos/espiritual.csv` | Valor, propósito, fé, bloqueio, chacra | 8 |
+| `bancos/sintomas.csv` | Sintoma × sistema × peso | 51 linhas, 49 perguntas |
+| `bancos/emocoes.csv` | Emoção × padrão × sistema primário e secundário | 19 |
+| `bancos/espiritual.csv` | Valor, propósito, fé, bloqueio | 16 |
 | `bancos/combinacoes.csv` | **A inteligência clínica.** Meta mínima: 15 | 5 |
 | `bancos/mensagens.csv` | 5 sistemas × 3 faixas × 2 registros | 30 |
 | `politicas/escopo.csv` | O que o agente nunca responde | 7 |
+
+A revisão de 13/09/2026 — o que mudou nos marcadores e o que ainda depende do
+Rodrigo — está em `docs/REVISAO-CLINICA.md`, junto com a auditoria e as fichas
+dos cinco sistemas. `docs/` é trabalho interno e não vem neste repositório.
 
 **Toda linha carrega `fonte`.** O validador rejeita linha sem procedência. Se o
 Rodrigo apontar para uma linha e perguntar "de onde saiu isso?", tem que haver
 resposta em um segundo — senão a IA inventa método e ninguém percebe.
 
 O mesmo marcador pode aparecer em mais de um sistema com pesos diferentes
-(`SNT-002` pesa 2 no Fúngico e 3 no Metabólico). É daí que emergem as "conexões
+(`SNT-101` pesa 2 no Fúngico e 3 no Metabólico). É daí que emergem as "conexões
 invisíveis" do material: elas não são inventadas pela IA, elas caem fora da tabela.
+
+**Repetir o `id` é o jeito certo de fazer isso** — duas linhas, um id. Criar um
+segundo id com a mesma pergunta faz o paciente respondê-la duas vezes, e as duas
+contam; o caso fictício deste repositório respondia 1 numa e 3 na outra. O
+validador agora recusa duas perguntas de texto igual em ids diferentes.
 
 ---
 

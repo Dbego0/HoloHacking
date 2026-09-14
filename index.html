@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HoloHacking — Plataforma clínica da Nutrição Holística</title>
+<!-- A marca na aba: o app fica aberto o dia inteiro ao lado de outras abas.
+     Sem isto o navegador pedia /favicon.ico e levava 404 em toda visita. -->
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -49,37 +52,80 @@
       <div class="nome">HoloHacking<em>Plataforma clínica da Nutrição Holística</em></div>
     </div>
 
-    <p class="nav-titulo">Navegação</p>
     <nav aria-label="Menu principal">
-      <button class="nav-item ativo" data-secao="dashboard">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
-        Dashboard
-      </button>
-      <button class="nav-item" data-secao="holoscope">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><circle cx="12" cy="12" r="3"/></svg>
-        HOLOSCOPE<span style="font-size:.5em;vertical-align:super;margin-left:1px">&#174;</span>
-      </button>
-      <button class="nav-item" data-secao="pacientes">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16.5 11.2A2.8 2.8 0 1 0 16 5.7M18 19.5c0-2-.6-3.4-1.7-4.4"/></svg>
-        Pacientes <span class="nav-tag" id="nav-total-pac">0</span>
-      </button>
-      <button class="nav-item" data-secao="corpo">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.5" r="2.6"/><path d="M12 8.5v6M12 14.5l-3.5 5M12 14.5l3.5 5M7 10.5h10"/></svg>
-        Corpo <span class="nav-tag">OQ3</span>
-      </button>
-      <button class="nav-item" data-secao="mente">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3.5a6 6 0 0 1 8.4 6.6c-.2 1.1.1 1.7.9 2.7l.7.9-1.8.6v2.2c0 .9-.7 1.6-1.6 1.6h-1.6v2.4H8.3v-3.2A6.9 6.9 0 0 1 9.5 3.5Z"/></svg>
-        Mente <span class="nav-tag">PQQ</span>
-      </button>
-      <button class="nav-item" data-secao="espirito">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1.8 3.2 4.6 5 7.5 5.6-1 3.1-3.5 5.6-7.5 6.9-4-1.3-6.5-3.8-7.5-6.9C7.4 8 10.2 6.2 12 3Z"/><path d="M12 15.5V21M9 19h6"/></svg>
-        Espírito <span class="nav-tag">Mapa</span>
-      </button>
+      <p class="nav-titulo" id="nav-grupo-atendimento">Atendimento</p>
+      <div class="nav-grupo" role="group" aria-labelledby="nav-grupo-atendimento">
+        <button class="nav-item ativo" data-secao="dashboard">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
+          Dashboard
+        </button>
+        <button class="nav-item" data-secao="pacientes">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16.5 11.2A2.8 2.8 0 1 0 16 5.7M18 19.5c0-2-.6-3.4-1.7-4.4"/></svg>
+          Pacientes <span class="nav-tag" id="nav-total-pac">0</span>
+        </button>
+        <button class="nav-item" data-secao="consultas">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9.5 4V2.8h5V4M9.5 10.5h5M9.5 14.5h3"/></svg>
+          Consultas
+        </button>
+        <button class="nav-item" data-secao="agenda">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/><circle cx="12" cy="15.5" r="1.3"/></svg>
+          Agenda <span class="nav-tag hidden" id="nav-agenda-venc">0</span>
+        </button>
+        <button class="nav-item" data-secao="documentos">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7a2 2 0 0 1 2-2h3.6l2 2.6h7.4a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z"/></svg>
+          Documentos
+        </button>
+      </div>
+
+      <p class="nav-titulo" id="nav-grupo-recursos">Recursos</p>
+      <div class="nav-grupo" role="group" aria-labelledby="nav-grupo-recursos">
+        <button class="nav-item" data-secao="holoscope">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><circle cx="12" cy="12" r="3"/></svg>
+          HOLOSCOPE<span style="font-size:.5em;vertical-align:super;margin-left:1px">&#174;</span>
+        </button>
+        <button class="nav-item" data-secao="corpo">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.5" r="2.6"/><path d="M12 8.5v6M12 14.5l-3.5 5M12 14.5l3.5 5M7 10.5h10"/></svg>
+          Corpo <span class="nav-tag">OQ3</span>
+        </button>
+        <button class="nav-item" data-secao="mente">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3.5a6 6 0 0 1 8.4 6.6c-.2 1.1.1 1.7.9 2.7l.7.9-1.8.6v2.2c0 .9-.7 1.6-1.6 1.6h-1.6v2.4H8.3v-3.2A6.9 6.9 0 0 1 9.5 3.5Z"/></svg>
+          Mente <span class="nav-tag">PQQ</span>
+        </button>
+        <button class="nav-item" data-secao="espirito">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1.8 3.2 4.6 5 7.5 5.6-1 3.1-3.5 5.6-7.5 6.9-4-1.3-6.5-3.8-7.5-6.9C7.4 8 10.2 6.2 12 3Z"/><path d="M12 15.5V21M9 19h6"/></svg>
+          Espírito <span class="nav-tag">Mapa</span>
+        </button>
+      </div>
+
+      <p class="nav-titulo" id="nav-grupo-config">Configurações</p>
+      <div class="nav-grupo" role="group" aria-labelledby="nav-grupo-config">
+        <button class="nav-item" data-secao="perfil">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.4 3.1-6 7-6s7 2.6 7 6"/></svg>
+          Perfil
+        </button>
+      </div>
     </nav>
 
     <div class="sidebar-rodape">
-      <strong>Método Rodrigo Mendanha</strong><br>
-      Corpo - Mente - Espírito<br>em equilibrio - em propósito
+      <!-- Quem esta usando o app, e o quanto o perfil dela ja esta pronto.
+           O que falta ali nao e enfeite: e o que sai impresso no rodape das
+           receitas e dos relatorios. Desenhado por perfil.js. -->
+      <button type="button" class="sr-cartao" data-ir="perfil" id="sr-cartao">
+        <span class="sr-avatar" id="sr-avatar">P</span>
+        <span class="sr-quem">
+          <b id="sr-nome">Profissional</b>
+          <em id="sr-papel">Nutricionista</em>
+        </span>
+      </button>
+      <div class="sr-progresso" id="sr-progresso">
+        <span class="sr-rotulo">Perfil</span>
+        <span class="sr-trilho"><i id="sr-barra" style="width:0%"></i></span>
+        <b id="sr-pct">0%</b>
+      </div>
+      <div class="sr-metodo">
+        <strong>Método Rodrigo Mendanha</strong><br>
+        Corpo - Mente - Espírito<br>em equilibrio - em propósito
+      </div>
     </div>
   </aside>
 
@@ -101,6 +147,15 @@
 
       <!-- ============ DASHBOARD ============ -->
       <section class="secao ativa" id="secao-dashboard">
+        <!-- O TRABALHO DE HOJE. Desenhado por dashboard.js a partir de
+             Panorama.carteira(): quem precisa de atencao, o tamanho da
+             carteira e o terreno que mais aparece nela. Vem antes de tudo
+             porque e o que a nutricionista abre o app para ver. -->
+        <div id="dash-trabalho"></div>
+
+        <!-- O METODO. Some assim que existe o primeiro paciente: quem ja
+             esta atendendo nao precisa da apresentacao todo dia. -->
+        <div id="dash-metodo">
         <svg class="marca-hero" width="78" height="73" viewBox="0 0 64 60" aria-hidden="true"><use href="#logo-simbolo"/></svg>
         <div class="secao-cabeca">
           <span class="eyebrow">Bem-vinda a plataforma</span>
@@ -134,6 +189,8 @@
           <div class="citacao">
             <p>"Nem sempre o melhor plano e o mais completo. O melhor plano e aquele que o paciente consegue transformar em vida."</p>
           </div>
+        </div>
+
         </div>
 
         <div class="grade-pilares">
@@ -174,7 +231,7 @@
         <div class="secao-cabeca">
           <span class="eyebrow">HOLOSCOPE&reg; &mdash; Scanner Integral</span>
           <h2>O mapa <em>invisível</em> da saúde humana</h2>
-          <p>O HOLOSCOPE revela, em minutos, aquilo que levaria meses para ser identificado: padrões emocionais, sistemas em desequilíbrio, terreno espiritual, vulnerabilidades metabólicas e conexões entre corpo-mente-espírito.</p>
+          <p>O HOLOSCOPE organiza, numa leitura só, o que o paciente relata sobre corpo, emoção e propósito — e mostra por onde a conduta começa: quais sistemas pesam mais, o que aparece junto e qual ferramenta responde a isso.</p>
         </div>
 
         <div class="barra-paciente">
@@ -183,11 +240,12 @@
           <span class="aviso">Selecione um paciente para aplicar o HOLOSCOPE.</span>
         </div>
 
-        <!-- Dois caminhos: responder as 87 perguntas, ou pontuar os cinco
-               sistemas a mao. O segundo era o unico que existia. -->
+        <!-- Dois caminhos: responder o questionario, ou pontuar os cinco
+               sistemas a mao. O segundo era o unico que existia.
+               A contagem do botao e escrita por questionario.js, do motor. -->
           <div class="holo-modos">
             <button type="button" class="btn-verde" id="btn-abrir-questionario">
-              Aplicar questionário &mdash; 87 perguntas
+              Aplicar questionário
             </button>
             <span>ou pontue os cinco sistemas à mão, abaixo</span>
           </div>
@@ -206,7 +264,7 @@
           <div class="holo-sistemas">
             <div class="holo-card" data-sistema="fungico">
               <h5>Fúngico</h5>
-              <p class="holo-desc">Cândida, fungos, biofilme</p>
+              <p class="holo-desc">Doce, inchaço, saburra, coceira e névoa depois do carboidrato</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Estagnação e desordem</span>
                 <span class="holo-espiritual">Perda de vitalidade</span>
@@ -219,7 +277,7 @@
             </div>
             <div class="holo-card" data-sistema="inflamatorio">
               <h5>Ácido-Inflamatório</h5>
-              <p class="holo-desc">Inflamação silenciosa, acidose, dor crônica</p>
+              <p class="holo-desc">Dor, rigidez ao acordar, azia e pele em crise</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Irritação, raiva</span>
                 <span class="holo-espiritual">Bloqueio no plexo solar</span>
@@ -232,7 +290,7 @@
             </div>
             <div class="holo-card" data-sistema="metabolico">
               <h5>Metabólico</h5>
-              <p class="holo-desc">Resistência a insulina, metabolismo lento</p>
+              <p class="holo-desc">Sono depois de comer, fome que volta rápido, gordura na barriga</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Vazio, falta de propósito</span>
                 <span class="holo-espiritual">Dessintonização do corpo</span>
@@ -245,7 +303,7 @@
             </div>
             <div class="holo-card" data-sistema="detox">
               <h5>Detox + Linfático</h5>
-              <p class="holo-desc">Sobrecarga hepática, retenção, intoxicação</p>
+              <p class="holo-desc">Inchaço, intestino lento, sensibilidade a cheiro e a remédio</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Mágoas acumuladas</span>
                 <span class="holo-espiritual">Bloqueio do fluxo</span>
@@ -257,8 +315,8 @@
               </div>
             </div>
             <div class="holo-card" data-sistema="mental">
-              <h5>Mental-Emocional</h5>
-              <p class="holo-desc">Ansiedade, auto-sabotagem, narrativas internas</p>
+              <h5>Mental-Emocional-Espiritual</h5>
+              <p class="holo-desc">Sono, ansiedade, autocrítica e o comer para acalmar</p>
               <div class="holo-pattern">
                 <span class="holo-emocional">Desconexão de si</span>
                 <span class="holo-espiritual">Queda de frequência</span>
@@ -289,9 +347,29 @@
                marcadores, nao das notas dos cinco sistemas. -->
           <div class="holo-triada hidden" id="holo-triada"></div>
 
+          <!-- Mapa de Frequencias: nota por chacra, lida das MESMAS respostas
+               do questionario pela coluna "chacra" dos marcadores. Fica
+               escondido enquanto chacras.csv nao tiver mapeamento — e hoje
+               nao tem, de proposito. -->
+          <div class="holo-frequencias hidden" id="holo-frequencias"></div>
+
+          <!-- A cobertura do olhar: o que foi perguntado e o que ficou de
+               fora, pelos territorios do metodo. Escondido enquanto
+               territorios.csv nao tiver nenhum declarado. -->
+          <div class="holo-territorios hidden" id="holo-territorios"></div>
+
           <!-- padrao emocional, impacto espiritual e direcao terapeutica.
                Preenchido por lerTerreno() em app.js. -->
           <div class="holo-leitura" id="holo-leitura"></div>
+
+          <!-- A fronteira. Ficava so no rodape do relatorio impresso; a tela
+               onde a nutricionista abre o mapa junto com a paciente nao dizia
+               nada. Fica fixa: aparece com mapa e sem mapa. -->
+          <p class="holo-fronteira">
+            O HOLOSCOPE é uma <b>avaliação nutricional integral</b> construída a partir
+            do que o paciente relata. Não é exame, não é diagnóstico médico e não
+            substitui avaliação clínica.
+          </p>
 
           <div class="holo-subtools">
             <div class="holo-subtool">
@@ -303,16 +381,16 @@
               <p>Inflamação, metabolismo, detox, microbiota</p>
             </div>
             <div class="holo-subtool">
-              <h6>SoulIndex</h6>
-              <p>Alinhamento, propósito, energia vital</p>
+              <h6>Terreno Espiritual</h6>
+              <p>Propósito, valores, fé e bloqueios</p>
             </div>
             <div class="holo-subtool">
               <h6>Triada HOLOS</h6>
               <p>Integração físico-mental-espiritual</p>
             </div>
-            <div class="holo-subtool">
-              <h6>Mapa de Frequências</h6>
-              <p>Queda vibracional e blocos de consciência</p>
+            <div class="holo-subtool em-construcao">
+              <h6>Mapa de Frequências <span class="selo-construcao">em revisão</span></h6>
+              <p>Onde o fluxo está travado, lido das mesmas respostas do questionário. Parado até a correspondência chacra&ndash;marcador ser revisada.</p>
             </div>
           </div>
 
@@ -338,6 +416,18 @@
             <p>Cadastre uma pessoa uma única vez e todas as ferramentas passam a registrar nela. Escolha um paciente para ver a ficha completa.</p>
           </div>
 
+          <div class="abas abas-pacientes" role="tablist">
+            <button class="aba ativa" data-aba-pac="lista" role="tab" aria-selected="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16.5 11.2A2.8 2.8 0 1 0 16 5.7M18 19.5c0-2-.6-3.4-1.7-4.4"/></svg>
+              Pacientes
+            </button>
+            <button class="aba" data-aba-pac="revisao" role="tab" aria-selected="false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M21 4v4.5h-4.5"/><path d="M12 7.5V12l3 1.8"/></svg>
+              Revisão <span class="aba-tag hidden" id="aba-revisao-n">0</span>
+            </button>
+          </div>
+
+          <div id="painel-pac-lista">
           <div class="acoes-topo">
             <button class="btn-novo" id="btn-abrir-novo">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -345,11 +435,16 @@
             </button>
             <div class="campo-busca" style="max-width:320px">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              <input type="search" id="busca-pacientes" placeholder="Buscar paciente..." aria-label="Buscar paciente" autocomplete="off">
+              <input type="search" id="busca-pacientes" placeholder="Buscar por nome, e-mail ou telefone..." aria-label="Buscar por nome, e-mail ou telefone" autocomplete="off">
               <button type="button" class="btn-limpar-busca" id="limpar-busca-pac" aria-label="Limpar busca">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             </div>
+            <select id="ordem-pacientes" class="pac-ordem" aria-label="Ordenar a lista">
+              <option value="cadastro">Data de cadastro</option>
+              <option value="nome">Nome (A–Z)</option>
+              <option value="contato">Último contato</option>
+            </select>
           </div>
 
           <div class="form-ferramenta painel-novo hidden" id="painel-novo">
@@ -370,8 +465,22 @@
             </div>
             <div class="linha-dupla">
               <div class="grupo">
-                <label for="np-contato">Contato</label>
-                <input id="np-contato" type="text" placeholder="Telefone ou e-mail">
+                <label for="np-telefone">Telefone</label>
+                <input id="np-telefone" type="tel" placeholder="+55 11 99999-9999" autocomplete="tel">
+              </div>
+              <div class="grupo">
+                <label for="np-email">E-mail</label>
+                <input id="np-email" type="email" placeholder="nome@email.com" autocomplete="email">
+              </div>
+            </div>
+            <div class="linha-dupla">
+              <div class="grupo">
+                <label for="np-sexo">Sexo</label>
+                <select id="np-sexo">
+                  <option value="">Não informado</option>
+                  <option value="F">Feminino</option>
+                  <option value="M">Masculino</option>
+                </select>
               </div>
               <div class="grupo">
                 <label for="np-inicio">Inicio do acompanhamento</label>
@@ -388,57 +497,143 @@
             </div>
           </div>
 
+          <div class="pac-chips" id="pac-chips" role="group" aria-label="Filtrar pacientes"></div>
+
+          <div class="pac-selecao">
+            <button type="button" class="pac-sel-todos" id="btn-selecionar-todos">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8 12 2.8 2.8L16.5 9"/></svg>
+              <span id="rotulo-selecionar">Selecionar todos</span>
+            </button>
+            <div class="pac-sel-acoes hidden" id="pac-sel-acoes"></div>
+          </div>
+
           <div class="lista-pacientes" id="lista-pacientes"></div>
+          </div>
+
+          <!-- Revisao: quem ja respondeu alguma coisa e ainda nao virou mapa.
+               Desenhada por app.js a partir de Panorama.situacao(). -->
+          <div id="painel-pac-revisao" class="hidden"></div>
         </div>
 
         <div class="vista-ferramenta hidden" id="vista-ficha">
           <button class="btn-voltar" type="button" id="voltar-lista">&larr; Voltar aos pacientes</button>
           <div class="ficha">
-            <div class="ficha-topo">
+            <!-- ===== o cabecalho: quem e, como falar com ela, e o que fazer
+                 agora. Antes era so o avatar e o nome; as acoes estavam la
+                 embaixo, depois de tudo, onde ninguem as via. -->
+            <header class="fic-topo">
               <span class="pac-avatar" id="ficha-avatar">-</span>
-              <div>
-                <h3 id="ficha-nome">Paciente</h3>
-                <div class="meta" id="ficha-meta"></div>
+              <div class="fic-quem">
+                <div class="fic-nome-linha">
+                  <h3 id="ficha-nome">Paciente</h3>
+                  <span class="pac-status ativo" id="ficha-status">Ativo</span>
+                </div>
+                <div class="fic-contato" id="ficha-contato"></div>
               </div>
-            </div>
-            <div class="ficha-grade">
-              <div class="ficha-bloco">
-                <h6>Queixa principal</h6>
-                <p class="vazio" id="ficha-queixa">Não informada.</p>
+              <div class="fic-acoes-topo">
+                <button type="button" class="perf-botao" data-atalho="agenda">Nova consulta</button>
+                <button type="button" class="perf-botao" data-ir="aba:documentos">Novo documento</button>
+                <button type="button" class="btn-verde" data-atalho="holoscope">Aplicar HOLOSCOPE</button>
               </div>
-              <div class="ficha-bloco">
-                <h6>Corpo - OQ3</h6>
-                <p class="vazio" id="ficha-oq3">Ainda não aplicado.</p>
-              </div>
-              <div class="ficha-bloco">
-                <h6>Mente - PQQ</h6>
-                <p class="vazio" id="ficha-pqq">Ainda não aplicado.</p>
-              </div>
-            </div>
+            </header>
 
-            <!-- Exames, documentos e relatorio vivem na ficha: sao papel DO
-                 paciente, e nao uma area separada do sistema. -->
+            <div class="fic-sobre">
+              <span class="fic-sobre-rot">Sobre o paciente</span>
+              <span id="ficha-sobre"></span>
+              <button type="button" class="fic-detalhes" id="ficha-ver-detalhes"
+                      aria-expanded="false">Detalhes</button>
+            </div>
+            <div class="fic-detalhe-corpo hidden" id="ficha-detalhes"></div>
+
+            <!-- A faixa de situacao: as quatro perguntas que se faz antes de
+                 abrir qualquer aba. Desenhada por ficha.js. -->
+            <div class="fic-faixa" id="ficha-faixa"></div>
+
             <div class="ficha-arquivos" id="ficha-arquivos">
-              <h4 class="ficha-arquivos-titulo">Exames e documentos</h4>
               <div class="abas" role="tablist">
-                <button class="aba ativa" data-aba="exames" role="tab">Exames</button>
+                <button class="aba ativa" data-aba="visao" role="tab">Visão clínica</button>
+                <button class="aba" data-aba="linha" role="tab">Linha do tempo</button>
+                <button class="aba" data-aba="formularios" role="tab">Formulários</button>
                 <button class="aba" data-aba="documentos" role="tab">Documentos</button>
                 <button class="aba" data-aba="relatorio" role="tab">Relatório</button>
               </div>
 
-              <div class="aba-painel" id="aba-exames"></div>
+              <div class="aba-painel" id="aba-visao"></div>
+              <div class="aba-painel hidden" id="aba-linha"></div>
+              <div class="aba-painel hidden" id="aba-formularios"></div>
               <div class="aba-painel hidden" id="aba-documentos"></div>
               <div class="aba-painel hidden" id="aba-relatorio"></div>
             </div>
-            <div class="ficha-acoes">
-              <button class="btn-borda-ouro" data-atalho="corpo">Aplicar OQ3</button>
-              <button class="btn-borda-ouro" data-atalho="mente">Aplicar PQQ</button>
-              <button class="btn-borda-ouro" data-atalho="espirito">Ver Mapa do Propósito</button>
-              <button class="btn-borda-ouro" data-atalho="holoscope">Aplicar HOLOSCOPE</button>
+          </div>
+
+          <!-- A leitura completa de um formulario respondido. Fica fora da
+               ficha porque cobre a tela: o ponto dela e ver as respostas sem
+               o resto em volta. -->
+          <div class="fic-janela hidden" id="fic-janela" role="dialog"
+               aria-modal="true" aria-labelledby="fic-janela-titulo">
+            <div class="fic-janela-caixa">
+              <div class="fic-janela-topo">
+                <div>
+                  <h3 id="fic-janela-titulo">Respostas</h3>
+                  <p id="fic-janela-sub"></p>
+                </div>
+                <button type="button" class="fic-janela-fechar" id="fic-janela-fechar"
+                        aria-label="Fechar">&times;</button>
+              </div>
+              <div class="fic-janela-corpo" id="fic-janela-corpo"></div>
             </div>
           </div>
         </div>
       </section>
+      <!-- ============ CONSULTAS ============ -->
+      <section class="secao" id="secao-consultas">
+        <!-- Desenhada por consultas.js a partir de Panorama.consultas():
+             cada aplicacao do HOLOSCOPE e um atendimento registrado, da mais
+             recente para a mais antiga, na carteira inteira. -->
+        <div id="consultas-corpo"></div>
+      </section>
+
+      <!-- ============ AGENDA ============ -->
+      <section class="secao" id="secao-agenda">
+        <!-- Desenhada por agenda.js a partir de Panorama.agenda(): a data
+             derivada (ultima aplicacao + 28 dias) e a data que a pessoa
+             marcou, que manda sobre a derivada quando existe. -->
+        <div id="agenda-corpo"></div>
+      </section>
+
+      <!-- ============ DOCUMENTOS ============ -->
+      <section class="secao" id="secao-documentos">
+        <!-- Desenhada por documentos.js: os mesmos arquivos que a aba da
+             ficha mostra, mas de todos os pacientes de uma vez. Le o
+             IndexedDB por ArquivoStore.listarTudo() — nao ha segunda copia. -->
+        <div id="documentos-corpo"></div>
+      </section>
+
+      <!-- ============ PERFIL / CONFIGURACOES ============ -->
+      <section class="secao" id="secao-perfil">
+        <div class="secao-cabeca">
+          <span class="eyebrow">Configurações</span>
+          <h2>Seu <em>perfil</em></h2>
+          <p>Quem assina os documentos que saem daqui. O que você preencher abaixo
+             aparece no cabeçalho e no rodapé dos relatórios que você imprime para
+             os pacientes.</p>
+        </div>
+
+        <div id="perfil-completude"></div>
+
+        <div class="abas abas-perfil" role="tablist">
+          <button class="aba ativa" data-aba-perfil="perfil" role="tab" aria-selected="true">Perfil</button>
+          <button class="aba" data-aba-perfil="marca" role="tab" aria-selected="false">Marca</button>
+          <button class="aba" data-aba-perfil="prefs" role="tab" aria-selected="false">Preferências</button>
+          <button class="aba" data-aba-perfil="conta" role="tab" aria-selected="false">Conta</button>
+        </div>
+
+        <div class="aba-painel" id="painel-perfil"></div>
+        <div class="aba-painel hidden" id="painel-marca"></div>
+        <div class="aba-painel hidden" id="painel-prefs"></div>
+        <div class="aba-painel hidden" id="painel-conta"></div>
+      </section>
+
       <!-- ============ CORPO - OQ3 ============ -->
       <section class="secao" id="secao-corpo">
         <div class="secao-cabeca cabeca-modulo">
@@ -702,8 +897,14 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- A persistencia e uma camada so, e ela e trocavel: hoje dados.js guarda no
+     navegador, amanha o mesmo lugar guarda no Supabase. Vem antes do app.js
+     porque e o app que a consome. -->
+<script src="/dados.js"></script>
 <script src="/holoscope.js"></script>
+<!-- as regras de "o que falta neste paciente", usadas pela ficha e pelo
+     dashboard. Uma copia so, senao elas divergem. -->
+<script src="/panorama.js"></script>
 <script src="/ferramentas.js"></script>
 <script src="/formulario.js"></script>
 <script src="/app.js"></script>
@@ -712,6 +913,11 @@
 <script src="/arquivos.js"></script>
 <script src="/ficha.js"></script>
 <script src="/evolucao.js"></script>
+<script src="/dashboard.js"></script>
+<script src="/consultas.js"></script>
+<script src="/agenda.js"></script>
+<script src="/documentos.js"></script>
+<script src="/perfil.js"></script>
 <script src="/caso-marina.js"></script>
 <script src="/demo.js"></script>
 </body>

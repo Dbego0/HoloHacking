@@ -1,7 +1,9 @@
 # Testes do app
 
-Rodam o app num Chrome de verdade, com o Supabase dublado — nenhum paciente
-real e criado.
+Rodam o app num Chrome de verdade, e **nao tocam em banco nenhum**: desde
+13/09 a persistencia e `dados.js`, que guarda no navegador. Cada rodada sobe
+um perfil limpo do Chrome, entao os testes comecam sempre do zero e nao deixam
+nada para tras. `testar-app` roda isolado, em jsdom.
 
 Precisa do servidor local no ar:
 
@@ -14,10 +16,17 @@ E do puppeteer-core, que usa o Chrome ja instalado:
 Depois:
 
     node testes/testar-app.mjs           navegacao, as 30 ferramentas, salvar
+    node testes/testar-dashboard.mjs     o trabalho de hoje, e nao a apresentacao
     node testes/testar-paciente.mjs      dois pacientes nao se sobrescrevem
+    node testes/testar-troca-paciente.mjs  a tela nao mistura dois pacientes
+    node testes/testar-dados.mjs         o app inteiro funciona sem rede
     node testes/testar-motor.mjs         o motor numa pagina em branco
     node testes/testar-integrado.mjs     o motor dentro da tela do HOLOSCOPE
-    node testes/testar-questionario.mjs  as 87 perguntas ate o mapa
+    node testes/testar-questionario.mjs  as 84 perguntas ate o mapa
+    node testes/testar-cruzamento.mjs    exame e ferramenta chegam ao motor
     node testes/testar-triada.mjs        a Triada aparece e some na hora certa
+    node testes/testar-frequencias.mjs   o Mapa de Frequencias, hoje em construcao
+    node testes/testar-raciocinio.mjs    aprofundar, hipotese, encaminhar, territorios
+    node testes/testar-fronteira.mjs     avaliacao nutricional, nao diagnostico medico
 
 O caso de exemplo (caso.json) e ficticio e vem do repositorio do motor.

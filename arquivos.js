@@ -82,7 +82,8 @@
   }
 
   function desenharExames() {
-    var alvo = document.getElementById("aba-exames");
+    var alvo = document.getElementById("ex-corpo");
+    if (!alvo) return;
     var g = motor();
     if (!g || !g.listaDeExames) {
       alvo.innerHTML = '<p class="q-erro">O motor não carregou — sem ele não há banco de exames.</p>';
@@ -97,9 +98,6 @@
     });
 
     var html =
-      '<p class="arq-intro">Opcional. Na primeira consulta o paciente costuma não ter ' +
-      'exame nenhum, e o mapa não depende disto. O exame <b>não altera o Índice</b> — ' +
-      'ele confronta o que o paciente relatou com o que o sangue mostra.</p>' +
       '<div class="ex-acoes">' +
       '<button type="button" class="btn-verde" data-acao="conferir">Conferir com o mapa</button>' +
       '<button type="button" class="btn-fantasma" data-acao="limpar-ex">Limpar</button>' +
@@ -125,13 +123,13 @@
       '<b>São rascunho e esperam a revisão do Rodrigo.</b></p>';
 
     alvo.innerHTML = html;
-    ligarExames();
+    ligarPainel();
     conferir();
   }
 
   function colherExames() {
     var v = {};
-    document.querySelectorAll("#aba-exames .ex-linha").forEach(function (l) {
+    document.querySelectorAll("#ex-corpo .ex-linha").forEach(function (l) {
       var txt = l.querySelector("input").value.trim();
       if (txt !== "") v[l.dataset.exame] = Number(txt.replace(",", "."));
     });
@@ -144,7 +142,7 @@
     var valores = colherExames();
     gravar(CHAVE_EX, valores);
 
-    var conta = document.querySelector("#aba-exames .ex-conta");
+    var conta = document.querySelector("#ex-corpo .ex-conta");
     var n = Object.keys(valores).length;
     if (conta) conta.textContent = n === 0 ? "nenhum valor preenchido"
                                            : n + " exame(s) preenchido(s)";
@@ -152,7 +150,7 @@
     var r = g.lerExames(valores, notasDoPaciente());
 
     // marca cada linha
-    document.querySelectorAll("#aba-exames .ex-linha").forEach(function (l) {
+    document.querySelectorAll("#ex-corpo .ex-linha").forEach(function (l) {
       var a = r.exames.filter(function (x) { return x.id === l.dataset.exame; })[0];
       var s = l.querySelector(".ex-situacao");
       l.classList.remove("alterado");
@@ -198,16 +196,41 @@
     alvo.innerHTML = html;
   }
 
-  function ligarExames() {
-    var painel = document.getElementById("aba-exames");
+  var painelLigado = false;
+
+  /** O que é delegado no container: prende uma vez, para a vida da página. */
+  function ligarPainel() {
+    if (painelLigado) return;
+    painelLigado = true;
+    var painel = document.getElementById("aba-documentos");
+    if (!painel) return;
+
     painel.addEventListener("input", function (ev) {
       if (ev.target.matches(".ex-linha input")) conferir();
     });
+
     painel.addEventListener("click", function (ev) {
       var a = ev.target.closest("[data-acao]");
-      if (!a) return;
-      if (a.dataset.acao === "conferir") conferir();
-      if (a.dataset.acao === "limpar-ex") { gravar(CHAVE_EX, {}); desenharExames(); }
+      if (a) {
+        if (a.dataset.acao === "conferir") conferir();
+        if (a.dataset.acao === "limpar-ex") { gravar(CHAVE_EX, {}); desenharExames(); }
+        return;
+      }
+      var abrir = ev.target.closest("[data-abrir]");
+      if (abrir) {
+        window.ArquivoStore.pegar(abrir.dataset.abrir).then(function (r) {
+          if (!r) return;
+          // o navegador abre; o endereco temporario e liberado depois
+          var url = URL.createObjectURL(r.arquivo);
+          window.open(url, "_blank");
+          setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+        });
+        return;
+      }
+      var tirar = ev.target.closest("[data-tirar]");
+      if (tirar) {
+        window.ArquivoStore.remover(tirar.dataset.tirar).then(listarDocumentos);
+      }
     });
   }
 
@@ -221,25 +244,61 @@
     }
 
     alvo.innerHTML =
-      '<p class="arq-intro">O que o paciente traz: PDF do exame, foto do laudo, ' +
-      'receita de outro profissional, termo de consentimento. ' +
-      '<b>O arquivo fica guardado neste navegador</b> e não vai para lugar nenhum.</p>' +
-      '<div class="doc-solta" id="doc-solta">' +
-      '<input type="file" id="doc-arquivo" multiple ' +
-      'accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.txt,.csv">' +
-      '<div class="doc-solta-texto"><b>Arraste o arquivo aqui</b>' +
-      "<span>ou clique para escolher &middot; PDF, foto ou texto</span></div></div>" +
-      '<div class="doc-meta">' +
-      '<input type="text" id="doc-nome" placeholder="Nome (opcional — usa o do arquivo)">' +
-      '<select id="doc-tipo">' +
-      ["Exame laboratorial","Laudo","Receita","Termo de consentimento","Foto","Outro"]
-        .map(function (x) { return "<option>" + x + "</option>"; }).join("") +
-      "</select><input type=\"date\" id=\"doc-data\"></div>" +
-      '<div id="doc-aviso"></div><div id="doc-lista"></div>' +
-      '<p class="arq-nota" id="doc-espaco"></p>';
+      '<p class="arq-intro">O papel que o paciente traz e os números que saem dele. ' +
+      "São a mesma coisa em dois passos: primeiro o arquivo fica guardado, depois " +
+      "você lê o que ele diz e lança aqui embaixo. " +
+      "<b>O arquivo fica guardado neste navegador</b> e não vai para lugar nenhum.</p>" +
+
+      '<section class="arq-cartao">' +
+        '<h4 class="arq-titulo">O que o paciente trouxe</h4>' +
+        '<p class="arq-sub">PDF do exame, foto do laudo, receita de outro ' +
+        "profissional, termo de consentimento.</p>" +
+        '<div class="doc-solta" id="doc-solta">' +
+          '<input type="file" id="doc-arquivo" multiple ' +
+          'accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.txt,.csv">' +
+          '<div class="doc-solta-texto"><b>Arraste o arquivo aqui</b>' +
+          "<span>ou clique para escolher &middot; PDF, foto ou texto</span></div>" +
+        "</div>" +
+        '<div class="doc-meta">' +
+          '<input type="text" id="doc-nome" placeholder="Nome (opcional — usa o do arquivo)">' +
+          '<select id="doc-tipo">' +
+          ["Exame laboratorial", "Laudo", "Receita", "Termo de consentimento", "Foto", "Outro"]
+            .map(function (x) { return "<option>" + x + "</option>"; }).join("") +
+          '</select><input type="date" id="doc-data"></div>' +
+        '<div id="doc-aviso"></div><div id="doc-lista"></div>' +
+        '<p class="arq-nota" id="doc-espaco"></p>' +
+      "</section>" +
+
+      '<section class="arq-cartao">' +
+        '<h4 class="arq-titulo">Os valores do exame</h4>' +
+        '<p class="arq-sub">Opcional. Na primeira consulta o paciente costuma não ter ' +
+        "exame nenhum, e o mapa não depende disto. O exame <b>não altera o Índice</b> " +
+        "&mdash; ele confronta o que o paciente relatou com o que o sangue mostra.</p>" +
+        '<div id="ex-atalhos"></div>' +
+        '<div id="ex-corpo"></div>' +
+      "</section>";
 
     ligarDocumentos();
     listarDocumentos();
+    desenharExames();
+  }
+
+  /* Os exames guardados viram botão: abrir o PDF ao lado enquanto se digita é
+     o gesto todo desta tela. Só aparece quando existe documento de exame —
+     um botão que não abre nada seria pior do que nenhum. */
+  function desenharAtalhosDeExame(itens) {
+    var alvo = document.getElementById("ex-atalhos");
+    if (!alvo) return;
+    var deExame = itens.filter(function (d) {
+      return /exame|laudo/i.test(d.tipo || "");
+    });
+    if (!deExame.length) { alvo.innerHTML = ""; return; }
+    alvo.innerHTML = '<div class="ex-atalhos">' +
+      '<span class="ex-atalhos-rot">Abrir ao lado</span>' +
+      deExame.map(function (d) {
+        return '<button type="button" class="ex-atalho" data-abrir="' + escapar(d.id) + '">' +
+          escapar(d.nome) + "</button>";
+      }).join("") + "</div>";
   }
 
   function listarDocumentos() {
@@ -248,7 +307,9 @@
     window.ArquivoStore.listar(paciente()).then(function (itens) {
       if (itens.length === 0) {
         alvo.innerHTML = '<p class="arq-vazio">Nenhum arquivo para este paciente.</p>';
+        desenharAtalhosDeExame(itens);
       } else {
+        desenharAtalhosDeExame(itens);
         alvo.innerHTML = '<div class="doc-lista-itens">' + itens.map(function (d) {
           return '<div class="doc-item">' +
             '<span class="doc-tipo">' + escapar(d.tipo) + "</span>" +
@@ -304,10 +365,13 @@
     });
   }
 
+  /** O que é do elemento recriado: a zona de arrastar nasce de novo a cada
+      desenho, então é religada a cada desenho. */
   function ligarDocumentos() {
-    var alvo = document.getElementById("aba-documentos");
+    ligarPainel();
     var solta = document.getElementById("doc-solta");
     var campo = document.getElementById("doc-arquivo");
+    if (!solta || !campo) return;
 
     campo.addEventListener("change", function () { receberArquivos(campo.files); campo.value = ""; });
     solta.addEventListener("click", function (ev) {
@@ -325,24 +389,6 @@
     });
     solta.addEventListener("drop", function (ev) {
       receberArquivos(ev.dataTransfer.files);
-    });
-
-    alvo.addEventListener("click", function (ev) {
-      var abrir = ev.target.closest("[data-abrir]");
-      if (abrir) {
-        window.ArquivoStore.pegar(abrir.dataset.abrir).then(function (r) {
-          if (!r) return;
-          // o navegador abre; o endereco temporario e liberado depois
-          var url = URL.createObjectURL(r.arquivo);
-          window.open(url, "_blank");
-          setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
-        });
-        return;
-      }
-      var tirar = ev.target.closest("[data-tirar]");
-      if (tirar) {
-        window.ArquivoStore.remover(tirar.dataset.tirar).then(listarDocumentos);
-      }
     });
   }
 
@@ -362,6 +408,17 @@
     }
 
     var nome = nomePaciente();
+    var eu = window.PerfilProfissional
+      ? window.PerfilProfissional.dados()
+      : { nome: "", cor_primaria: "", cor_secundaria: "" };
+
+    /* Quem imprime aparece no topo. Sem nome preenchido continua valendo a
+       marca do app: melhor a marca do que um cabecalho vazio. */
+    function juntar(pedacos) {
+      return pedacos.filter(Boolean).map(escapar).join(" &middot; ");
+    }
+    var assina = juntar([eu.especialidade, eu.cidade]);
+
     var html =
       '<div class="rel-acoes">' +
       '<div class="rel-registro">' +
@@ -372,12 +429,23 @@
       "</div>" +
       '<button type="button" class="btn-verde" data-acao="imprimir">Imprimir ou salvar em PDF</button>' +
       "</div>" +
-      '<article class="relatorio" id="relatorio">' +
+      '<article class="relatorio" id="relatorio"' +
+        (eu.cor_primaria ? ' style="--rel-p:' + escapar(eu.cor_primaria) +
+          ";--rel-s:" + escapar(eu.cor_secundaria) + '"' : "") + ">" +
       '<header class="rel-topo">' +
-      '<span class="rel-marca">HoloHacking</span>' +
+      '<div class="rel-emissor">' +
+        '<span class="rel-logo" id="rel-logo"></span>' +
+        '<span class="rel-quem">' +
+          "<b>" + escapar(eu.nome || "HoloHacking") + "</b>" +
+          (assina ? "<i>" + assina + "</i>" : "") +
+        "</span>" +
+      "</div>" +
       "<h3>Mapa HOLOS" + (nome ? " &middot; " + escapar(nome) : "") + "</h3>" +
       '<p class="rel-meta">' + hoje() + " &middot; Índice HOLOS <b>" + p.indice +
         "</b> de " + p.indice_maximo + " &middot; cobertura " + p.cobertura.percentual + "%</p>" +
+      '<p class="rel-fronteira">Avaliação nutricional integral construída a partir ' +
+        "do que o paciente relata. Não é exame, não é diagnóstico médico e não " +
+        "substitui avaliação clínica.</p>" +
       "</header>";
 
     if (p.triada) {
@@ -425,16 +493,41 @@
       html += "</section>";
     }
 
-    html += '<footer class="rel-rodape">Documento gerado pelo HoloHacking. ' +
-      'Os marcadores e as faixas ainda estão em revisão pelo autor do método — ' +
-      'este relatório não substitui avaliação clínica.</footer></article>';
+    /* A assinatura e o carimbo vem antes da identificacao, como no papel:
+       a imagem, e embaixo dela quem assinou e sob qual registro. */
+    var temImagem = eu.assinatura_id || eu.carimbo_id;
+    var identidade = juntar([eu.nome, eu.registro]);
+    var contato = juntar([eu.telefone, eu.instagram]);
+
+    html += '<footer class="rel-rodape">';
+    if (temImagem) {
+      html += '<div class="rel-assinaturas">' +
+        (eu.assinatura_id ? '<span class="rel-imagem" id="rel-assinatura"></span>' : "") +
+        (eu.carimbo_id ? '<span class="rel-imagem" id="rel-carimbo"></span>' : "") +
+        "</div>";
+    }
+    if (identidade) html += '<p class="rel-emitiu">' + identidade + "</p>";
+    if (contato) html += '<p class="rel-contato">' + contato + "</p>";
+    html += "<p>Documento gerado pelo HoloHacking. " +
+      "Os marcadores e as faixas ainda estão em revisão pelo autor do método. " +
+      "Queixa que sugira doença deve ser encaminhada ao médico.</p></footer></article>";
 
     alvo.innerHTML = html;
+    pintarImagensDoPerfil(eu);
+  }
 
-    alvo.addEventListener("click", function (ev) {
-      var r = ev.target.closest("[data-registro]");
-      if (r) { registroAtual = r.dataset.registro; desenharRelatorio(); return; }
-      if (ev.target.closest('[data-acao="imprimir"]')) window.print();
+  /* As imagens do perfil vivem no IndexedDB e chegam por promessa; o HTML ja
+     foi escrito, entao elas entram nos buracos deixados para elas. */
+  function pintarImagensDoPerfil(eu) {
+    if (!window.PerfilProfissional) return;
+    var por = [["logo_id", "rel-logo"], ["assinatura_id", "rel-assinatura"],
+               ["carimbo_id", "rel-carimbo"]];
+    por.forEach(function (par) {
+      if (!eu[par[0]]) return;
+      window.PerfilProfissional.imagem(eu[par[0]]).then(function (url) {
+        var el = document.getElementById(par[1]);
+        if (el && url) el.innerHTML = '<img src="' + url + '" alt="">';
+      });
     });
   }
 
@@ -444,12 +537,30 @@
     document.querySelectorAll("#ficha-arquivos .aba").forEach(function (b) {
       b.classList.toggle("ativa", b.dataset.aba === nome);
     });
-    ["exames", "documentos", "relatorio"].forEach(function (n) {
-      document.getElementById("aba-" + n).classList.toggle("hidden", n !== nome);
+    // "exames" virou parte de "documentos"; quem ainda pedir aquilo cai aqui
+    if (nome === "exames") nome = "documentos";
+    ["visao", "linha", "formularios", "documentos", "relatorio"]
+      .forEach(function (n) {
+        var painel = document.getElementById("aba-" + n);
+        if (painel) painel.classList.toggle("hidden", n !== nome);
+      });
+    document.querySelectorAll("#ficha-arquivos .aba").forEach(function (b) {
+      b.classList.toggle("ativa", b.dataset.aba === nome);
     });
-    if (nome === "exames") desenharExames();
     if (nome === "documentos") desenharDocumentos();
     if (nome === "relatorio") desenharRelatorio();
+    // as tres novas sao da ficha; ela desenha quando a aba abre
+    if (window.desenharAbaDaFicha) window.desenharAbaDaFicha(nome);
+  }
+
+  function ligarRelatorio() {
+    var alvo = document.getElementById("aba-relatorio");
+    if (!alvo) return;
+    alvo.addEventListener("click", function (ev) {
+      var r = ev.target.closest("[data-registro]");
+      if (r) { registroAtual = r.dataset.registro; desenharRelatorio(); return; }
+      if (ev.target.closest('[data-acao="imprimir"]')) window.print();
+    });
   }
 
   function atualizarAviso() {
@@ -463,7 +574,15 @@
       b.addEventListener("click", function () { trocarAba(b.dataset.aba); });
     });
     atualizarAviso();
-    trocarAba("exames");
+    ligarRelatorio();
+    trocarAba("visao");
+
+    /* O perfil muda em outra tela. Quando muda, o cabecalho e o rodape do
+       relatorio mudam junto — senao a pessoa salva o CRN e imprime sem ele. */
+    window.redesenharRelatorio = function () {
+      var aba = document.getElementById("aba-relatorio");
+      if (aba && !aba.classList.contains("hidden")) desenharRelatorio();
+    };
 
     var anterior = window.aoTrocarPaciente;
     window.aoTrocarPaciente = function () {

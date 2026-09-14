@@ -4,8 +4,9 @@
  */
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const RAIZ = 'C:/Users/Equipe Rome/holos-app';
+const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 const erros = [];
 
 const vc = new VirtualConsole();

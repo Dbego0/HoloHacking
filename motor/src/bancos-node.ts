@@ -22,6 +22,9 @@ export function carregarBancos(): Bancos {
   const bruto: BancosBrutos = {
     config:      carregar('bancos/config.csv'),
     sistemas:    carregar('bancos/sistemas.csv'),
+    chacras:     carregar('bancos/chacras.csv'),
+    territorios: carregar('bancos/territorios.csv'),
+    eixos:       carregar('bancos/eixos.csv'),
     regras:      carregar('bancos/regras.csv'),
     sintomas:    carregar('bancos/sintomas.csv'),
     emocoes:     carregar('bancos/emocoes.csv'),

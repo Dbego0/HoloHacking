@@ -17,21 +17,28 @@
 
 import brutos from '../build/bancos.json';
 import { normalizarBancos, montarQuestionario, type BancosBrutos } from './bancos.ts';
-import { pontuar, avaliarCondicao } from './motor.ts';
+import { pontuar, avaliarCondicao, nomesDaCondicao } from './motor.ts';
 import { verificarEscopo } from './escopo.ts';
 import { normalizarExames, avaliarExames, confrontar, type Exame } from './exames.ts';
-import type { Bancos, Resposta, Pontuacao } from './tipos.ts';
+import type { Bancos, Resposta, Pontuacao, Contexto } from './tipos.ts';
 
 const bancos: Bancos = normalizarBancos(brutos as unknown as BancosBrutos);
 
-/** As 87 perguntas, na ordem: sintomas, emocoes, espiritual. */
+/** As perguntas do questionario, na ordem: sintomas, emocoes, espiritual. */
 export function questionario() {
   return montarQuestionario(bancos);
 }
 
-/** Respostas (0 a 3 por marcador) -> Indice, notas, Triada, combinacoes. */
-export function calcular(respostas: Resposta[]): Pontuacao {
-  return pontuar(bancos, respostas);
+/**
+ * Respostas (0 a 3 por marcador) -> Indice, notas, Triada, combinacoes.
+ *
+ * O `contexto` e opcional e nao entra em nota nenhuma: exame e ferramenta
+ * existem ali para as COMBINACOES poderem le-los. E o que permite escrever a
+ * leitura sistemica do material — "exame alterado E compulsao noturna E
+ * padrao de rejeicao" — em vez de so o reflexo dela nas cinco notas.
+ */
+export function calcular(respostas: Resposta[], contexto: Contexto = {}): Pontuacao {
+  return pontuar(bancos, respostas, contexto);
 }
 
 /** Verifica se um texto pede algo fora do escopo da nutricao. */
@@ -45,6 +52,16 @@ export function sistemas() {
 }
 
 /**
+ * Os eixos terapeuticos de cada sistema — a direcao de conduta do material:
+ * Neuroregulacao, Reprogramacao Metabolica, Inteligencia Espiritual.
+ * Estavam escritos a mao no app.js; agora saem de eixos.csv, onde o Rodrigo
+ * alcanca.
+ */
+export function eixos(sistema?: string) {
+  return sistema ? bancos.eixos.filter((e) => e.sistema === sistema) : bancos.eixos;
+}
+
+/**
  * Combinacoes disparadas a partir das cinco notas, sem precisar do
  * questionario. E o que permite a tela do HOLOSCOPE — onde a nutricionista
  * ainda pontua a mao — usar as leituras do banco em vez de texto no codigo.
@@ -54,11 +71,15 @@ export function combinacoesDeNotas(notas: Record<string, number>) {
   // Ha condicao que fala de "indice" (CMB-004), entao ele precisa estar no
   // mapa. Calculado aqui pela mesma formula do motor, para nao existir uma
   // segunda versao da conta em lugar nenhum.
-  const valores = { ...notas, indice: indiceDeNotas(notas) };
+  const valores: Record<string, number> = { ...notas, indice: indiceDeNotas(notas) };
   return bancos.combinacoes
+    // Pontuando a mao so existem as cinco notas: regra que fale de marcador,
+    // exame ou ferramenta nao tem como ser avaliada, e nao disparar e o certo.
+    .filter((c) => nomesDaCondicao(c.condicao).every((n) => n in valores))
     .filter((c) => avaliarCondicao(c.condicao, valores))
     .sort((a, b) => a.prioridade - b.prioridade)
-    .map((c) => ({ id: c.id, leitura: c.leitura, condicao: c.condicao, fonte: c.fonte }));
+    .map((c) => ({ id: c.id, leitura: c.leitura, tipo: c.tipo,
+                   investigar: c.investigar, condicao: c.condicao, fonte: c.fonte }));
 }
 
 /**

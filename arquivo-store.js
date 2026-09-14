@@ -93,6 +93,18 @@
     }).catch(function () { return []; });
   }
 
+  /** Todos os arquivos de todos os pacientes, sem os blobs. */
+  function listarTudo() {
+    return transacao("readonly").then(function (loja) {
+      return promessa(loja.getAll());
+    }).then(function (itens) {
+      return itens.map(function (i) {
+        return { id: i.id, paciente: i.paciente, nome: i.nome, tipo: i.tipo,
+                 data: i.data, mime: i.mime, tamanho: i.tamanho };
+      }).sort(function (a, b) { return (b.data || "").localeCompare(a.data || ""); });
+    }).catch(function () { return []; });
+  }
+
   function pegar(id) {
     return transacao("readonly").then(function (loja) {
       return promessa(loja.get(id));
@@ -129,6 +141,7 @@
   window.ArquivoStore = {
     salvar: salvar,
     listar: listar,
+    listarTudo: listarTudo,
     pegar: pegar,
     remover: remover,
     espaco: espaco,
