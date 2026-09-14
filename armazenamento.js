@@ -704,8 +704,10 @@
               /* O hash e do campo conteudo serializado canonicamente, e nao
                  do pacote: incluir o proprio hash no que se faz hash nao
                  fecha. Fica dito aqui para quem for conferir do outro lado. */
-              algoritmo: "sha256(json-canonico(conteudo))",
-              sha_indisponivel: sha === null ? "crypto.subtle ausente" : undefined
+              algoritmo: "sha256(json-canonico(conteudo))"
+              /* sha_indisponivel entra abaixo, e SO quando ha o que dizer:
+                 uma chave com valor undefined desaparece no JSON.stringify,
+                 mas fica no objeto em memoria — e nao e um valor JSON. */
             },
             /* Resumo TECNICO. Nao impede o export, nao descarta nada, e nao
                carrega informacao clinica: so diz se o estado esta coerente. */
@@ -724,6 +726,9 @@
             },
             conteudo: conteudo
           };
+          if (sha === null) {
+            pacote.integridade.sha_indisponivel = "crypto.subtle ausente";
+          }
           if (docs.indisponivel) pacote.integridade.indexeddb = "indisponivel";
           /* O tamanho do pacote inteiro so da para medir depois de monta-lo. */
           pacote.tamanho.bytes_pacote_json = JSON.stringify(pacote).length;

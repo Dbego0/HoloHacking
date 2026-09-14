@@ -909,6 +909,10 @@
 <!-- O mapa do que o app guarda. Vem antes de dados.js porque dados.js
      deriva dele a lista de tabelas, para que as duas nao possam divergir. -->
 <script src="/armazenamento.js"></script>
+<!-- Le um pacote de FORA e diz se daria para restaurar. Estende o
+     Armazenamento, entao vem logo depois dele. Nao escreve nada, e
+     nenhuma tela o chama ainda: o importador V2 ainda nao existe. -->
+<script src="/validar-backup.js"></script>
 <script src="/dados.js"></script>
 <script src="/holoscope.js"></script>
 <!-- as regras de "o que falta neste paciente", usadas pela ficha e pelo
