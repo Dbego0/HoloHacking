@@ -906,6 +906,9 @@
 <!-- A persistencia e uma camada so, e ela e trocavel: hoje dados.js guarda no
      navegador, amanha o mesmo lugar guarda no Supabase. Vem antes do app.js
      porque e o app que a consome. -->
+<!-- O mapa do que o app guarda. Vem antes de dados.js porque dados.js
+     deriva dele a lista de tabelas, para que as duas nao possam divergir. -->
+<script src="/armazenamento.js"></script>
 <script src="/dados.js"></script>
 <script src="/holoscope.js"></script>
 <!-- as regras de "o que falta neste paciente", usadas pela ficha e pelo

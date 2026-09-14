@@ -45,8 +45,23 @@
      versionada de proposito: a caixa anterior guardava um registro por
      ferramenta por paciente e sobrescrevia, entao reaplicar apagava a leitura
      de tres meses atras — que e justamente a que serve para comparar. */
-  var TABELAS = ["pacientes", "oq3", "pqq", "holoscope", "perfil",
-                 "consultas", "bloqueios", "aplicacoes"];
+  /* Esta lista era escrita aqui e repetida no manifesto. Agora ela SAI do
+     manifesto (armazenamento.js), que e a fonte tecnica de verdade sobre o
+     que este app guarda — as oito entradas de backend "tabela", na ordem em
+     que ele as declara. Um teste compara a lista derivada com a lista
+     literal abaixo, item por item e na mesma ordem: se divergirem, ele falha.
+
+     O literal continua aqui como fallback, nao como segunda fonte. Ele so
+     entra em cena se armazenamento.js nao tiver carregado — o que, no app,
+     nao acontece: a tag vem antes desta no index.html. Serve ao teste que
+     roda dados.js isolado e a nao transformar uma ordem de <script> errada
+     num app que nao abre. */
+  var TABELAS_LITERAIS = ["pacientes", "oq3", "pqq", "holoscope", "perfil",
+                          "consultas", "bloqueios", "aplicacoes"];
+
+  var TABELAS = (window.Armazenamento && window.Armazenamento.tabelasDaFachada)
+    ? window.Armazenamento.tabelasDaFachada()
+    : TABELAS_LITERAIS;
 
   /* ---------- o disco de hoje ------------------------------------------- */
 
@@ -239,6 +254,12 @@
 
     apagarTudo: function () {
       TABELAS.forEach(function (t) { localStorage.removeItem(PREFIXO + t); });
+    },
+
+    /* Nao faz parte da API que as telas usam: existe para o teste conseguir
+       provar que derivar do manifesto nao mudou nada. Leitura pura. */
+    _tabelas: function () {
+      return { usadas: TABELAS.slice(), literais: TABELAS_LITERAIS.slice() };
     }
   };
 })();
