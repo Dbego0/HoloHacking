@@ -363,7 +363,16 @@
   }
 
   /* Os quatro formulários do método, mais as 30 ferramentas. Cada um diz o que
-     é, o que já foi respondido, e o que dá para fazer com ele agora. */
+     é, o que já foi respondido, e o que dá para fazer com ele agora.
+
+     SOBRE O CAMPO `extra`: ele é uma string MISTA — texto autoral com entidades
+     de propósito (o separador "&middot;", o "&reg;" do nome) somado a respostas
+     guardadas do paciente. Por isso o escape fica aqui, em cada pedaço que vem
+     do dado, e NÃO num `escapar(f.extra)` lá embaixo na montagem do HTML:
+     escapar a string inteira transformaria os separadores em texto literal.
+
+     O valor persistido não muda — nada é removido da resposta. Só a SAÍDA é
+     escapada, que é o mesmo que o histórico do OQ³/PQQ em app.js faz. */
   function desenharFormularios() {
     var alvo = document.getElementById("aba-formularios");
     if (!alvo) return;
@@ -382,7 +391,8 @@
         pronto: d.respondidas >= d.totalPerguntas,
         comeco: d.respondidas > 0,
         extra: d.pontuacao
-          ? "Mapa gerado em " + dataBR(d.pontuacao.quando) + " &middot; Índice " + d.pontuacao.indice
+          ? "Mapa gerado em " + escapar(dataBR(d.pontuacao.quando)) +
+            " &middot; Índice " + escapar(d.pontuacao.indice)
           : (d.respondidas > 0 ? "Respondido e ainda sem mapa gerado." : ""),
         ver: d.respondidas > 0 ? "questionario" : null,
         abrir: "holoscope"
@@ -393,9 +403,10 @@
         estado: temConteudo(p.oq3) ? "preenchido" : "não aplicado",
         pronto: temConteudo(p.oq3), comeco: temConteudo(p.oq3),
         extra: temConteudo(p.oq3)
-          ? [p.oq3.quer && "Quer: " + p.oq3.quer,
-             p.oq3.precisa && "Precisa: " + p.oq3.precisa,
-             p.oq3.consegue && "Consegue: " + p.oq3.consegue].filter(Boolean).join(" &middot; ")
+          ? [p.oq3.quer && "Quer: " + escapar(p.oq3.quer),
+             p.oq3.precisa && "Precisa: " + escapar(p.oq3.precisa),
+             p.oq3.consegue && "Consegue: " + escapar(p.oq3.consegue)]
+              .filter(Boolean).join(" &middot; ")
           : "",
         abrir: "corpo"
       },
@@ -405,8 +416,9 @@
         estado: temConteudo(p.pqq) ? "preenchido" : "não aplicado",
         pronto: temConteudo(p.pqq), comeco: temConteudo(p.pqq),
         extra: temConteudo(p.pqq)
-          ? [p.pqq.objetivo && "Objetivo: " + p.pqq.objetivo,
-             p.pqq.verdadeiro && "Pra que: " + p.pqq.verdadeiro].filter(Boolean).join(" &middot; ")
+          ? [p.pqq.objetivo && "Objetivo: " + escapar(p.pqq.objetivo),
+             p.pqq.verdadeiro && "Pra que: " + escapar(p.pqq.verdadeiro)]
+              .filter(Boolean).join(" &middot; ")
           : "",
         abrir: "mente"
       },

@@ -1055,7 +1055,12 @@
             + '<span class="ferr-hist-estado">'
             + window.Aplicacoes.rotulo(a.status === "rascunho" ? "em_preenchimento" : a.status)
             + "</span>"
-            + '<span class="ferr-hist-leitura">' + resumo + "</span></button>";
+            /* O resumo e texto digitado por quem atende: a resposta do
+               paciente em "O que quer" (OQ3) ou o "pra que" verdadeiro (PQQ).
+               Ele entra em innerHTML, entao precisa ser escapado na SAIDA —
+               como todo o resto do app ja faz. O conteudo guardado nao muda:
+               um "<" continua sendo "<" dentro de respostas. */
+            + '<span class="ferr-hist-leitura">' + escapar(resumo) + "</span></button>";
         }).join("")
       + "</div>";
     caixa.classList.remove("hidden");
@@ -1230,7 +1235,12 @@
             + '<span class="ferr-hist-estado">'
             + window.Aplicacoes.rotulo(a.status === "rascunho" ? "em_preenchimento" : a.status)
             + "</span>"
-            + '<span class="ferr-hist-leitura">' + resumo + "</span></button>";
+            /* O resumo e texto digitado por quem atende: a resposta do
+               paciente em "O que quer" (OQ3) ou o "pra que" verdadeiro (PQQ).
+               Ele entra em innerHTML, entao precisa ser escapado na SAIDA —
+               como todo o resto do app ja faz. O conteudo guardado nao muda:
+               um "<" continua sendo "<" dentro de respostas. */
+            + '<span class="ferr-hist-leitura">' + escapar(resumo) + "</span></button>";
         }).join("")
       + "</div>";
     caixa.classList.remove("hidden");
