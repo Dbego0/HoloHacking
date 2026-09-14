@@ -697,18 +697,35 @@
 
     return lerDocumentos().then(function (docs) {
       conteudo.arquivos = docs.arquivos;
-
       return diagnosticarIntegridade().then(function (diag) {
-        var texto = textoCanonico(conteudo);
-        return sha256DeTexto(texto).then(function (sha) {
-          var pacote = {
+        return finalizarPacoteV2(conteudo, docs, diag,
+          entradas.map(function (e) { return e.id; }));
+      });
+    });
+  }
+
+  /** Monta o envelope V2 em volta de um conteudo ja pronto.
+
+      Existe separado porque ha DOIS produtores de pacote V2: este modulo,
+      lendo o disco, e o conversor de backups V1. Os dois precisam do mesmo
+      envelope, do mesmo hash canonico e das mesmas contagens — escrever isso
+      duas vezes seria ter duas verdades sobre o que e um Backup V2, e a
+      segunda sempre atrasa em relacao a primeira.
+
+      O parametro docs traz os numeros dos documentos ({bytes, bytesBase64,
+      indisponivel}); o diag e o diagnostico ja calculado sobre o conteudo que
+      vai no pacote — nunca sobre o disco de quem chama. */
+  function finalizarPacoteV2(conteudo, docs, diag, armazenamentos) {
+    var texto = textoCanonico(conteudo);
+    return sha256DeTexto(texto).then(function (sha) {
+      var pacote = {
             formato: FORMATO_BACKUP,
             versao: VERSAO_BACKUP,
             criado_em: new Date().toISOString(),
             manifesto_versao: MANIFESTO_VERSAO,
             /* Quais armazenamentos este pacote diz carregar. Uma restauracao
                confere isto contra o manifesto dela antes de tocar em disco. */
-            armazenamentos: entradas.map(function (e) { return e.id; }),
+            armazenamentos: armazenamentos.slice(),
             integridade: {
               contagens: contar(conteudo, docs),
               sha256_conteudo: sha,
@@ -743,9 +760,7 @@
           if (docs.indisponivel) pacote.integridade.indexeddb = "indisponivel";
           /* O tamanho do pacote inteiro so da para medir depois de monta-lo. */
           pacote.tamanho.bytes_pacote_json = JSON.stringify(pacote).length;
-          return pacote;
-        });
-      });
+      return pacote;
     });
   }
 
@@ -806,6 +821,8 @@
     FORMATO_BACKUP: FORMATO_BACKUP,
     VERSAO_BACKUP: VERSAO_BACKUP,
     gerarBackupV2: gerarBackupV2,
+    finalizarPacoteV2: finalizarPacoteV2,
+    contarConteudo: contar,
     serializarBackupV2: serializarBackupV2,
     baixarBackupV2: baixarBackupV2,
     canonicalizar: canonicalizar,

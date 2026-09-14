@@ -1042,6 +1042,18 @@
   A.MANIFESTO_SUPORTADOS = MANIFESTO_SUPORTADOS.slice();
   A.CHAVES_PERIGOSAS = CHAVES_PERIGOSAS.slice();
   A.LIMITE_TECNICO_BYTES = LIMITE_TECNICO_BYTES;
+  /** O diagnostico calculado sobre o CONTEUDO de um pacote, nao sobre o
+      disco. E a mesma varredura que a validacao usa — quem monta um pacote
+      novo (o conversor de V1, por exemplo) precisa declarar o diagnostico
+      certo, e recalcular orfaos por conta propria seria uma segunda verdade
+      sobre o que e um orfao. */
+  A.diagnosticarConteudo = function (conteudo) {
+    var c = new Coletor();
+    var resumo = {};
+    var r = conferirReferencias(conteudo || { dados: {}, arquivos: [] }, c, resumo);
+    return { ok: r.ok, orfaos: r.orfaos, sem_paciente: r.sem_paciente };
+  };
+
   A.reconhecerBackup = reconhecer;
   A.analisarBackupV2 = analisarBackupV2;
   A.validarBackupV2 = validarBackupV2;

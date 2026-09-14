@@ -920,6 +920,11 @@
      Usa o validador acima, entao vem depois dele. NENHUMA TELA O CHAMA:
      falta o P0.7 (trava entre abas) antes de isto poder virar botao. -->
 <script src="/restaurar-backup.js"></script>
+<!-- Restaura um Backup V1, o formato antigo que so tinha as 8 tabelas.
+     Nao tem motor proprio: converte para um alvo V2 limpo e entrega ao
+     restaurar-backup.js. Nenhuma tela o chama — o importador da interface
+     continua sendo o DadosLocais.importar() legado. -->
+<script src="/importar-v1.js"></script>
 <script src="/dados.js"></script>
 <script src="/holoscope.js"></script>
 <!-- as regras de "o que falta neste paciente", usadas pela ficha e pelo
