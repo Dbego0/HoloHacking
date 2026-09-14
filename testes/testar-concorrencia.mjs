@@ -612,9 +612,13 @@ ok(intacto.manifesto === 13 && intacto.exportaveis === 12 && intacto.noBackup ==
 ok(!intacto.citaRevisao &&
    intacto.idsManifesto.indexOf('revisao') === -1,
    'e `holohacking.revisao` nao aparece no pacote nem no manifesto');
-ok(intacto.operacionaisConc.join(',') === 'revisao,operacao_critica',
-   'as chaves operacionais estao declaradas a parte, em ' +
-   'Concorrencia.OPERACIONAIS: ' + intacto.operacionaisConc.join(', '));
+ok(intacto.operacionaisConc.join(',') ===
+   'revisao,operacao_em_curso,operacao_critica',
+   'as TRES chaves operacionais estao declaradas a parte, em ' +
+   'Concorrencia.OPERACIONAIS: ' + intacto.operacionaisConc.join(', ') +
+   '. Sao tres conceitos diferentes e propositalmente separados — o relogio, ' +
+   'o anuncio de quem esta operando agora, e o marcador do que ficou pela ' +
+   'metade');
 ok(intacto.v1 === 1, 'e o V1 continua sendo o export oficial da interface');
 
 const semUI = await A.evaluate(async () => {

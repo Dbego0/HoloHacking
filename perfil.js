@@ -714,6 +714,24 @@
       ? function (fn) { return C.comExclusividade("apagar_tudo", fn); }
       : function (fn) { return Promise.resolve().then(fn); };
 
+    /* HA UMA RECUPERACAO PENDENTE?
+
+       Apagar tudo e a unica operacao que pode seguir mesmo assim, e a razao e
+       simples: ela nao precisa do estado anterior para nada — vai destruir o
+       estado anterior de qualquer jeito. Recuperar antes seria restaurar um
+       dado para apaga-lo no segundo seguinte.
+
+       O que NAO pode acontecer e apagar o marcador e seguir em silencio, como
+       se a pendencia nunca tivesse existido: a pessoa precisa saber que havia
+       uma restauracao pela metade. Entao o aviso e explicito, o marcador e o
+       banco operacional saem JUNTO com o resto, e so no fim. */
+    var pendente = C && C.lerMarcador();
+    if (pendente) {
+      contaAviso("Havia uma restauração incompleta neste navegador. " +
+                 "Apagar tudo remove também o que ela tinha guardado para " +
+                 "poder desfazer — não haverá como recuperar depois.");
+    }
+
     comProtecao(function () { return apagarTudoAgora(); });
   }
 

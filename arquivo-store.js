@@ -155,10 +155,29 @@
 
   /* ---------- escrita — resolve depois do commit ------------------------- */
 
+  /** A mesma guarda que as escritas de localStorage consultam. Anexar um
+      laudo enquanto outra aba deixou uma restauracao pela metade e escrever
+      num disco cujo estado ninguem sabe descrever.
+
+      As escritas INTERNAS de uma operacao critica passam — elas sao a
+      operacao —, e substituirTudoEstrito nem consulta isto: ele so e chamado
+      de dentro do motor. */
+  function barrado() {
+    if (!window.Concorrencia) return null;
+    var v = window.Concorrencia.podeEscrever({ ignorarRevisao: true });
+    if (v.ok) return null;
+    var e = new Error(v.mensagem);
+    e.name = v.codigo;
+    e.codigo = v.codigo;
+    return e;
+  }
+
   /** Guarda o arquivo inteiro, sem converter para texto.
       So resolve quando a transacao tiver COMMITADO: quando esta promessa
       cumpre, recarregar a pagina no instante seguinte nao perde o arquivo. */
   function salvar(paciente, arquivo, meta) {
+    var impedido = barrado();
+    if (impedido) return Promise.reject(impedido);
     var id = "arq-" + Date.now() + "-" + Math.abs(hash(arquivo.name + arquivo.size));
     var registro = {
       id: id,
@@ -189,6 +208,8 @@
 
   /** Quando esta promessa cumpre, o arquivo nao volta: a transacao commitou. */
   function remover(id) {
+    var impedido = barrado();
+    if (impedido) return Promise.reject(impedido);
     return transacao("readwrite").then(function (t) {
       var pedido = promessa(t.loja.delete(id));
       return Promise.all([pedido, aguardarTransacao(t.tx)]);

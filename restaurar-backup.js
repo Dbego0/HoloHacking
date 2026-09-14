@@ -159,7 +159,12 @@
     snap.fase = fase;
     snap.fase_em = new Date().toISOString();
     if (extra) Object.keys(extra).forEach(function (k) { snap[k] = extra[k]; });
-    return gravarSnapshot(snap);
+    return gravarSnapshot(snap).then(function (r) {
+      /* o marcador acompanha, para quem so le o localStorage saber em que pe
+         a coisa parou sem precisar abrir o banco operacional */
+      if (window.Concorrencia) window.Concorrencia.atualizarFaseMarcador(fase);
+      return r;
+    });
   }
 
   /* ---------- failpoints — SO PARA TESTE, NAO E PRODUTO -------------------
@@ -171,6 +176,9 @@
   var _travarDeTeste = null;
 
   function talvezFalhar(ponto) {
+    /* "antes_do_marcador" e o unico ponto entre o commit do snapshot e a
+       gravacao do marcador. Existe so para provar, em teste, que um crash ali
+       nao deixa pendencia — porque nada foi mutado. */
     /* modo TRAVAR: a operacao para ali e NAO faz rollback, que e o que
        acontece quando a aba morre de verdade — a fase ja commitou no banco de
        recuperacao e ninguem mais mexe em nada. E o unico jeito de provar a
@@ -446,6 +454,19 @@
     var revisaoNoInicio = C.lerRevisao();
 
     return C.comExclusividade("restauracao", function () {
+      /* Ha uma operacao anterior que nao terminou? Entao o disco esta num
+         estado que ninguem sabe descrever, e tirar um snapshot DELE para
+         depois voltar a ele seria congelar a bagunca. Recusa. */
+      var marcador = C.lerMarcador();
+      if (marcador) {
+        return resultado({
+          fase: null, motivo: "RECUPERACAO_PENDENTE", escreveu: false,
+          marcador: marcador,
+          avisos: [{ codigo: "RECUPERACAO_PENDENTE",
+                     mensagem: "uma operacao critica anterior nao terminou. " +
+                               "Recupere antes de restaurar." }]
+        });
+      }
       /* Com o lock na mao: se a revisao mudou entre pedir e conseguir, outra
          aba escreveu no meio. O snapshot seria de um estado que ja passou. */
       if (C.lerRevisao() !== revisaoNoInicio) {
@@ -503,6 +524,16 @@
       return montarSnapshot(pacote)
         .then(function (s) { snap = s; return gravarSnapshot(snap); })
         .then(function () {
+          /* O snapshot COMMITOU. So agora o marcador entra — e e a partir
+             daqui que pode haver mutacao. Um crash antes desta linha nao deixa
+             marcador, e nao deixa porque nada foi tocado. */
+          talvezFalhar("antes_do_marcador");
+          if (window.Concorrencia) {
+            window.Concorrencia.marcarOperacaoIncompleta({
+              id: snap.id, tipo: "restauracao",
+              fase: FASE.SNAPSHOT_CRIADO, snapshot_id: ID_SNAPSHOT
+            });
+          }
           talvezFalhar("apos_snapshot");
 
           /* TUDO o que pode falhar por serializacao acontece aqui, antes da
@@ -545,6 +576,8 @@
         })
         .then(function () { return apagarSnapshot(); })
         .then(function () {
+          /* Aplicacao verificada e snapshot removido: SO agora o marcador sai. */
+          if (window.Concorrencia) window.Concorrencia.limparMarcador();
           _failpointDeTeste = null;
           _travarDeTeste = null;
           return resultado({
@@ -603,6 +636,8 @@
         throw e;
       }
       return apagarSnapshot().then(function () {
+        /* rollback verificado e snapshot removido */
+        if (window.Concorrencia) window.Concorrencia.limparMarcador();
         return resultado({
           fase: FASE.ROLLBACK,
           revertido: true,
@@ -633,6 +668,100 @@
           });
         });
     });
+  }
+
+  /* ---------- o estado operacional, num lugar so --------------------------
+     Duas coisas precisam concordar para o estado ser legivel: o MARCADOR, que
+     vive no localStorage e sobrevive a um crash, e o SNAPSHOT, que vive no
+     banco operacional e carrega a copia do estado anterior. Espalhar essa
+     conferencia por varios modulos seria garantir que um deles ficasse para
+     tras; ela mora aqui.
+
+     Quatro estados possiveis, e os quatro tem nome:
+
+       A. sem marcador, sem snapshot   -> normal, nada a fazer
+       B. marcador + snapshot          -> recuperacao pendente, e da para fazer
+       C. snapshot sem marcador        -> a operacao commitou o snapshot e
+                                          morreu ANTES de marcar; pela ordem,
+                                          nenhuma mutacao comecou. O snapshot e
+                                          sobra, nao pendencia — mas nao se
+                                          apaga em silencio sem alguem olhar
+       D. marcador sem snapshot        -> na ordem que o codigo usa, isto nao
+                                          deveria existir. E inconsistencia
+                                          operacional, e impede escrita: nao
+                                          da para recuperar o que nao foi
+                                          guardado, e nao da para fingir que
+                                          esta tudo bem */
+
+  var ESTADO_OP = {
+    NORMAL: "normal",
+    RECUPERACAO_PENDENTE: "recuperacao_pendente",
+    SNAPSHOT_ORFAO: "snapshot_sem_marcador",
+    INCONSISTENTE: "marcador_sem_snapshot"
+  };
+
+  function estadoOperacional() {
+    var C = window.Concorrencia;
+    var marcador = C ? C.lerMarcador() : null;
+    return lerSnapshot().then(function (snap) {
+      return classificar(marcador, snap);
+    }, function (e) {
+      /* nem o banco operacional responde: nao da para afirmar nada */
+      return {
+        estado: "indisponivel", pode_escrever: false,
+        marcador: marcador, snapshot: null,
+        mensagem: "o banco de recuperacao nao respondeu: " +
+                  ((e && e.message) || String(e))
+      };
+    });
+  }
+
+  function classificar(marcador, snap) {
+    var temMarcador = !!marcador;
+    var temSnapshot = !!snap;
+
+    if (!temMarcador && !temSnapshot) {
+      return { estado: ESTADO_OP.NORMAL, pode_escrever: true,
+               recuperavel: false, marcador: null, snapshot: null };
+    }
+    if (temMarcador && temSnapshot) {
+      return {
+        estado: ESTADO_OP.RECUPERACAO_PENDENTE, pode_escrever: false,
+        recuperavel: true,
+        marcador: marcador,
+        snapshot: { fase: snap.fase, criado_em: snap.criado_em,
+                    fase_em: snap.fase_em },
+        fase: snap.fase,
+        ja_tentou_rollback: snap.fase === FASE.ROLLBACK ||
+                            snap.fase === FASE.ROLLBACK_FALHOU,
+        mensagem: "uma operacao critica nao terminou. O estado anterior esta " +
+                  "guardado e da para voltar a ele."
+      };
+    }
+    if (!temMarcador && temSnapshot) {
+      return {
+        estado: ESTADO_OP.SNAPSHOT_ORFAO, pode_escrever: true,
+        recuperavel: true,
+        marcador: null,
+        snapshot: { fase: snap.fase, criado_em: snap.criado_em },
+        fase: snap.fase,
+        mensagem: "ha um snapshot sem marcador. Pela ordem que o codigo usa — " +
+                  "snapshot, marcador, mutacao — isso quer dizer que a " +
+                  "operacao morreu antes de tocar em qualquer dado: nao ha o " +
+                  "que desfazer. O snapshot fica, para alguem olhar, em vez " +
+                  "de sumir em silencio."
+      };
+    }
+    return {
+      estado: ESTADO_OP.INCONSISTENTE, pode_escrever: false,
+      recuperavel: false,
+      marcador: marcador, snapshot: null,
+      codigo: "ESTADO_OPERACIONAL_INCONSISTENTE",
+      mensagem: "ha marcador de operacao incompleta e NAO ha snapshot. Na " +
+                "ordem que o codigo usa isso nao deveria acontecer. Nao da " +
+                "para recuperar o que nao foi guardado, e escrever por cima " +
+                "seria escrever sobre um estado que ninguem sabe descrever."
+    };
   }
 
   /* ---------- recuperacao pos-crash --------------------------------------
@@ -696,6 +825,7 @@
       if (snap.fase === FASE.CONCLUIDO) {
         /* operacao terminou bem e o snapshot sobrou: e lixo, nao pendencia */
         return apagarSnapshot().then(function () {
+          if (window.Concorrencia) window.Concorrencia.limparMarcador();
           return resultado({ fase: FASE.CONCLUIDO, motivo: "NADA_A_DESFAZER",
                              escreveu: false, snapshot_ativo: false });
         });
@@ -709,6 +839,8 @@
             throw e;
           }
           return apagarSnapshot().then(function () {
+            /* recuperacao verificada e snapshot removido */
+            if (window.Concorrencia) window.Concorrencia.limparMarcador();
             return resultado({
               fase: FASE.ROLLBACK, revertido: true, escreveu: true,
               motivo: "RECUPERADO", snapshot_ativo: false,
@@ -758,4 +890,6 @@
 
   /* leitura pura, para teste e diagnostico */
   A.lerSnapshotOperacional = lerSnapshot;
+  A.estadoOperacional = estadoOperacional;
+  A.ESTADOS_OPERACIONAIS = ESTADO_OP;
 })();

@@ -53,7 +53,14 @@
      13, nenhuma viaja em backup. */
 
   var CHAVE_REVISAO = "holohacking.revisao";
-  var CHAVE_OPERACAO = "holohacking.operacao-critica";
+  /* O ANUNCIO: existe enquanto uma aba VIVA esta numa operacao critica, e some
+     quando ela termina. Renomeado de "operacao-critica" para nao se confundir
+     com o MARCADOR abaixo, que tem outro tempo de vida e outra pergunta. */
+  var CHAVE_ANUNCIO = "holohacking.operacao-em-curso";
+  /* O MARCADOR: existe a partir do momento em que uma operacao critica pode
+     ter MUTADO alguma coisa, e so sai quando o desfecho estiver confirmado.
+     Ele sobrevive a um crash de proposito — e a unica coisa que sobrevive. */
+  var CHAVE_MARCADOR = "holohacking.operacao_critica";
   var NOME_LOCK = "holohacking-escrita-global";
 
   var OPERACIONAIS = [
@@ -67,14 +74,27 @@
                  "relogio."
     },
     {
-      id: "operacao_critica", chave: CHAVE_OPERACAO, backend: "localStorage",
+      id: "operacao_em_curso", chave: CHAVE_ANUNCIO, backend: "localStorage",
       categoria: "operacional", temporario: true,
       exportar: false, importar: false, pacienteScoped: false,
       sensivel: false, limparTudo: true,
-      descricao: "Existe enquanto uma restauracao ou um apagar tudo esta em " +
-                 "curso. Serve para a escrita NORMAL, que e sincrona, poder " +
-                 "recusar sem virar assincrona. A exclusao mutua de verdade " +
-                 "e do Web Locks; isto aqui e o aviso que as outras leem."
+      descricao: "Existe enquanto uma aba VIVA esta numa operacao critica. " +
+                 "Serve para a escrita normal, que e sincrona, poder recusar " +
+                 "sem virar assincrona. A exclusao mutua de verdade e do Web " +
+                 "Locks; isto aqui e o aviso que as outras leem."
+    },
+    {
+      id: "operacao_critica", chave: CHAVE_MARCADOR, backend: "localStorage",
+      categoria: "operacional", temporario: true,
+      exportar: false, importar: false, pacienteScoped: false,
+      /* Nao guarda conteudo clinico — so id, tipo, fase e o id do snapshot —
+         mas guarda a informacao de que ha dado clinico num estado incerto. */
+      sensivel: false, limparTudo: true,
+      descricao: "Existe a partir do momento em que uma operacao critica pode " +
+                 "ter mutado alguma coisa, e so sai quando o desfecho esta " +
+                 "confirmado. SOBREVIVE A UM CRASH de proposito: e ele que " +
+                 "responde 'ficou alguma coisa pela metade?' depois que o Web " +
+                 "Lock ja foi liberado pelo navegador."
     }
   ];
 
@@ -152,6 +172,8 @@
       revisao_no_disco: noDisco,
       desatualizado: desatualizado || noDisco !== revisaoConhecida,
       operacao_critica: operacaoEmAndamento(),
+      recuperacao_pendente: !!lerMarcador(),
+      marcador: lerMarcador(),
       web_locks: temWebLocks()
     };
   }
@@ -174,7 +196,14 @@
       return;
     }
 
-    if (ev.key === CHAVE_OPERACAO) {
+    if (ev.key === CHAVE_MARCADOR) {
+      var m = lerMarcador();
+      avisar({ tipo: m ? "recuperacao_pendente" : "recuperacao_encerrada",
+               marcador: m });
+      return;
+    }
+
+    if (ev.key === CHAVE_ANUNCIO) {
       var op = operacaoEmAndamento();
       avisar({ tipo: op ? "operacao_critica_iniciada" : "operacao_critica_terminada",
                operacao: op });
@@ -191,7 +220,90 @@
     }
   });
 
+  /* ---------- o marcador de operacao incompleta ---------------------------
+     POR QUE O WEB LOCK NAO BASTA.
+
+     O lock resolve "quem escreve agora". Ele e liberado pelo navegador quando
+     a aba morre — que e uma virtude, e tambem o problema: se a aba morreu NO
+     MEIO de uma restauracao, o lock some e o estado fica pela metade. A
+     proxima aba pede o lock, consegue na hora, e escreve em cima de um disco
+     que ninguem sabe em que estado esta.
+
+     O lock protege o INSTANTE. O marcador protege o INTERVALO entre o crash e
+     a recuperacao — e por isso ele e persistente e o lock nao.
+
+     ORDEM, que e o que da sentido as verificacoes:
+
+        1. pegar o lock
+        2. validar, conferir revisao
+        3. gravar e COMMITAR o snapshot
+        4. gravar o marcador          <- daqui em diante pode haver mutacao
+        5. primeira mutacao
+
+     Crash antes do passo 4: nada foi mutado, e nao ha marcador. Crash depois:
+     ha marcador, e qualquer escrita normal descobre.
+
+     E por isso que "marcador sem snapshot" e grave: nessa ordem, ele nao
+     deveria conseguir existir. */
+
+  function lerMarcador() {
+    try {
+      var cru = localStorage.getItem(CHAVE_MARCADOR);
+      if (!cru) return null;
+      var o = JSON.parse(cru);
+      return (o && o.id) ? o : null;
+    } catch (e) {
+      /* JSON corrompido na chave do marcador tambem e estado operacional
+         incerto — devolver null diria "esta tudo bem", e nao esta. */
+      return { id: "ilegivel", tipo: null, fase: null, snapshot_id: null,
+               ilegivel: true };
+    }
+  }
+
+  /** Grava o marcador. Chamado DEPOIS do commit do snapshot e ANTES da
+      primeira mutacao. Sem conteudo clinico: so o suficiente para uma
+      recuperacao saber o que procurar. */
+  function marcarOperacaoIncompleta(dados) {
+    var m = {
+      id: dados.id,
+      tipo: dados.tipo,
+      iniciado_em: new Date().toISOString(),
+      fase: dados.fase || null,
+      snapshot_id: dados.snapshot_id || null,
+      aba: EU
+    };
+    try {
+      localStorage.setItem(CHAVE_MARCADOR, JSON.stringify(m));
+    } catch (e) {
+      return { ok: false, erro: "nao foi possivel gravar o marcador" };
+    }
+    avisar({ tipo: "operacao_incompleta_marcada", marcador: m });
+    return { ok: true, marcador: m };
+  }
+
+  function atualizarFaseMarcador(fase) {
+    var m = lerMarcador();
+    if (!m || m.ilegivel) return { ok: false };
+    m.fase = fase;
+    try { localStorage.setItem(CHAVE_MARCADOR, JSON.stringify(m)); }
+    catch (e) { return { ok: false }; }
+    return { ok: true, marcador: m };
+  }
+
+  /** So depois do desfecho CONFIRMADO: sucesso verificado, rollback
+      verificado, ou recuperacao verificada — sempre com o snapshot ja
+      removido. Nunca antes. */
+  function limparMarcador() {
+    try { localStorage.removeItem(CHAVE_MARCADOR); }
+    catch (e) { return false; }
+    avisar({ tipo: "operacao_incompleta_encerrada" });
+    return true;
+  }
+
   /* ---------- operacao critica --------------------------------------------- */
+
+  /* esta aba esta, neste instante, executando uma operacao critica? */
+  var emOperacaoCritica = false;
 
   function temWebLocks() {
     return !!(navigator.locks && typeof navigator.locks.request === "function");
@@ -199,7 +311,7 @@
 
   function operacaoEmAndamento() {
     try {
-      var cru = localStorage.getItem(CHAVE_OPERACAO);
+      var cru = localStorage.getItem(CHAVE_ANUNCIO);
       if (!cru) return null;
       var o = JSON.parse(cru);
       return (o && o.aba) ? o : null;
@@ -210,7 +322,7 @@
 
   function anunciarOperacao(nome) {
     try {
-      localStorage.setItem(CHAVE_OPERACAO, JSON.stringify({
+      localStorage.setItem(CHAVE_ANUNCIO, JSON.stringify({
         aba: EU, nome: nome, desde: new Date().toISOString()
       }));
     } catch (e) { /* o lock ja garante a exclusao; isto e o aviso */ }
@@ -220,7 +332,7 @@
     try {
       var o = operacaoEmAndamento();
       /* so apaga o proprio anuncio: uma aba nao desanuncia a operacao de outra */
-      if (!o || o.aba === EU) localStorage.removeItem(CHAVE_OPERACAO);
+      if (!o || o.aba === EU) localStorage.removeItem(CHAVE_ANUNCIO);
     } catch (e) { /* idem */ }
   }
 
@@ -257,12 +369,19 @@
         };
       }
       anunciarOperacao(nome);
+      /* Enquanto ESTA aba executa a operacao critica, as escritas internas
+         dela sao parte da operacao — nao podem ser barradas pela guarda que
+         existe para barrar as escritas de FORA. E memoria, nao disco: some
+         com a aba, que e o tempo de vida certo. */
+      emOperacaoCritica = true;
       return Promise.resolve()
         .then(function () { return tarefa(); })
         .then(function (r) {
+          emOperacaoCritica = false;
           encerrarAnuncio();
           return { ok: true, resultado: r };
         }, function (e) {
+          emOperacaoCritica = false;
           encerrarAnuncio();
           throw e;
         });
@@ -292,6 +411,26 @@
 
   function podeEscrever(opcoes) {
     opcoes = opcoes || {};
+
+    /* As escritas internas da operacao critica desta aba passam: elas SAO a
+       operacao. Quem barra o resto e a guarda abaixo. */
+    if (emOperacaoCritica || opcoes.ehOperacaoCritica) return { ok: true };
+
+    /* PRIMEIRO o marcador, antes de qualquer outra coisa. Uma operacao que
+       ficou pela metade deixa o disco num estado que ninguem sabe descrever;
+       comparar revisao com esse estado nao quer dizer nada, e escrever em
+       cima dele e o pior desfecho possivel. */
+    var marcador = lerMarcador();
+    if (marcador) {
+      return {
+        ok: false, codigo: "RECUPERACAO_PENDENTE",
+        mensagem: "uma operacao critica anterior nao terminou de forma " +
+                  "segura. Rode recuperarRestauracaoPendente() antes de " +
+                  "escrever qualquer coisa.",
+        marcador: marcador
+      };
+    }
+
     var op = operacaoEmAndamento();
     if (op && op.aba !== EU) {
       return {
@@ -330,6 +469,8 @@
       revisao_conhecida: revisaoConhecida,
       desatualizado: !estaAtualizado(),
       operacao_critica: operacaoEmAndamento(),
+      recuperacao_pendente: !!lerMarcador(),
+      marcador: lerMarcador(),
       chaves_operacionais: OPERACIONAIS.map(function (o) { return o.chave; }),
       /* dito em voz alta: nada disto e dado do modelo */
       no_manifesto: false,
@@ -341,7 +482,8 @@
   function limpar() {
     try {
       localStorage.removeItem(CHAVE_REVISAO);
-      localStorage.removeItem(CHAVE_OPERACAO);
+      localStorage.removeItem(CHAVE_ANUNCIO);
+      localStorage.removeItem(CHAVE_MARCADOR);
     } catch (e) { /* idem */ }
     revisaoConhecida = 0;
     desatualizado = false;
@@ -350,7 +492,8 @@
   window.Concorrencia = {
     ABA: EU,
     CHAVE_REVISAO: CHAVE_REVISAO,
-    CHAVE_OPERACAO: CHAVE_OPERACAO,
+    CHAVE_ANUNCIO: CHAVE_ANUNCIO,
+    CHAVE_MARCADOR: CHAVE_MARCADOR,
     NOME_LOCK: NOME_LOCK,
     OPERACIONAIS: OPERACIONAIS,
 
@@ -363,6 +506,12 @@
     temWebLocks: temWebLocks,
     comExclusividade: comExclusividade,
     operacaoEmAndamento: operacaoEmAndamento,
+
+    lerMarcador: lerMarcador,
+    marcarOperacaoIncompleta: marcarOperacaoIncompleta,
+    atualizarFaseMarcador: atualizarFaseMarcador,
+    limparMarcador: limparMarcador,
+    emOperacaoCriticaAgora: function () { return emOperacaoCritica; },
 
     podeEscrever: podeEscrever,
     aoMudar: aoMudar,
