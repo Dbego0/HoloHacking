@@ -77,13 +77,31 @@
     }
   }
 
+  /* TODA escrita das 8 tabelas passa por aqui — insert, update, delete,
+     importar e apagarTudo. E por isso que a revisao global e avancada neste
+     ponto, e nao em dez lugares: um funil so, que nao da para esquecer.
+
+     A ordem importa: primeiro o setItem, depois a revisao. Avancar antes
+     seria prometer as outras abas uma escrita que ainda pode falhar. */
   function escrever(tabela, linhas) {
     try {
       localStorage.setItem(PREFIXO + tabela, JSON.stringify(linhas));
-      return null;
     } catch (e) {
       return { message: "não foi possível gravar neste navegador (" + e.name + ")" };
     }
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("tabela:" + tabela);
+    return null;
+  }
+
+  /** A guarda desta camada. Sincrona porque as escritas sao sincronas: torna-las
+      assincronas para entrarem no Web Lock quebraria todos os chamadores, e o
+      que elas precisam e mais simples — nao escrever enquanto outra aba
+      reescreve tudo. Devolve null quando pode seguir. */
+  function barrado(acao, tabela) {
+    if (!window.Concorrencia) return null;
+    var v = window.Concorrencia.podeEscrever({ ignorarRevisao: true });
+    if (v.ok) return null;
+    return { message: v.mensagem, codigo: v.codigo, acao: acao, tabela: tabela };
   }
 
   function novoId() {
@@ -146,6 +164,9 @@
 
   Consulta.prototype.executar = function () {
     var linhas = ler(this.tabela);
+
+    var impedido = barrado(this.acao, this.tabela);
+    if (impedido) return { data: null, error: impedido };
 
     if (this.acao === "insert") {
       var linha = {};

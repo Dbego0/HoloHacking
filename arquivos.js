@@ -56,6 +56,7 @@
     try { t = JSON.parse(localStorage.getItem(chave)) || {}; } catch (e) { t = {}; }
     t[paciente()] = dados;
     localStorage.setItem(chave, JSON.stringify(t));
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("caixa:" + chave);
   }
   function escapar(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")

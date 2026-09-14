@@ -266,6 +266,7 @@ const ordem = await p.evaluate(() => {
   return {
     total: srcs.length,
     manifesto: srcs.indexOf('/armazenamento.js'),
+    concorrencia: srcs.indexOf('/concorrencia.js'),
     validador: srcs.indexOf('/validar-backup.js'),
     restaurador: srcs.indexOf('/restaurar-backup.js'),
     dados: srcs.indexOf('/dados.js')
@@ -279,9 +280,12 @@ ok(ordem.manifesto < ordem.dados,
    numero de proposito: o manifesto (P0.2), o validador (P0.4a) e o motor de
    restauracao (P0.4b). O teste conta para que nenhuma entre sem ninguem
    reparar. */
-ok(ordem.total === 25,
-   'o index tem 25 tags de script: 22 de antes do P0 + armazenamento.js + ' +
-   'validar-backup.js + restaurar-backup.js — ' + ordem.total);
+ok(ordem.total === 26,
+   'o index tem 26 tags de script: 22 de antes do P0 + concorrencia.js + ' +
+   'armazenamento.js + validar-backup.js + restaurar-backup.js — ' + ordem.total);
+ok(ordem.concorrencia >= 0 && ordem.concorrencia < ordem.manifesto,
+   'e concorrencia.js vem antes de tudo que escreve: posicao ' +
+   ordem.concorrencia);
 ok(ordem.restaurador > ordem.validador,
    'e restaurar-backup.js vem depois do validador, que ele usa: posicao ' +
    ordem.restaurador + ' contra ' + ordem.validador);

@@ -705,6 +705,19 @@
     var dito = prompt("Isto apaga tudo deste navegador e não dá para desfazer.\n\n" +
                       'Escreva ' + frase + " para confirmar:");
     if (dito !== frase) { contaAviso("Nada foi apagado."); return; }
+    /* O que vem abaixo e exatamente o que ja acontecia; o que muda e o
+       envelope. Se outra aba estiver restaurando, esta espera a vez — e se o
+       navegador nao tiver Web Locks, nao ha exclusividade honesta a oferecer,
+       entao segue como sempre seguiu, que e o comportamento que ja existia. */
+    var C = window.Concorrencia;
+    var comProtecao = (C && C.temWebLocks())
+      ? function (fn) { return C.comExclusividade("apagar_tudo", fn); }
+      : function (fn) { return Promise.resolve().then(fn); };
+
+    comProtecao(function () { return apagarTudoAgora(); });
+  }
+
+  function apagarTudoAgora() {
     banco().apagarTudo();
     var limpar = [];
     if (window.ArquivoStore && window.ArquivoStore.listarTudo) {
@@ -725,7 +738,13 @@
     if (window.Armazenamento && window.Armazenamento.limparRecuperacao) {
       limpar.push(window.Armazenamento.limparRecuperacao());
     }
-    Promise.all(limpar).then(function () { location.reload(); });
+    /* A revisao e o anuncio tambem sao operacionais e tambem vao embora. A
+       limpeza vem por ultimo: enquanto as outras chaves somem, a revisao ainda
+       serve para avisar as outras abas do que esta acontecendo. */
+    return Promise.all(limpar).then(function () {
+      if (window.Concorrencia) window.Concorrencia.limpar();
+      location.reload();
+    });
   }
 
   function contaAviso(texto, ruim) {

@@ -138,10 +138,20 @@ const pacoteB = await p.evaluate(async (PONT) => {
   return await window.Armazenamento.gerarBackupV2();
 }, { a: PONTUACAO(40), b: PONTUACAO(70) });
 
-/* fotografa o estado inteiro, para comparacoes byte a byte */
-const retrato = () => p.evaluate(async () => {
+/* Fotografa o DADO, para comparacoes byte a byte.
+
+   As chaves operacionais de concorrencia ficam de fora de proposito: a
+   revisao global e um RELOGIO, e o trabalho dela e justamente mudar. Depois
+   de um rollback o disco mudou duas vezes, entao a revisao TEM que ter
+   avancado — exigir que ela volte ao numero anterior seria exigir que as
+   outras abas nao ficassem sabendo. Ela e conferida a parte, logo abaixo. */
+const OPERACIONAIS = ['holohacking.revisao', 'holohacking.operacao-critica'];
+
+const retrato = () => p.evaluate(async (fora) => {
   const ls = {};
-  Object.keys(localStorage).sort().forEach(k => { ls[k] = localStorage.getItem(k); });
+  Object.keys(localStorage).sort().forEach(k => {
+    if (fora.indexOf(k) === -1) ls[k] = localStorage.getItem(k);
+  });
   const docs = await window.ArquivoStore.listarTudoEstrito();
   const bytes = {};
   for (const d of docs) {
@@ -150,7 +160,16 @@ const retrato = () => p.evaluate(async () => {
     bytes[d.id] = [...new Uint8Array(buf)].join(',');
   }
   return { ls, docs: docs.map(d => d.id).sort(), bytes,
-           aparencia: localStorage.getItem('holohacking.aparencia') };
+           aparencia: localStorage.getItem('holohacking.aparencia'),
+           revisao: window.Concorrencia ? window.Concorrencia.lerRevisao() : null };
+}, OPERACIONAIS);
+
+/* Compara o DADO de dois retratos, deixando de fora a revisao — que e relogio
+   e cujo trabalho e avancar. Ela e conferida em asercao propria. */
+const mesmoDado = (x, y) => JSON.stringify({
+  ls: x.ls, docs: x.docs, bytes: x.bytes, aparencia: x.aparencia
+}) === JSON.stringify({
+  ls: y.ls, docs: y.docs, bytes: y.bytes, aparencia: y.aparencia
 });
 
 /* ==================================================================== */
@@ -179,8 +198,10 @@ ok(invalido.r.aplicado === false && invalido.r.escreveu === false &&
 ok(invalido.r.erros.indexOf('CONTAGEM_DIVERGENTE') >= 0,
    'e os erros vem do MESMO validador do P0.4a, sem caminho rapido: ' +
    invalido.r.erros.join(', '));
-ok(JSON.stringify(antesInvalido) === JSON.stringify(depoisInvalido),
-   'o estado esta byte a byte identico — nada foi tocado');
+ok(mesmoDado(antesInvalido, depoisInvalido) &&
+   antesInvalido.revisao === depoisInvalido.revisao,
+   'o estado esta byte a byte identico — nada foi tocado, e nem a revisao ' +
+   'avancou: nao houve escrita para avisar');
 ok(invalido.temSnapshot === false,
    'e NENHUM snapshot foi criado: o snapshot so nasce depois da validacao passar');
 
@@ -347,7 +368,7 @@ const cenarioFalha = async (failpoint) => {
     };
   }, { pacote: pacoteB, fp: failpoint });
   const depoisF = await retrato();
-  return { r, antesF, depoisF, igual: JSON.stringify(antesF) === JSON.stringify(depoisF) };
+  return { r, antesF, depoisF, igual: mesmoDado(antesF, depoisF) };
 };
 
 /* N — falha logo depois do snapshot: nada foi escrito ainda */
@@ -385,6 +406,10 @@ ok(f5.r.revertido === true && f5.igual,
 ok(f5.depoisF.docs.join(',') === f5.antesF.docs.join(',') &&
    f5.antesF.docs.every(id => f5.depoisF.bytes[id] === f5.antesF.bytes[id]),
    'Q — o rollback restaurou os documentos antigos, com id e bytes');
+ok(f5.depoisF.revisao > f5.antesF.revisao,
+   'e a REVISAO avancou, em vez de voltar: o disco mudou duas vezes, e as ' +
+   'outras abas precisam saber disso — ' + f5.antesF.revisao + ' → ' +
+   f5.depoisF.revisao + '. O dado volta; o relogio nao');
 ok(JSON.stringify(f5.depoisF.ls) === JSON.stringify(f5.antesF.ls),
    'R — e TODAS as chaves de localStorage, byte a byte: ' +
    Object.keys(f5.antesF.ls).length + ' chaves');
@@ -447,7 +472,7 @@ const crash = async (failpoint) => {
     await window.Armazenamento.recuperarRestauracaoPendente());
   const depoisC = await retrato();
   return { antesC, depoisC, pendente, rec,
-           igual: JSON.stringify(antesC) === JSON.stringify(depoisC) };
+           igual: mesmoDado(antesC, depoisC) };
 };
 
 /* U */

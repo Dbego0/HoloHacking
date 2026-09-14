@@ -431,7 +431,55 @@
   /** Aplica um Backup V2. Valida primeiro, pelo MESMO validador do P0.4a —
       nao ha caminho rapido e nao ha segunda validacao. Se o pacote nao for
       valido, nada e escrito e nenhum snapshot e criado. */
+  /** A porta publica. Pega exclusividade de verdade ANTES de qualquer coisa —
+      inclusive antes de validar — e so entao chama o miolo.
+
+      Sem navigator.locks isto RECUSA e nao escreve nada. Nao ha fallback: um
+      lock improvisado em localStorage tem corrida entre o teste e a criacao, e
+      duas abas passam. Numa operacao que reescreve o prontuario inteiro, a
+      sensacao de protecao sem a protecao e pior do que a recusa. */
   function aplicarBackupV2(pacote, opcoes) {
+    opcoes = opcoes || {};
+    var C = window.Concorrencia;
+    if (!C) return aplicarBackupV2Interno(pacote, opcoes);
+
+    var revisaoNoInicio = C.lerRevisao();
+
+    return C.comExclusividade("restauracao", function () {
+      /* Com o lock na mao: se a revisao mudou entre pedir e conseguir, outra
+         aba escreveu no meio. O snapshot seria de um estado que ja passou. */
+      if (C.lerRevisao() !== revisaoNoInicio) {
+        return resultado({
+          fase: null, motivo: "ESTADO_DESATUALIZADO", escreveu: false,
+          revisao_no_inicio: revisaoNoInicio, revisao_agora: C.lerRevisao(),
+          avisos: [{ codigo: "ESTADO_DESATUALIZADO",
+                     mensagem: "outra aba escreveu enquanto esta esperava o " +
+                               "lock; releia a fonte e tente de novo" }]
+        });
+      }
+      return aplicarBackupV2Interno(pacote, opcoes);
+    }, opcoes).then(function (r) {
+      if (r && r.ok === false) {
+        /* nao conseguiu exclusividade: nada foi tentado */
+        return resultado({
+          fase: null, motivo: r.codigo, escreveu: false,
+          operacao_em_andamento: r.operacao || null,
+          avisos: [{ codigo: r.codigo, mensagem: r.mensagem }]
+        });
+      }
+      var saida = r.resultado;
+      /* A revisao so avanca DEPOIS da verificacao por hash ter passado — e
+         tambem depois de um rollback, porque o disco mudou duas vezes e as
+         outras abas precisam saber que o que elas tem envelheceu. */
+      if ((saida.aplicado || saida.revertido || saida.escreveu) && C) {
+        C.avancarRevisao(saida.aplicado ? "restauracao" : "rollback");
+        saida.revisao = C.lerRevisao();
+      }
+      return saida;
+    });
+  }
+
+  function aplicarBackupV2Interno(pacote, opcoes) {
     opcoes = opcoes || {};
     _failpointDeTeste = opcoes.failpointDeTeste || null;
     _travarDeTeste = opcoes.travarDeTeste || null;
@@ -617,7 +665,30 @@
   }
 
   /** Devolve o app ao estado guardado no snapshot. */
-  function recuperarRestauracaoPendente() {
+  /** Tambem e operacao critica: ela reescreve tudo. Aba A recuperando com aba
+      B gravando uma aplicacao produziria o mesmo hibrido que a restauracao. */
+  function recuperarRestauracaoPendente(opcoes) {
+    var C = window.Concorrencia;
+    if (!C) return recuperarInterno();
+    return C.comExclusividade("recuperacao", recuperarInterno, opcoes || {})
+      .then(function (r) {
+        if (r && r.ok === false) {
+          return resultado({
+            fase: null, motivo: r.codigo, escreveu: false,
+            operacao_em_andamento: r.operacao || null,
+            avisos: [{ codigo: r.codigo, mensagem: r.mensagem }]
+          });
+        }
+        var saida = r.resultado;
+        if (saida.escreveu && C) {
+          C.avancarRevisao("recuperacao");
+          saida.revisao = C.lerRevisao();
+        }
+        return saida;
+      });
+  }
+
+  function recuperarInterno() {
     return lerSnapshot().then(function (snap) {
       if (!snap) {
         return resultado({ fase: null, motivo: "NADA_PENDENTE", escreveu: false });

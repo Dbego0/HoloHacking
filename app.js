@@ -2015,6 +2015,7 @@
     if(mesmoDia >= 0) tudo[id][mesmoDia] = nova; else tudo[id].push(nova);
     tudo[id].sort((a, b) => (a.quando || "").localeCompare(b.quando || ""));
     localStorage.setItem("holohacking.pontuacao", JSON.stringify(tudo));
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("pontuacao");
   }
 
   /** Todas as aplicacoes de um paciente, da mais antiga para a mais nova. */
