@@ -718,6 +718,13 @@
      "holohacking.exames", "holohacking.agenda", "holohacking.aparencia"].forEach(function (k) {
       try { localStorage.removeItem(k); } catch (e) { /* idem */ }
     });
+    /* O banco de recuperacao guarda uma copia inteira do estado enquanto uma
+       restauracao acontece — dado clinico, portanto. Se uma operacao tiver
+       sido interrompida, ele ainda esta la. "Apagar tudo" tem que alcanca-lo,
+       senao volta a ficar incompleto como estava antes do P0.2. */
+    if (window.Armazenamento && window.Armazenamento.limparRecuperacao) {
+      limpar.push(window.Armazenamento.limparRecuperacao());
+    }
     Promise.all(limpar).then(function () { location.reload(); });
   }
 

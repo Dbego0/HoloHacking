@@ -267,6 +267,7 @@ const ordem = await p.evaluate(() => {
     total: srcs.length,
     manifesto: srcs.indexOf('/armazenamento.js'),
     validador: srcs.indexOf('/validar-backup.js'),
+    restaurador: srcs.indexOf('/restaurar-backup.js'),
     dados: srcs.indexOf('/dados.js')
   };
 });
@@ -274,12 +275,16 @@ ok(ordem.manifesto >= 0, 'armazenamento.js esta no index.html');
 ok(ordem.manifesto < ordem.dados,
    'e carrega ANTES de dados.js, que depende dele: posicao ' +
    ordem.manifesto + ' contra ' + ordem.dados);
-/* 22 era o numero antes do P0. O manifesto (P0.2) acrescentou uma tag e o
-   validador de backup (P0.4a) outra. O teste conta para que nenhuma entre
-   sem ninguem reparar — quando entrar de proposito, este numero sobe junto. */
-ok(ordem.total === 24,
-   'o index tem 24 tags de script: 22 de antes do P0 + armazenamento.js + ' +
-   'validar-backup.js — ' + ordem.total);
+/* 22 era o numero antes do P0. Cada etapa que acrescenta uma tag sobe este
+   numero de proposito: o manifesto (P0.2), o validador (P0.4a) e o motor de
+   restauracao (P0.4b). O teste conta para que nenhuma entre sem ninguem
+   reparar. */
+ok(ordem.total === 25,
+   'o index tem 25 tags de script: 22 de antes do P0 + armazenamento.js + ' +
+   'validar-backup.js + restaurar-backup.js — ' + ordem.total);
+ok(ordem.restaurador > ordem.validador,
+   'e restaurar-backup.js vem depois do validador, que ele usa: posicao ' +
+   ordem.restaurador + ' contra ' + ordem.validador);
 ok(ordem.validador > ordem.manifesto,
    'e validar-backup.js vem DEPOIS de armazenamento.js, que ele estende: ' +
    'posicao ' + ordem.validador + ' contra ' + ordem.manifesto);

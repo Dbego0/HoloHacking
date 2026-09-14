@@ -393,12 +393,108 @@ ok(conteudo.inexistente === undefined && conteudo.falha === null,
 
 /* ==================================================================== */
 console.log('');
+console.log('  5b. SUBSTITUICAO TOTAL — tudo ou nada');
+console.log('');
+/* ==================================================================== */
+
+/* substituirTudoEstrito existe porque salvar() nao serve para restaurar: ele
+   GERA um id novo, e restaurar um backup com ids novos seria trocar a
+   identidade de cada documento. Aqui os registros entram como vieram.
+
+   E limpar + inserir acontecem na MESMA transacao: nao ha meio-caminho em que
+   os antigos ja sumiram e os novos nao entraram. */
+
+const subst = await p.evaluate(async () => {
+  const bytes = (n) => new Uint8Array(Array.from({ length: n }, (_, i) => i % 256));
+  const novos = [
+    { id: 'id-escolhido-1', paciente: 'pac-X', nome: 'Um ✨', tipo: 'Exame',
+      data: '2026-07-01', mime: 'text/plain', tamanho: 3,
+      arquivo: new Blob([bytes(3)], { type: 'text/plain' }),
+      campo_do_futuro: 'preservar' },
+    { id: 'id-escolhido-2', paciente: 'pac-Y', nome: 'Dois', tipo: 'Outro',
+      data: '2026-07-02', mime: 'application/pdf', tamanho: 0,
+      arquivo: new Blob([], { type: 'application/pdf' }) }
+  ];
+  const quantos = await window.ArquivoStore.substituirTudoEstrito(novos);
+  const depois = await window.ArquivoStore.listarTudoEstrito();
+  const um = await window.ArquivoStore.pegarEstrito('id-escolhido-1');
+  const buf = await um.arquivo.arrayBuffer();
+  return {
+    quantos, ids: depois.map(d => d.id).sort(),
+    bytes: [...new Uint8Array(buf)],
+    extra: um.campo_do_futuro,
+    paciente: um.paciente, mime: um.mime, nome: um.nome
+  };
+});
+ok(subst.quantos === 2 && subst.ids.join(',') === 'id-escolhido-1,id-escolhido-2',
+   'a loja inteira foi trocada e os IDS DADOS foram respeitados: ' +
+   subst.ids.join(', ') + ' — os tres de antes sumiram');
+ok(subst.bytes.join(',') === '0,1,2' && subst.paciente === 'pac-X' &&
+   subst.nome === 'Um ✨' && subst.extra === 'preservar',
+   'bytes, paciente, nome e ATE um campo que este codigo nao conhece ' +
+   'atravessaram: e assim que um backup de amanha sobrevive');
+
+/* erro no meio: a transacao aborta inteira e o estado anterior permanece */
+const abortou = await p.evaluate(async () => {
+  const antes = (await window.ArquivoStore.listarTudoEstrito()).map(d => d.id).sort();
+  const comProblema = [
+    { id: 'novo-ok', paciente: 'pac-Z', nome: 'Bom', mime: 'text/plain',
+      tamanho: 1, arquivo: new Blob(['a'], { type: 'text/plain' }) },
+    /* funcao nao atravessa a clonagem estruturada: o put lanca */
+    { id: 'novo-ruim', paciente: 'pac-Z', nome: 'Ruim', naoClonavel: function () {} }
+  ];
+  let erro = null;
+  try {
+    await window.ArquivoStore.substituirTudoEstrito(comProblema);
+  } catch (e) {
+    erro = e.name || 'Error';
+  }
+  const depois = (await window.ArquivoStore.listarTudoEstrito()).map(d => d.id).sort();
+  return { antes, depois, erro, entrouOMetade: depois.indexOf('novo-ok') >= 0 };
+});
+ok(abortou.erro !== null,
+   'se UMA insercao falha, a promessa rejeita: ' + abortou.erro);
+ok(abortou.entrouOMetade === false,
+   'e o registro que ja tinha sido aceito NAO ficou: a transacao abortou inteira');
+ok(abortou.depois.join(',') === abortou.antes.join(','),
+   'o estado anterior permanece exatamente como estava: ' +
+   abortou.depois.join(', ') + ' — ou todos entram, ou nenhum entra, e nunca ' +
+   'ha o momento em que os antigos sumiram e os novos nao chegaram');
+
+const soNoCommit = await p.evaluate(() =>
+  /aguardarTransacao/.test(window.ArquivoStore.substituirTudoEstrito.toString()));
+ok(soNoCommit,
+   'e ela tambem resolve so no commit — a mesma regra do salvar() e do remover()');
+
+const vaziaTambem = await p.evaluate(async () => {
+  const n = await window.ArquivoStore.substituirTudoEstrito([]);
+  return { n, sobrou: (await window.ArquivoStore.listarTudoEstrito()).length };
+});
+ok(vaziaTambem.n === 0 && vaziaTambem.sobrou === 0,
+   'substituir por uma lista vazia esvazia a loja — e um estado legitimo, ' +
+   'nao um erro');
+
+const naoArray = await p.evaluate(async () => {
+  try { await window.ArquivoStore.substituirTudoEstrito(null); return 'resolveu'; }
+  catch (e) { return e.name; }
+});
+ok(naoArray === 'TypeError',
+   'e o que nao e array e recusado na entrada: ' + naoArray);
+
+/* ==================================================================== */
+console.log('');
 console.log('  6. O QUE NAO MUDOU');
 console.log('');
 /* ==================================================================== */
 
 const intacto = await p.evaluate(async () => {
   const A = window.ArquivoStore;
+  /* a secao anterior esvaziou a loja de proposito; aqui o estado e semeado,
+     para o numero conferido ser deste teste e nao herdado de outro */
+  const b1 = new Blob(['um'], { type: 'text/plain' });  b1.name = 'a.txt';
+  const b2 = new Blob(['dois'], { type: 'text/plain' }); b2.name = 'b.txt';
+  await A.salvar('pac-A', b1, { nome: 'A', tipo: 'Outro', data: '2026-08-01' });
+  await A.salvar('pac-B', b2, { nome: 'B', tipo: 'Outro', data: '2026-08-02' });
   const pacote = await window.Armazenamento.gerarBackupV2();
   const chaves = Object.keys(localStorage).filter(k => k.indexOf('holohacking') === 0);
   return {
@@ -416,7 +512,7 @@ const intacto = await p.evaluate(async () => {
   };
 });
 ok(intacto.formato === 'holohacking-backup' && intacto.versao === 2 &&
-   intacto.armazenamentos === 12 && intacto.documentos === 3,
+   intacto.armazenamentos === 12 && intacto.documentos === 2,
    'o Backup V2 sai exatamente igual, agora lendo pela estrita: ' +
    intacto.armazenamentos + ' armazenamentos, ' + intacto.documentos + ' documentos');
 ok(intacto.suspeitas.length === 0,

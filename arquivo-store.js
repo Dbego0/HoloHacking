@@ -195,6 +195,58 @@
     }).then(function () { return true; });
   }
 
+  /** Troca TODO o conteudo da loja pelos registros dados, numa transacao so.
+
+      Existe porque salvar() nao serve para restaurar: ele GERA um id novo, e
+      restaurar um backup com ids novos seria trocar a identidade de cada
+      documento — as referencias do pacote deixariam de apontar para nada.
+      Aqui os registros entram exatamente como vieram, id inclusive, com todos
+      os campos que tiverem, inclusive os que este codigo nao conhece.
+
+      E tudo-ou-nada: limpar e inserir acontecem na MESMA transacao readwrite.
+      Se qualquer insercao falhar, a transacao aborta e a loja fica como
+      estava — nao ha meio-caminho em que os documentos antigos ja sumiram e
+      os novos nao entraram. Resolve so no commit.
+
+      ESTRITA de proposito, sem versao tolerante: restaurar pela metade em
+      silencio e o pior desfecho possivel desta operacao. */
+  function substituirTudoEstrito(registros) {
+    if (!Array.isArray(registros)) {
+      return Promise.reject(new TypeError("substituirTudoEstrito espera um array"));
+    }
+    return transacao("readwrite").then(function (t) {
+      /* Os pedidos sao criados TODOS na mesma transacao. Criar um pedido
+         depois de um await deixaria a transacao fechar sozinha por
+         inatividade — e e assim que uma restauracao "some" pela metade. */
+      var esperar = aguardarTransacao(t.tx);
+      var pedidos;
+      try {
+        pedidos = [promessa(t.loja.clear())];
+        registros.forEach(function (r) {
+          pedidos.push(promessa(t.loja.put(r)));
+        });
+      } catch (e) {
+        /* put() pode lancar NA HORA — um registro que nao atravessa a
+           clonagem estruturada, por exemplo. Esse throw escapa do callback e
+           rejeita a promessa, mas NAO aborta a transacao: o clear() e os puts
+           que ja passaram commitariam sozinhos, e a loja ficaria com meia
+           restauracao dentro. Entao o abort e explicito. */
+        try { t.tx.abort(); } catch (ignorado) {}
+        /* O abort faz os pedidos ja criados rejeitarem com AbortError. Nesta
+           saida ninguem os espera, e promessa rejeitada sem dono vira erro de
+           pagina — entao cada uma ganha um dono aqui. O erro que interessa e
+           o original, que e o relancado abaixo. */
+        (pedidos || []).forEach(function (pr) { pr.catch(function () {}); });
+        /* deixa o onabort assentar antes de propagar, para quem esperava a
+           transacao nao ficar com uma rejeicao solta */
+        return esperar.catch(function () {}).then(function () { throw e; });
+      }
+      /* aguardarTransacao entra junto: se um put falhar de forma assincrona,
+         a transacao aborta e e ela quem conta a historia inteira. */
+      return Promise.all([Promise.all(pedidos), esperar]);
+    }).then(function () { return registros.length; });
+  }
+
   /* ---------- leitura — o nucleo estrito ---------------------------------
      UMA implementacao por consulta. Ela rejeita erro de verdade. As versoes
      tolerantes, mais abaixo, sao casca por cima destas. */
@@ -300,6 +352,7 @@
     listarTudo: listarTudo,
 
     /* estritas — para backup, diagnostico e restauracao */
+    substituirTudoEstrito: substituirTudoEstrito,
     listarEstrito: listarEstrito,
     listarTudoEstrito: listarTudoEstrito,
     pegarEstrito: pegarEstrito,
