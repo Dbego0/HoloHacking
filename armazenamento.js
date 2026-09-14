@@ -403,13 +403,16 @@
     forma: FORMA.LOJA,
     /** Depende de window.ArquivoStore, que e quem abre o banco. */
     disponivel: function () {
-      return !!(window.ArquivoStore && window.ArquivoStore.listarTudo);
+      return !!(window.ArquivoStore && window.ArquivoStore.listarTudoEstrito);
     },
+    /* ESTRITA de proposito. A versao tolerante devolve [] quando a leitura
+       falha, e um diagnostico que confunde "falhou" com "nao ha documento"
+       diria que esta tudo certo justamente quando nao esta. Aqui o erro sobe. */
     lerTudo: function () {
       if (!adaptadorLoja.disponivel()) return Promise.resolve([]);
-      return window.ArquivoStore.listarTudo().then(function (itens) {
+      return window.ArquivoStore.listarTudoEstrito().then(function (itens) {
         return itens || [];
-      }, function () { return []; });
+      });
     },
     doPaciente: function (entrada, pacienteId) {
       return adaptadorLoja.lerTudo().then(function (itens) {
@@ -597,14 +600,17 @@
      esta. Cada documento leva o SHA-256 dos SEUS bytes, para que uma
      restauracao possa conferir arquivo por arquivo, e nao so o pacote todo. */
   function lerDocumentos() {
-    if (!(window.ArquivoStore && window.ArquivoStore.listarTudo)) {
+    if (!(window.ArquivoStore && window.ArquivoStore.listarTudoEstrito)) {
       return Promise.resolve({ arquivos: [], indisponivel: true, bytes: 0, bytesBase64: 0 });
     }
-    return window.ArquivoStore.listarTudo().then(function (lista) {
+    /* ESTRITA: nao da para fazer copia de seguranca de uma lista que pode ter
+       vindo vazia por engano. Se a leitura falhar, o backup falha — e e muito
+       melhor do que um pacote que diz "zero documentos" com alegria. */
+    return window.ArquivoStore.listarTudoEstrito().then(function (lista) {
       var ids = (lista || []).map(function (i) { return i.id; });
       return ids.reduce(function (cadeia, id) {
         return cadeia.then(function (acc) {
-          return window.ArquivoStore.pegar(id).then(function (registro) {
+          return window.ArquivoStore.pegarEstrito(id).then(function (registro) {
             if (!registro) return acc;
             var blob = registro.arquivo;
             if (!blob || typeof blob.arrayBuffer !== "function") {
@@ -639,9 +645,14 @@
           });
         });
       }, Promise.resolve({ arquivos: [], indisponivel: false, bytes: 0, bytesBase64: 0 }));
-    }, function () {
-      return { arquivos: [], indisponivel: true, bytes: 0, bytesBase64: 0 };
     });
+    /* Sem catch aqui, de proposito. Havia um que transformava falha de leitura
+       em "zero documentos": o backup sairia bonitinho, com um pacote que diz
+       que a pessoa nao tem laudo nenhum. Backup que mente sobre o que nao
+       conseguiu ler e pior do que backup que falha. Agora falha.
+
+       O caminho "indisponivel" acima continua, e e outra coisa: e o ambiente
+       que nao TEM IndexedDB, nao o IndexedDB que deu erro. */
   }
 
   /* ---------- contagens ---------------------------------------------------

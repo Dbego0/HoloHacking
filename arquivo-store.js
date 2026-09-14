@@ -16,6 +16,44 @@
 
    LGPD: exame e laudo sao dado pessoal sensivel (art. 5 II e art. 11).
    Nao sai do navegador, nao vai para lugar nenhum, e some com o botao remover.
+
+   ---------------------------------------------------------------------------
+   DUAS COISAS QUE ESTE ARQUIVO FAZIA ERRADO, E QUE UM ROLLBACK NAO PERDOARIA
+   ---------------------------------------------------------------------------
+
+   1. REQUEST NAO E TRANSACAO.
+
+      salvar() e remover() resolviam no `request.onsuccess`. Isso quer dizer
+      "o pedido foi aceito", NAO "o dado esta no disco": a transacao ainda
+      esta aberta e pode abortar depois — por erro, por cota, ou porque a
+      pagina foi embora. Quem chamava recarregava a tela achando que estava
+      salvo.
+
+      As duas coisas sao distintas e continuam distintas:
+        REQUEST      produz o RESULTADO.
+        TRANSACTION  confirma a DURABILIDADE.
+      Entao guarda-se o resultado do request e so se resolve no
+      `transaction.oncomplete`.
+
+   2. ERRO DE LEITURA NAO E COLECAO VAZIA.
+
+      listar() e listarTudo() terminavam em `.catch(function () { return []; })`.
+      Banco fechado, transacao abortada, disco com problema — tudo virava "este
+      paciente nao tem documento". A tela mostrava calma onde havia falha, e
+      foi isso que produziu a instabilidade intermitente de testar-ficha-abas.
+
+      Agora ha um nucleo ESTRITO, que rejeita erro de verdade, e uma camada de
+      apresentacao que decide conscientemente mostrar vazio — registrando a
+      falha em ultimaFalha() em vez de engoli-la. A consulta e UMA SO: as
+      funcoes tolerantes sao casca fina por cima da estrita.
+
+      Backup, diagnostico e qualquer restauracao futura usam a ESTRITA. Nao da
+      para fazer copia de seguranca de uma lista que pode ser vazia por engano.
+
+   NAO CORRIGIDO AQUI, DE PROPOSITO: o id e montado com
+   Date.now() + hash(nome + tamanho), entao dois arquivos de mesmo nome e
+   mesmo tamanho salvos no mesmo milissegundo colidem. E outro comportamento,
+   nao e requisito para garantir o commit, e continua no backlog.
    =========================================================================== */
 
 (function () {
@@ -25,6 +63,21 @@
   var LOJA = "arquivos";
   var VERSAO = 1;
   var bd = null;
+
+  /* A ultima falha que a camada tolerante engoliu para a tela nao quebrar.
+     Existe para que "engolir" nao seja o mesmo que "esconder": quem quiser
+     saber por que a lista veio vazia tem onde olhar. */
+  var ultimaFalha = null;
+
+  function guardarFalha(onde, e) {
+    ultimaFalha = {
+      onde: onde,
+      nome: (e && e.name) || "Error",
+      mensagem: (e && e.message) || String(e),
+      quando: new Date().toISOString()
+    };
+    return ultimaFalha;
+  }
 
   function abrir() {
     if (bd) return Promise.resolve(bd);
@@ -37,17 +90,47 @@
           loja.createIndex("paciente", "paciente", { unique: false });
         }
       };
-      req.onsuccess = function () { bd = req.result; resolve(bd); };
+      req.onsuccess = function () {
+        bd = req.result;
+        /* Uma conexao pode morrer sem ninguem avisar este modulo: outra aba
+           pede uma versao nova, ou o navegador derruba o banco. Sem isto, o
+           handle em cache fica velho e TODA chamada seguinte falha — e antes,
+           com o catch que devolvia [], falhava calada. */
+        bd.onversionchange = function () { try { bd.close(); } catch (e) {} bd = null; };
+        bd.onclose = function () { bd = null; };
+        resolve(bd);
+      };
       req.onerror = function () { reject(req.error); };
+      req.onblocked = function () {
+        reject(new Error("o banco esta bloqueado por outra aba deste app"));
+      };
     });
   }
 
+  /** A loja e a transacao que a contem — as duas, porque quem escreve precisa
+      da segunda para saber que terminou. */
   function transacao(modo) {
     return abrir().then(function (d) {
-      return d.transaction(LOJA, modo).objectStore(LOJA);
+      try {
+        var tx = d.transaction(LOJA, modo);
+        return { loja: tx.objectStore(LOJA), tx: tx };
+      } catch (e) {
+        /* InvalidStateError: o handle em cache aponta para uma conexao que
+           fechou. Uma reabertura resolve — e so uma: se falhar de novo, o
+           erro sobe, que e o comportamento certo. */
+        if (e && e.name === "InvalidStateError") {
+          bd = null;
+          return abrir().then(function (d2) {
+            var tx2 = d2.transaction(LOJA, modo);
+            return { loja: tx2.objectStore(LOJA), tx: tx2 };
+          });
+        }
+        throw e;
+      }
     });
   }
 
+  /** O RESULTADO de um pedido. Nao diz nada sobre durabilidade. */
   function promessa(req) {
     return new Promise(function (resolve, reject) {
       req.onsuccess = function () { resolve(req.result); };
@@ -55,7 +138,26 @@
     });
   }
 
-  /** Guarda o arquivo inteiro, sem converter para texto. */
+  /** A DURABILIDADE. Resolve so no commit; rejeita no erro e no abort.
+      Sem timeout: um prazo inventado transformaria uma transacao lenta numa
+      falha falsa, e o IndexedDB ja termina sozinho de um jeito ou de outro. */
+  function aguardarTransacao(tx) {
+    return new Promise(function (resolve, reject) {
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () {
+        reject(tx.error || new Error("a transacao falhou"));
+      };
+      tx.onabort = function () {
+        reject(tx.error || new Error("a transacao foi abortada"));
+      };
+    });
+  }
+
+  /* ---------- escrita — resolve depois do commit ------------------------- */
+
+  /** Guarda o arquivo inteiro, sem converter para texto.
+      So resolve quando a transacao tiver COMMITADO: quando esta promessa
+      cumpre, recarregar a pagina no instante seguinte nao perde o arquivo. */
   function salvar(paciente, arquivo, meta) {
     var id = "arq-" + Date.now() + "-" + Math.abs(hash(arquivo.name + arquivo.size));
     var registro = {
@@ -69,7 +171,11 @@
       arquivo: arquivo
     };
     return transacao("readwrite")
-      .then(function (loja) { return promessa(loja.add(registro)); })
+      .then(function (t) {
+        /* o pedido produz o resultado; a transacao confirma que ele ficou */
+        var pedido = promessa(t.loja.add(registro));
+        return Promise.all([pedido, aguardarTransacao(t.tx)]);
+      })
       .then(function () { return registro; })
       .catch(function (e) {
         // QuotaExceededError e o unico erro que a pessoa precisa entender
@@ -81,41 +187,88 @@
       });
   }
 
-  function listar(paciente) {
-    return transacao("readonly").then(function (loja) {
-      return promessa(loja.index("paciente").getAll(paciente));
-    }).then(function (itens) {
+  /** Quando esta promessa cumpre, o arquivo nao volta: a transacao commitou. */
+  function remover(id) {
+    return transacao("readwrite").then(function (t) {
+      var pedido = promessa(t.loja.delete(id));
+      return Promise.all([pedido, aguardarTransacao(t.tx)]);
+    }).then(function () { return true; });
+  }
+
+  /* ---------- leitura — o nucleo estrito ---------------------------------
+     UMA implementacao por consulta. Ela rejeita erro de verdade. As versoes
+     tolerantes, mais abaixo, sao casca por cima destas. */
+
+  function semBlob(i) {
+    return { id: i.id, paciente: i.paciente, nome: i.nome, tipo: i.tipo,
+             data: i.data, mime: i.mime, tamanho: i.tamanho };
+  }
+  function porData(a, b) { return (b.data || "").localeCompare(a.data || ""); }
+
+  /** Os documentos de um paciente. REJEITA se a leitura falhar — lista vazia
+      aqui quer dizer "li o banco e nao ha nada", e so isso. */
+  function listarEstrito(paciente) {
+    return transacao("readonly").then(function (t) {
+      /* A criacao do pedido pode lancar na hora (chave invalida, por exemplo):
+         isso tem que virar rejeicao, nao excecao sincrona no meio de um then. */
+      var req = t.loja.index("paciente").getAll(paciente);
+      return Promise.all([promessa(req), aguardarTransacao(t.tx)]);
+    }).then(function (par) {
       // sem o blob: a lista nao precisa carregar megabytes na memoria
-      return itens.map(function (i) {
+      return (par[0] || []).map(function (i) {
         return { id: i.id, nome: i.nome, tipo: i.tipo, data: i.data,
                  mime: i.mime, tamanho: i.tamanho };
-      }).sort(function (a, b) { return (b.data || "").localeCompare(a.data || ""); });
-    }).catch(function () { return []; });
+      }).sort(porData);
+    });
   }
 
-  /** Todos os arquivos de todos os pacientes, sem os blobs. */
+  /** Todos os arquivos de todos os pacientes, sem os blobs. REJEITA em erro. */
+  function listarTudoEstrito() {
+    return transacao("readonly").then(function (t) {
+      var req = t.loja.getAll();
+      return Promise.all([promessa(req), aguardarTransacao(t.tx)]);
+    }).then(function (par) {
+      return (par[0] || []).map(semBlob).sort(porData);
+    });
+  }
+
+  /** O registro inteiro, com o blob. `undefined` quer dizer "nao existe" —
+      essa semantica ja estava certa e continua; o que muda e que erro de
+      banco rejeita em vez de se confundir com ausencia. */
+  function pegarEstrito(id) {
+    return transacao("readonly").then(function (t) {
+      var req = t.loja.get(id);
+      return Promise.all([promessa(req), aguardarTransacao(t.tx)]);
+    }).then(function (par) { return par[0]; });
+  }
+
+  /* ---------- leitura — a camada de apresentacao -------------------------
+     A tela prefere uma lista vazia a uma tela quebrada, e isso e uma decisao
+     legitima — desde que seja DECISAO, e nao acidente. Estas tres devolvem o
+     vazio e REGISTRAM a falha em ultimaFalha(), para que ela possa ser vista.
+
+     Quem NAO deve usar estas: backup, diagnostico, e qualquer restauracao. */
+
+  function listar(paciente) {
+    return listarEstrito(paciente).catch(function (e) {
+      guardarFalha("listar", e);
+      return [];
+    });
+  }
+
   function listarTudo() {
-    return transacao("readonly").then(function (loja) {
-      return promessa(loja.getAll());
-    }).then(function (itens) {
-      return itens.map(function (i) {
-        return { id: i.id, paciente: i.paciente, nome: i.nome, tipo: i.tipo,
-                 data: i.data, mime: i.mime, tamanho: i.tamanho };
-      }).sort(function (a, b) { return (b.data || "").localeCompare(a.data || ""); });
-    }).catch(function () { return []; });
-  }
-
-  function pegar(id) {
-    return transacao("readonly").then(function (loja) {
-      return promessa(loja.get(id));
+    return listarTudoEstrito().catch(function (e) {
+      guardarFalha("listarTudo", e);
+      return [];
     });
   }
 
-  function remover(id) {
-    return transacao("readwrite").then(function (loja) {
-      return promessa(loja.delete(id));
-    });
-  }
+  /** pegar() NAO ganha versao tolerante: `undefined` ja quer dizer "nao
+      existe", e devolver undefined tambem para erro apagaria a diferenca que
+      esta rodada inteira existe para preservar. Quem chama trata a rejeicao. */
+  function pegar(id) { return pegarEstrito(id); }
+
+  /* ---------- o resto ----------------------------------------------------- */
 
   function espaco() {
     if (!navigator.storage || !navigator.storage.estimate) {
@@ -140,11 +293,23 @@
 
   window.ArquivoStore = {
     salvar: salvar,
+    remover: remover,
+
+    /* tolerantes — para a tela */
     listar: listar,
     listarTudo: listarTudo,
+
+    /* estritas — para backup, diagnostico e restauracao */
+    listarEstrito: listarEstrito,
+    listarTudoEstrito: listarTudoEstrito,
+    pegarEstrito: pegarEstrito,
+
     pegar: pegar,
-    remover: remover,
     espaco: espaco,
-    tamanhoLegivel: tamanhoLegivel
+    tamanhoLegivel: tamanhoLegivel,
+
+    /** A ultima falha engolida pela camada tolerante, ou null. Leitura pura. */
+    ultimaFalha: function () { return ultimaFalha; },
+    esquecerFalha: function () { ultimaFalha = null; }
   };
 })();
