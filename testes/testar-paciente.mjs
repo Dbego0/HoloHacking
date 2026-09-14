@@ -25,10 +25,14 @@ await p.evaluateOnNewDocument(() => {
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
 
-const ok = (c, txt) => console.log((c ? '  ok    ' : '  FALHA ') + txt);
+let falhou = false;
+const ok = (c, txt) => {
+  if (!c) falhou = true;
+  console.log((c ? '  ok    ' : '  FALHA ') + txt);
+};
 
 // entra na lista de pacientes que o app mantem em memoria
-const entrou = await p.evaluate(() => {
+const entrou = await p.evaluate(async () => {
   const sel = document.querySelector('.seletor-paciente');
   if (!sel) return false;
   sel.innerHTML = window.__PACIENTES
@@ -53,20 +57,22 @@ async function trocarPara(id) {
 }
 
 async function preencher(texto) {
-  await p.evaluate(() => {
+  await p.evaluate(async () => {
     document.querySelector('.nav-item[data-secao="mente"]').click();
     document.querySelector('[data-ferramenta="gatilhos_respostas"]').click();
+  await new Promise(r => setTimeout(r, 350));
   });
   await p.evaluate((t) => {
     document.getElementById('campo-gatilho1').value = t;
-    document.querySelector('#vista-gen-mente [data-acao="salvar"]').click();
+    document.querySelector('#vista-gen-mente [data-acao="concluir"]').click();
   }, texto);
 }
 
 async function lerCampo() {
-  return p.evaluate(() => {
+  return p.evaluate(async () => {
     document.querySelector('.nav-item[data-secao="mente"]').click();
     document.querySelector('[data-ferramenta="gatilhos_respostas"]').click();
+  await new Promise(r => setTimeout(r, 350));
     return document.getElementById('campo-gatilho1').value;
   });
 }
@@ -94,11 +100,11 @@ ok(marinaDepois === 'Briga em casa no fim do dia',
    'Marina intacta depois da Carla: "' + marinaDepois + '"');
 
 // --- o selo da galeria segue o paciente ------------------------------------
-const selo = await p.evaluate(() => {
+const selo = await p.evaluate(async () => {
   document.querySelector('.btn-voltar')?.click();
   return document.querySelector('[data-ferramenta="gatilhos_respostas"] .ferr-status').textContent;
 });
-ok(selo === 'Preenchida', 'selo da Marina: ' + selo);
+ok(selo === 'Concluída', 'selo da Marina: ' + selo);
 
 await trocarPara('p-carla');
 await p.evaluate(() => document.querySelector('.nav-item[data-secao="espirito"]').click());
@@ -107,8 +113,19 @@ const seloVazio = await p.evaluate(() =>
 ok(seloVazio === 'Disponível', 'ferramenta nao preenchida pela Carla: ' + seloVazio);
 
 // --- o que ficou guardado --------------------------------------------------
-const bruto = await p.evaluate(() => JSON.parse(localStorage.getItem('holohacking.ferramentas')));
-console.log('\n  guardado:', JSON.stringify(bruto));
+const guardado = await p.evaluate(() => {
+  const apps = window.DadosLocais.exportar().tabelas.aplicacoes || [];
+  return apps.map(a => ({
+    paciente: a.paciente_id, ferramenta: a.ferramenta_id,
+    estado: a.status, gatilho1: (a.respostas || {}).gatilho1
+  }));
+});
+ok(guardado.length === 2, 'duas aplicacoes, uma por paciente: ' + guardado.length);
+ok(guardado.every(a => a.estado === 'concluida'), 'as duas concluidas');
+ok(new Set(guardado.map(a => a.paciente)).size === 2,
+   'cada uma sob o seu paciente');
+console.log('\n  guardado:', JSON.stringify(guardado));
 
 await nav.close();
 console.log(ruim.length ? '\n  ERRO: ' + ruim[0] : '\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

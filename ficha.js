@@ -63,6 +63,17 @@
   }
   function dataBR(iso) { return iso ? iso.split("-").reverse().join("/") : ""; }
 
+  /** O dia do calendário de um instante, no fuso de quem está olhando. */
+  function diaLocal(iso) {
+    if (!iso) return "";
+    if (iso.length <= 10) return iso;          // já é uma data, não um instante
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    return d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+
   function diasDesde(iso) {
     if (!iso) return null;
     var d = new Date(iso + "T00:00:00");
@@ -250,6 +261,23 @@
       });
     });
 
+    /* Cada aplicacao de ferramenta agora tem data, entao ela entra na linha do
+       tempo — era o registro que faltava, e por isso a nota dizia que nao
+       entrava. Rascunho nao entra: nao aconteceu ainda. */
+    if (window.Aplicacoes) {
+      window.Aplicacoes.doPaciente(pid)
+        .filter(function (a) { return a.status !== "rascunho"; })
+        .forEach(function (a) {
+          eventos.push({
+            quando: diaLocal(a.concluida_em || a.iniciada_em),
+            tipo: "ferramenta", selo: nomeFerramenta(a.ferramenta_id),
+            titulo: nomeFerramenta(a.ferramenta_id) + " aplicada",
+            detalhe: a.leitura ? escapar(a.leitura) : "sem leitura registrada",
+            acao: "aba:formularios"
+          });
+        });
+    }
+
     if (window.Agenda && window.Agenda.todas) {
       window.Agenda.todas(pid).forEach(function (c) {
         eventos.push({
@@ -282,9 +310,7 @@
 
       var html = '<p class="dash-sub">' + eventos.length +
         (eventos.length === 1 ? " registro" : " registros") +
-        ", do mais recente para o mais antigo. Ferramenta preenchida não " +
-        "aparece aqui: ela não guarda data, e datar no chute seria inventar " +
-        "quando aconteceu.</p><div class=\"fic-tempo\">";
+        ", do mais recente para o mais antigo.</p><div class=\"fic-tempo\">";
 
       var mesCorrente = null;
       eventos.forEach(function (e) {
@@ -384,14 +410,44 @@
           : "",
         abrir: "mente"
       },
-      {
-        id: "mapa", nome: "Mapa do Propósito",
-        sub: "Síntese do OQ³ e do PQQ: direção e um plano que pode ser vivido.",
-        estado: d.ferramentas.indexOf("mapa") >= 0 ? "preenchido" : "não aplicado",
-        pronto: d.ferramentas.indexOf("mapa") >= 0,
-        comeco: d.ferramentas.indexOf("mapa") >= 0,
-        extra: "", abrir: "espirito"
-      }
+      /* O Mapa do Propósito NAO e uma ferramenta do catalogo: e uma tela que
+         compoe OQ³ e PQQ e nao guarda nada. O card procurava uma aplicacao com
+         ferramenta_id "mapa", que nenhuma parte do sistema cria — entao ele
+         ficava "nao aplicado" para sempre, inclusive com as duas metades
+         prontas.
+
+         CRITERIO TECNICO: o estado do card e derivado do que ja existe, sem
+         inventar dado nenhum —
+
+           nenhuma das duas metades  ->  "não aplicado"
+           so o OQ³                  ->  "falta o PQQ"
+           so o PQQ                  ->  "falta o OQ³"
+           as duas                   ->  "pronto para montar"
+
+         "pronto" e "comeco" seguem a mesma leitura: da para montar o Mapa
+         quando as duas metades existem; da para comecar quando existe uma.
+
+         Nao foi criada aplicacao, persistencia nem historico do Mapa: isso e
+         decisao metodologica em aberto. */
+      (function () {
+        var temOQ3 = temConteudo(p.oq3);
+        var temPQQ = temConteudo(p.pqq);
+        var estado = temOQ3 && temPQQ ? "pronto para montar"
+                   : temOQ3 ? "falta o PQQ"
+                   : temPQQ ? "falta o OQ³"
+                   : "não aplicado";
+        return {
+          id: "mapa", nome: "Mapa do Propósito",
+          sub: "Síntese do OQ³ e do PQQ: direção e um plano que pode ser vivido.",
+          estado: estado,
+          pronto: temOQ3 && temPQQ,
+          comeco: temOQ3 || temPQQ,
+          extra: temOQ3 && temPQQ
+            ? "As duas metades estão preenchidas."
+            : (temOQ3 || temPQQ ? "O Mapa se monta com o OQ³ e o PQQ juntos." : ""),
+          abrir: "espirito"
+        };
+      })()
     ];
 
     var html = '<p class="dash-sub">No método, o HOLOSCOPE é um formulário: 84 ' +

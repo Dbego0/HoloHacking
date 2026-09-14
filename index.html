@@ -717,6 +717,7 @@
               <select class="seletor-paciente" id="sel-oq3" aria-label="Selecionar paciente"></select>
               <span class="aviso">Os registros são salvos na ficha deste paciente.</span>
             </div>
+            <p class="ferr-de-quando hidden" id="oq3-de-quando"></p>
             <div class="grupo"><label for="oq3-data">Data da consulta</label><input id="oq3-data" type="date"></div>
             <div class="grupo"><label for="oq3-quer">OQQ &mdash; O que o paciente quer conquistar?</label><p class="dica">Sonhos, desejos, objetivos, visão de futuro.</p><textarea id="oq3-quer" placeholder="Ex.: quer emagrecer 8 kg para se sentir bem no casamento da filha..."></textarea></div>
             <div class="grupo"><label for="oq3-precisa">OQP &mdash; O que ele precisa resolver?</label><p class="dica">Dores, necessidades reais, sintomas físicos e emocionais.</p><textarea id="oq3-precisa" placeholder="Ex.: compulsão noturna, sono ruim, exames alterados, ansiedade..."></textarea></div>
@@ -724,8 +725,10 @@
             <div class="grupo"><label for="oq3-alavancas">Alavancas da transformação</label><p class="dica">O que esta na interseção entre desejo, necessidade e capacidade?</p><textarea id="oq3-alavancas" placeholder="Ex.: organizar o jantar em familia resolve a compulsão..."></textarea></div>
             <div class="acoes-form">
               <button type="button" id="btn-salvar-oq3" class="btn-verde">Salvar OQ3</button>
+              <button type="button" id="btn-nova-oq3" class="btn-fantasma">Nova aplicação</button>
               <button type="button" class="btn-fantasma" data-limpar="oq3">Limpar</button>
             </div>
+            <section class="ferr-historico hidden" id="oq3-historico"></section>
           </div>
         </div>
         <div class="vista-ferramenta hidden" id="vista-gen-corpo"></div>
@@ -772,7 +775,7 @@
 
           <div class="escada-pqq" aria-label="As cinco perguntas do PQQ">
             <div class="degrau"><span class="num">01</span><div><h5>Pra que que</h5><div class="q">...você quer isso?</div><p>Conectamos ao desejo consciente.</p></div></div>
-            <div class="degrau"><span class="num">02</span><div><h5>Pra que que</h5><div class="q">...isso e importante para você?</div><p>Exploramos o significado pessoal.</p></div></div>
+            <div class="degrau"><span class="num">02</span><div><h5>Pra que que</h5><div class="q">...isso é importante para você?</div><p>Exploramos o significado pessoal.</p></div></div>
             <div class="degrau"><span class="num">03</span><div><h5>Pra que que</h5><div class="q">...isso faz diferença na sua vida?</div><p>Conectamos ao impacto real.</p></div></div>
             <div class="degrau"><span class="num">04</span><div><h5>Pra que que</h5><div class="q">...isso representa para você?</div><p>Revelamos valores e identidade.</p></div></div>
             <div class="degrau"><span class="num">05</span><div><h5>Pra que que</h5><div class="q">...isso existe na sua história?</div><p>Acessamos a raiz profunda.</p></div></div>
@@ -798,17 +801,20 @@
               <select class="seletor-paciente" id="sel-pqq" aria-label="Selecionar paciente"></select>
               <span class="aviso">Os registros são salvos na ficha deste paciente.</span>
             </div>
+            <p class="ferr-de-quando hidden" id="pqq-de-quando"></p>
             <div class="grupo"><label for="pqq-objetivo">Objetivo declarado</label><input id="pqq-objetivo" type="text" placeholder="Ex.: quero emagrecer 8 kg"></div>
             <div class="grupo"><label for="pqq-1">01 - Pra que que você quer isso?</label><textarea id="pqq-1" placeholder="Desejo consciente..."></textarea></div>
-            <div class="grupo"><label for="pqq-2">02 - Pra que que isso e importante para você?</label><textarea id="pqq-2" placeholder="Significado pessoal..."></textarea></div>
+            <div class="grupo"><label for="pqq-2">02 - Pra que que isso é importante para você?</label><textarea id="pqq-2" placeholder="Significado pessoal..."></textarea></div>
             <div class="grupo"><label for="pqq-3">03 - Pra que que isso faz diferença na sua vida?</label><textarea id="pqq-3" placeholder="Impacto real..."></textarea></div>
             <div class="grupo"><label for="pqq-4">04 - Pra que que isso representa para você?</label><textarea id="pqq-4" placeholder="Valores e identidade..."></textarea></div>
             <div class="grupo"><label for="pqq-5">05 - Pra que que isso existe na sua história?</label><textarea id="pqq-5" placeholder="Raiz profunda..."></textarea></div>
             <div class="grupo"><label for="pqq-verdadeiro">O "pra que" verdadeiro</label><p class="dica">A síntese do propósito que sustenta a transformação.</p><textarea id="pqq-verdadeiro" placeholder="Ex.: voltar a se reconhecer e ter energia para brincar com os filhos."></textarea></div>
             <div class="acoes-form">
               <button type="button" id="btn-salvar-pqq" class="btn-verde">Salvar PQQ</button>
+              <button type="button" id="btn-nova-pqq" class="btn-fantasma">Nova aplicação</button>
               <button type="button" class="btn-fantasma" data-limpar="pqq">Limpar</button>
             </div>
+            <section class="ferr-historico hidden" id="pqq-historico"></section>
           </div>
         </div>
         <div class="vista-ferramenta hidden" id="vista-gen-mente"></div>
@@ -834,7 +840,7 @@
         <div class="galeria-ferramentas" id="galeria-espirito" aria-label="Selecione uma ferramenta">
           <button class="card-ferr" data-vista="vista-mapa"><span class="ferr-num">01</span><span class="ferr-info"><h4>Mapa do Propósito</h4><p>Síntese do OQ3 e do PQQ: clareza, direção e um plano que pode ser vivido.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <button class="card-ferr" data-ferramenta="roda_vida"><span class="ferr-num">02</span><span class="ferr-info"><h4>Roda da Vida Integral</h4><p>Visão panorâmica das áreas da vida e do equilibrio entre elas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="ritual_mesa"><span class="ferr-num">03</span><span class="ferr-info"><h4>Ritual de Presença a Mesa</h4><p>Prática de comer consciente: presença, gratidão e conexão.</p></span><span class="ferr-status disponivel">Disponível</span></button>
+          <button class="card-ferr" data-ferramenta="ritual_mesa"><span class="ferr-num">03</span><span class="ferr-info"><h4>Ritual de Presença à Mesa</h4><p>Prática de comer consciente: presença, gratidão e conexão.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <button class="card-ferr" data-ferramenta="carta_futuro"><span class="ferr-num">04</span><span class="ferr-info"><h4>Carta ao Futuro Eu</h4><p>Escrita guiada para conectar o paciente a pessoa que deseja se tornar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <button class="card-ferr" data-ferramenta="inventario_gratidao"><span class="ferr-num">05</span><span class="ferr-info"><h4>Inventário de Gratidão</h4><p>Registro diário do que nutre além do prato.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <button class="card-ferr" data-ferramenta="conexao_pertencimento"><span class="ferr-num">06</span><span class="ferr-info"><h4>Conexão &amp; Pertencimento</h4><p>Mapeamento das relações que sustentam a jornada.</p></span><span class="ferr-status disponivel">Disponível</span></button>
@@ -905,7 +911,11 @@
 <!-- as regras de "o que falta neste paciente", usadas pela ficha e pelo
      dashboard. Uma copia so, senao elas divergem. -->
 <script src="/panorama.js"></script>
+<script src="/corpo-bancos.js"></script>
 <script src="/ferramentas.js"></script>
+<script src="/aplicacoes.js"></script>
+<script src="/resultado-corpo.js"></script>
+<script src="/render-resultado.js"></script>
 <script src="/formulario.js"></script>
 <script src="/app.js"></script>
 <script src="/questionario.js"></script>

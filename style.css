@@ -1600,6 +1600,303 @@ body.escuro .btn-tema .icone-lua{display:none}
 }
 
 /* =========================================================================
+   MÓDULO CORPO — cabeçalho, grupos, listas, síntese e histórico
+
+   O formulário deixou de ser uma pilha de campos: tem cabeçalho com objetivo,
+   seções com título, listas de itens repetíveis, e uma síntese embaixo. Cada
+   parte precisa de moldura própria, senão tudo lê como a mesma coisa.
+   ========================================================================= */
+
+/* ---------- cabeçalho da ferramenta ---------- */
+.ferr-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
+.ferr-papel{
+  font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;
+  color:var(--realce);border:1px solid var(--dourado-suave);
+  border-radius:999px;padding:3px 11px;
+}
+.ferr-meta-item{font-size:.76rem;font-weight:300;color:var(--texto-suave)}
+.ferr-meta-item.estado-concluida{color:var(--movimento-sobe)}
+.ferr-meta-item.estado-revisada{color:var(--realce);font-weight:500}
+
+.ferr-porque{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));
+  gap:10px 26px;padding:16px 18px;margin-bottom:24px;
+  border-left:2px solid var(--dourado-suave);background:var(--halo);
+  border-radius:0 10px 10px 0;
+}
+.ferr-porque p{margin:0;font-size:.86rem;font-weight:300;line-height:1.55;color:var(--texto)}
+.ferr-porque em{
+  display:block;font-style:normal;margin-bottom:3px;
+  font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--texto-suave);
+}
+
+/* ---------- grupos e listas ---------- */
+.ferr-grupo,.ferr-lista,.ferr-leitura,.ferr-historico{margin-bottom:28px}
+.ferr-grupo-titulo{
+  display:flex;align-items:baseline;gap:10px;
+  font-family:var(--fonte-display);font-size:1.1rem;font-weight:500;
+  color:var(--titulo);margin:0 0 14px;padding-bottom:9px;
+  border-bottom:1px solid var(--borda-suave);
+}
+.ferr-conta{
+  font-family:var(--fonte-corpo);font-size:.7rem;font-weight:500;color:var(--dourado);
+  border:1px solid var(--dourado-suave);border-radius:999px;padding:2px 9px;
+}
+
+.ferr-itens{display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
+.ferr-item{
+  border:1px solid var(--borda-suave);border-radius:12px;padding:16px 18px;
+  border-left:2px solid var(--dourado-suave);
+}
+.ferr-item-topo{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;
+}
+.ferr-item-topo b{
+  font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--texto-suave);font-weight:600;
+}
+.ferr-item-tirar{
+  border:none;background:none;cursor:pointer;font-size:1.1rem;line-height:1;
+  color:var(--texto-suave);padding:2px 8px;border-radius:6px;
+}
+.ferr-item-tirar:hover{color:var(--movimento-desce);background:rgba(180,85,60,.08)}
+/* Dentro de um item os campos ficam lado a lado: são muitos e curtos. */
+.ferr-item .campos{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));
+  gap:14px 20px;
+}
+.ferr-item .campos .tipo-textarea{grid-column:1/-1}
+
+/* ---------- a régua que não nasce respondida ---------- */
+.grupo-nota{display:flex;align-items:center;gap:12px}
+.grupo-nota output{
+  min-width:2.2rem;text-align:center;font-variant-numeric:tabular-nums;
+  font-family:var(--fonte-display);font-size:1.15rem;font-weight:500;color:var(--titulo);
+}
+.grupo-nota[data-respondido="0"] output{color:var(--texto-suave);font-weight:300}
+.nota-limpar{
+  border:none;background:none;cursor:pointer;font-family:inherit;
+  font-size:.68rem;color:var(--texto-suave);text-decoration:underline;
+  text-underline-offset:3px;padding:4px;
+}
+.nota-limpar:hover{color:var(--movimento-desce)}
+
+/* ---------- a síntese ---------- */
+.ferr-sintese:not(:empty){margin:28px 0}
+.res-caixa{
+  border:1px solid var(--dourado-suave);border-radius:14px;
+  padding:22px 24px;background:var(--halo);
+}
+.res-titulo{
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:10px;
+  font-family:var(--fonte-display);font-size:1.15rem;font-weight:500;
+  color:var(--titulo);margin:0 0 16px;
+}
+/* O que ainda não passou pelo autor do método aparece marcado, como as
+   definições dos sistemas. */
+.res-rascunho{
+  font-family:var(--fonte-corpo);font-style:normal;
+  font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--texto-suave);border:1px solid var(--borda-suave);
+  border-radius:999px;padding:2px 9px;
+}
+.res-sub,.res-nota{
+  font-size:.8rem;font-weight:300;line-height:1.6;color:var(--texto-suave);
+  margin:14px 0 0;max-width:52rem;
+}
+.res-vazio{font-size:.86rem;font-weight:300;color:var(--texto-suave);margin:0}
+
+.res-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,7.5rem),1fr));gap:2px;margin-bottom:18px}
+.res-tile{
+  display:flex;flex-direction:column;gap:3px;padding:12px 14px;
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+}
+.res-tile b{
+  font-family:var(--fonte-display);font-size:1.5rem;font-weight:500;
+  color:var(--titulo);line-height:1;font-variant-numeric:tabular-nums;
+}
+.res-tile span{font-size:.72rem;font-weight:300;color:var(--texto-suave);line-height:1.35}
+
+.res-frases{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.res-frases li{
+  font-size:.86rem;font-weight:300;line-height:1.55;color:var(--texto);
+  padding-left:14px;border-left:2px solid var(--dourado-suave);
+}
+
+.res-barras{display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
+.res-barra{
+  display:grid;grid-template-columns:minmax(0,1fr) 7rem 2.4rem auto;
+  align-items:center;gap:12px;padding:7px 0;
+  border-bottom:1px solid var(--borda-suave);
+}
+.res-barra:last-child{border-bottom:none}
+.res-barra-nome{font-size:.85rem;font-weight:300;color:var(--texto)}
+.res-barra-trilho{height:5px;border-radius:999px;overflow:hidden;background:var(--dash-trilho,rgba(29,58,46,.1))}
+.res-barra-trilho i{display:block;height:100%;background:var(--dash-barra,var(--verde-medio))}
+.res-barra-n{
+  font-family:var(--fonte-display);font-size:1rem;font-weight:500;
+  color:var(--titulo);text-align:right;font-variant-numeric:tabular-nums;
+}
+.res-barra-extra{font-size:.7rem;font-weight:300;color:var(--texto-suave)}
+
+.res-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.res-chip{
+  font-size:.76rem;font-weight:300;color:var(--texto-suave);
+  border:1px solid var(--borda-suave);border-radius:999px;padding:4px 12px;
+}
+.res-chip b{color:var(--texto);font-weight:500;font-variant-numeric:tabular-nums}
+
+.res-destaque{
+  font-size:.88rem;font-weight:300;line-height:1.55;color:var(--texto);
+  margin:16px 0 0;padding:12px 16px;border-radius:10px;background:var(--sup-card);
+  border-left:2px solid var(--dourado);
+}
+.res-destaque em{
+  display:block;font-style:normal;margin-bottom:4px;
+  font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--texto-suave);
+}
+.res-destaque.alerta{border-left-color:var(--movimento-desce)}
+.res-duas{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:12px}
+
+.res-tabela{width:100%;border-collapse:collapse;margin-top:14px;font-size:.84rem}
+.res-tabela th{
+  text-align:left;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--texto-suave);font-weight:600;padding:0 10px 8px 0;
+  border-bottom:1px solid var(--borda-suave);
+}
+.res-tabela td{
+  padding:9px 10px 9px 0;border-bottom:1px solid var(--borda-suave);
+  color:var(--texto);font-weight:300;font-variant-numeric:tabular-nums;
+}
+.res-tabela tr:last-child td{border-bottom:none}
+
+/* Os indicadores do sono e os três fundamentos: leituras separadas, lado a
+   lado, cada uma com o seu nível. Juntá-las num número só esconderia qual
+   está pedindo atenção. */
+.res-indicadores{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:12px}
+.res-indicador{
+  display:flex;flex-direction:column;gap:5px;padding:14px 16px;
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+  border-radius:10px;border-top:2px solid var(--borda-suave);
+}
+.res-indicador b{font-size:.92rem;font-weight:500;color:var(--texto)}
+.res-indicador.adequado{border-top-color:var(--movimento-sobe)}
+.res-indicador.atencao{border-top-color:var(--dourado)}
+.res-indicador.prioridade{border-top-color:var(--movimento-desce)}
+.res-nivel{
+  font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;
+  color:var(--texto-suave);
+}
+.res-indicador.adequado .res-nivel{color:var(--movimento-sobe)}
+.res-indicador.atencao .res-nivel{color:var(--realce)}
+.res-indicador.prioridade .res-nivel{color:var(--movimento-desce)}
+.res-medida{font-size:.82rem;color:var(--texto);font-variant-numeric:tabular-nums}
+.res-explica{font-size:.72rem;font-weight:300;line-height:1.45;color:var(--texto-suave)}
+
+/* o estado do Momentum */
+.res-estado{
+  display:flex;flex-direction:column;gap:4px;padding:18px 20px;margin-bottom:18px;
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+  border-radius:12px;border-left:3px solid var(--dourado);
+}
+.res-estado-rot{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-suave)}
+.res-estado b{font-family:var(--fonte-display);font-size:1.5rem;font-weight:600;color:var(--titulo)}
+.res-estado span:not(.res-estado-rot):not(.res-estado-media){font-size:.88rem;font-weight:300;color:var(--texto)}
+.res-estado-media{font-size:.74rem;font-weight:300;color:var(--texto-suave);margin-top:4px}
+.res-estado.estado-preservar{border-left-color:var(--movimento-desce)}
+.res-estado.estado-reorganizar{border-left-color:var(--dourado)}
+.res-estado.estado-construir,.res-estado.estado-expandir{border-left-color:var(--movimento-sobe)}
+
+/* Enquanto ninguem confirmou o estado, a caixa e visivelmente uma lacuna —
+   nao um estado neutro. Verde discreto aqui leria como "esta tudo bem". */
+/* Eixo da Triade sem nenhuma resposta: nao e nota baixa nem alta, e ausencia.
+   Fica visivelmente apagado, com traco no lugar do numero. */
+.triada-eixo.sem-dado{opacity:.5}
+.triada-eixo.sem-dado .triada-nota{color:var(--texto-suave);font-style:italic}
+.triada-leitura.sem-dado{color:var(--texto-suave);font-size:.76rem;font-style:italic}
+
+.res-estado.aguardando{border-left-color:var(--borda-suave);border-left-style:dashed}
+.res-estado.aguardando b{color:var(--texto-suave);font-style:italic}
+
+/* Um momento sem registro na Energia Vital continua na linha, vazio. Some-lo
+   era o que fazia dois horarios distantes parecerem vizinhos. */
+.res-barra.vazia .res-barra-nome,.res-barra.vazia .res-barra-n{color:var(--texto-suave)}
+.res-barra.vazia .res-barra-trilho{
+  background:transparent;border-top:1px dashed var(--borda-suave);height:0;
+}
+
+/* Indicador sem resposta: presente e declarado, em vez de omitido. */
+.res-indicador.sem-dado{opacity:.6}
+.res-indicador.sem-dado .res-medida{font-style:italic;color:var(--texto-suave)}
+
+/* A nota que explica por que o sistema NAO classificou. Ela precisa ser lida,
+   entao nao e a mesma nota discreta do resto. */
+.res-sem-criterio{
+  margin-top:14px;padding:10px 14px;
+  border-left:2px solid var(--dourado-suave);
+  background:var(--sup-card);border-radius:0 8px 8px 0;
+}
+
+/* ---------- a matriz impacto x viabilidade (§12.6) ---------- */
+.res-matriz{max-width:340px;margin:6px 0 4px}
+.res-matriz svg{width:100%;height:auto;display:block;overflow:visible}
+.mx-grade{stroke:var(--borda-suave);stroke-width:1;stroke-dasharray:2 4}
+.mx-eixo{stroke:var(--borda-suave);stroke-width:1}
+.mx-tick{font-size:9px;fill:var(--texto-suave);font-variant-numeric:tabular-nums}
+.mx-eixo-rot{font-size:9px;fill:var(--texto-suave);letter-spacing:.08em;text-transform:uppercase}
+.mx-ponto circle{
+  fill:var(--verde-medio);fill-opacity:.55;
+  stroke:var(--sup-card);stroke-width:2;
+}
+.mx-ponto:hover circle{fill-opacity:.9}
+
+/* O aviso de que a conduta sugerida ainda nao passou pelo metodo. Discreto,
+   mas nao escondido: ele muda como a lista abaixo deve ser lida. */
+.leitura-aviso{
+  font-size:.78rem;font-weight:300;line-height:1.5;color:var(--texto-suave);
+  margin:-6px 0 12px;padding-left:10px;
+  border-left:2px solid var(--dourado-suave);
+}
+
+/* ---------- leitura profissional e histórico ---------- */
+.ferr-leitura{
+  border:1px solid var(--borda-suave);border-radius:14px;padding:22px 24px;
+}
+.ferr-historico-lista{display:flex;flex-direction:column;gap:2px}
+.ferr-hist-item{
+  display:grid;grid-template-columns:7rem auto 1fr;align-items:baseline;gap:14px;
+  width:100%;text-align:left;cursor:pointer;font-family:inherit;
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+  padding:12px 16px;transition:border-color .15s;
+}
+.ferr-hist-item:hover{border-color:var(--dourado-suave)}
+.ferr-hist-item b{font-size:.88rem;font-weight:500;color:var(--texto);font-variant-numeric:tabular-nums}
+.ferr-hist-estado{
+  font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave);
+}
+.ferr-hist-leitura{
+  font-size:.8rem;font-weight:300;color:var(--texto-suave);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* ---------- o selo do card, com os estados novos ---------- */
+.ferr-status.rascunho{color:var(--dourado);border-color:var(--dourado-suave)}
+.ferr-status.revisada{
+  color:var(--movimento-sobe);border-color:transparent;background:var(--halo);
+}
+.ferr-status.reaplicar{color:var(--movimento-desce);border-color:var(--movimento-desce)}
+
+@media (max-width:700px){
+  .ferr-item .campos{grid-template-columns:1fr}
+  .res-barra{grid-template-columns:minmax(0,1fr) 2.4rem;row-gap:4px}
+  .res-barra-trilho{grid-column:1/-1;order:3}
+  .res-barra-extra{display:none}
+  .ferr-hist-item{grid-template-columns:1fr auto;row-gap:4px}
+  .ferr-hist-leitura{grid-column:1/-1;white-space:normal}
+  .res-tabela{font-size:.78rem}
+}
+
+/* =========================================================================
    A FICHA DO PACIENTE
 
    Cabeçalho, faixa de situação e abas. A faixa existe porque as quatro

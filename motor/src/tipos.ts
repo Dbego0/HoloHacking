@@ -308,6 +308,8 @@ export interface Pontuacao {
   nota_media: number;
   sistemas: NotaSistema[];
   triada: Record<EixoTriada, number>;
+  /** Quais eixos tem ao menos uma resposta. Ausencia nao e nota 10. */
+  triada_com_dado: Record<EixoTriada, boolean>;
   /** Mapa de Frequencias: nota por chacra, do mais travado para o mais livre.
    *  Vazio enquanto chacras.csv nao tiver linha nenhuma. */
   frequencias: { chacra: string; nota: number; leitura: string; ordem: number;

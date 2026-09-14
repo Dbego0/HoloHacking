@@ -6,7 +6,11 @@ await p.setViewport({width:1500,height:1200});
 const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
 await p.addStyleTag({content:'*{transition:none!important;animation:none!important}'});
-const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
+let falhou = false;
+const ok = (c,t) => {
+  if (!c) falhou = true;
+  console.log((c?'  ok    ':'  FALHA ')+t);
+};
 
 ok(await p.evaluate(()=>!!window.HOLOSCOPE), 'motor carregado dentro do app');
 ok(await p.evaluate(()=>HOLOSCOPE.resumo().marcadores)===84, '84 marcadores disponiveis');
@@ -41,3 +45,4 @@ const el = await p.$('#secao-holoscope');
 await el.screenshot({path:'integrado.png'});
 await nav.close();
 console.log(ruim.length?'\n  ERRO: '+ruim[0]:'\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

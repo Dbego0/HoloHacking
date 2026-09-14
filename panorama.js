@@ -69,16 +69,12 @@
     var id = pid || SEM_PACIENTE;
     var pont = window.ultimaPontuacao ? window.ultimaPontuacao(id) : null;
     var historico = window.historicoPontuacao ? window.historicoPontuacao(id) : [];
-    var ferr = caixa("holohacking.ferramentas", id) || {};
     var quest = caixa("holohacking.questionario", id) || {};
     var exames = caixa("holohacking.exames", id) || {};
 
-    var preenchidas = Object.keys(ferr).filter(function (fid) {
-      var campos = ferr[fid];
-      return Object.keys(campos).some(function (k) {
-        return campos[k] !== "" && campos[k] != null;
-      });
-    });
+    var preenchidas = window.Aplicacoes
+      ? window.Aplicacoes.preenchidas(id)
+      : [];
 
     var conhecidas = perguntasDeHoje();
     var respondidas = Object.keys(quest).filter(function (mid) {
@@ -227,16 +223,21 @@
     });
 
     var ferramentas = {};
-    var ferr = caixa("holohacking.ferramentas", id) || {};
-    Object.keys(ferr).forEach(function (fid) {
-      var campos = ferr[fid] || {};
-      var numericos = {};
-      Object.keys(campos).forEach(function (c) {
-        var n = Number(campos[c]);
-        if (campos[c] !== "" && campos[c] != null && isFinite(n)) numericos[c] = n;
+    if (window.Aplicacoes) {
+      window.Aplicacoes.preenchidas(id).forEach(function (fid) {
+        var app = window.Aplicacoes.ultima(fid, id);
+        if (!app || !app.respostas) return;
+        var numericos = {};
+        Object.keys(app.respostas).forEach(function (c) {
+          var v = app.respostas[c];
+          // lista de itens nao entra: uma condicao le um valor, nao um array
+          if (v === "" || v == null || Array.isArray(v) || typeof v === "object") return;
+          var n = Number(v);
+          if (isFinite(n)) numericos[c] = n;
+        });
+        if (Object.keys(numericos).length) ferramentas[fid] = numericos;
       });
-      if (Object.keys(numericos).length) ferramentas[fid] = numericos;
-    });
+    }
 
     return { exames: exames, ferramentas: ferramentas };
   }

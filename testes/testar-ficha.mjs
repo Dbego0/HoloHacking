@@ -10,7 +10,11 @@ const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
 await p.addStyleTag({content:'*{transition:none!important;animation:none!important}'});
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
-const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
+let falhou = false;
+const ok = (c,t) => {
+  if (!c) falhou = true;
+  console.log((c?'  ok    ':'  FALHA ')+t);
+};
 
 async function verFicha(){
   const r = await p.evaluate(async () => {
@@ -70,11 +74,12 @@ ok(mapeado.formularios.some(l=>/84 de 84 respondidas/.test(l)),
    'o questionario completo aparece em Formularios');
 
 // --- aplica uma ferramenta ---------------------------------------------------
-await p.evaluate(() => {
+await p.evaluate(async () => {
   document.querySelector('.nav-item[data-secao="mente"]').click();
   document.querySelector('[data-ferramenta="gatilhos_respostas"]').click();
+  await new Promise(r => setTimeout(r, 350));
   document.getElementById('campo-gatilho1').value = 'Briga em casa';
-  document.querySelector('#vista-gen-mente [data-acao="salvar"]').click();
+  document.querySelector('#vista-gen-mente [data-acao="concluir"]').click();
 });
 const conduzido = await verFicha();
 ok(!conduzido.alertas.some(a=>/nenhuma ferramenta/i.test(a)), 'o alerta some depois da conduta');
@@ -83,7 +88,7 @@ ok(conduzido.formularios.some(l=>/1 de 30 aplicadas/.test(l)),
    'conta 1 de 30 ferramentas');
 
 // --- exame que diverge vira alerta -------------------------------------------
-await p.evaluate(() => {
+await p.evaluate(async () => {
   document.querySelector('.nav-item[data-secao="pacientes"]').click();
   document.getElementById('vista-lista-pacientes').classList.add('hidden');
   document.getElementById('vista-ficha').classList.remove('hidden');
@@ -102,3 +107,4 @@ ok(comExame.faixa.some(l=>/ÚLTIMA APLICAÇÃO/i.test(l) || /Última aplicação
 
 await nav.close();
 console.log(ruim.length?'\n  ERRO: '+ruim[0]:'\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

@@ -715,7 +715,7 @@
       }));
     }
     ["holohacking.pontuacao", "holohacking.questionario", "holohacking.ferramentas",
-     "holohacking.exames", "holohacking.agenda"].forEach(function (k) {
+     "holohacking.exames", "holohacking.agenda", "holohacking.aparencia"].forEach(function (k) {
       try { localStorage.removeItem(k); } catch (e) { /* idem */ }
     });
     Promise.all(limpar).then(function () { location.reload(); });

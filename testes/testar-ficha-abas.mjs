@@ -175,25 +175,34 @@ const linha = await p.evaluate(() => ({
   nota: document.querySelector('#aba-linha .dash-sub')?.textContent || '',
 }));
 
-conferir(linha.eventos.length === 4,
+conferir(linha.eventos.length === 5,
   'a linha do tempo junta o que tem data: ' + linha.eventos.length + ' registros');
 conferir(/Consulta marcada/.test(linha.eventos[0].txt) && /futuro/.test(linha.eventos[0].cls),
   'o que ainda vai acontecer vem primeiro e se marca como futuro: ' +
   linha.eventos[0].txt.slice(0, 40));
-conferir(/2ª aplicação/.test(linha.eventos[1].txt) && /Índice 88/.test(linha.eventos[1].txt),
-  'a aplicação traz o Índice daquele dia: ' + linha.eventos[1].txt.slice(0, 60));
+conferir(linha.eventos.some(e => /2ª aplicação do HOLOSCOPE/.test(e.txt) && /Índice 88/.test(e.txt)),
+  'a aplicação do mapa traz o Índice daquele dia');
 conferir(linha.eventos.some(e => /Hemograma/.test(e.txt) && /documento/.test(e.cls)),
   'o documento entra na mesma régua');
 conferir(linha.eventos.some(e => /1ª aplicação/.test(e.txt) && /há 3 meses/.test(e.txt)),
   'e a primeira aplicação fica lá atrás, com o tempo em palavras');
 conferir(linha.meses.length >= 3, 'agrupado por mês: ' + linha.meses.join(' · '));
 
-/* Ferramenta preenchida não guarda data. Datar no chute seria inventar quando
-   aconteceu — e a tela diz isso em vez de fingir. */
-conferir(!linha.eventos.some(e => /OQ³|OQ3/.test(e.txt)),
-  'ferramenta preenchida NÃO entra: ela não guarda data');
-conferir(/não guarda data/.test(linha.nota),
-  'e a tela explica a ausência em vez de escondê-la');
+/* Ferramenta aplicada passou a ser um registro datado — antes era um objeto
+   sobrescrito sem data nenhuma, e por isso não podia entrar aqui. */
+conferir(linha.eventos.some(e => /aplicada/.test(e.txt) && /ferramenta/.test(e.cls)),
+  'ferramenta aplicada entra na linha do tempo, agora que tem data');
+
+/* E a data é a do calendário de quem olha, não a do UTC: um registro feito às
+   21h no Brasil não pode aparecer como sendo de amanhã. */
+const hojeLocal = (() => {
+  const d = new Date();
+  return String(d.getDate()).padStart(2, '0') + '/' +
+         String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+})();
+const daFerramenta = linha.eventos.find(e => /aplicada/.test(e.txt));
+conferir(daFerramenta && daFerramenta.txt.indexOf(hojeLocal) >= 0,
+  'e com a data local, não a do UTC: ' + (daFerramenta || {}).txt);
 
 /* ----------------------------------------------------- os formulários ---- */
 

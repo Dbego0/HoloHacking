@@ -25,7 +25,11 @@ const ruim = []; p.on('pageerror', e => ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
-const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
+let falhou = false;
+const ok = (c, t) => {
+  if (!c) falhou = true;
+  console.log((c ? '  ok    ' : '  FALHA ') + t);
+};
 
 // --- o mapa, das respostas do caso de exemplo ----------------------------
 const real = await p.evaluate((respostas) => {
@@ -97,3 +101,4 @@ ok(aMao, 'voltando a pontuar à mão, o mapa some — ele vem das respostas');
 
 await nav.close();
 console.log(ruim.length ? '\n  ERRO: ' + ruim[0] : '\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

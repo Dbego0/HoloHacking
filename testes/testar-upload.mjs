@@ -13,7 +13,11 @@ const p = await nav.newPage();
 await p.setViewport({width:1400,height:1000});
 const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
-const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
+let falhou = false;
+const ok = (c,t) => {
+  if (!c) falhou = true;
+  console.log((c?'  ok    ':'  FALHA ')+t);
+};
 
 await p.evaluate(() => {
   document.querySelector('.nav-item[data-secao="pacientes"]').click();
@@ -71,3 +75,4 @@ ok(rem === 1, 'remover apaga de verdade: sobrou ' + rem);
 
 await nav.close();
 console.log(ruim.length?'\n  ERRO: '+ruim[0]:'\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

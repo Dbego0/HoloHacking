@@ -41,8 +41,12 @@
   /* "consultas" e "bloqueios" sao a agenda: o atendimento marcado e o tempo
      que nao esta disponivel. Entram aqui para viajar no exportar — levar os
      pacientes sem levar a agenda deixaria a semana vazia do outro lado. */
+  /* "aplicacoes" e cada vez que uma ferramenta foi aplicada a alguem. Nasceu
+     versionada de proposito: a caixa anterior guardava um registro por
+     ferramenta por paciente e sobrescrevia, entao reaplicar apagava a leitura
+     de tres meses atras — que e justamente a que serve para comparar. */
   var TABELAS = ["pacientes", "oq3", "pqq", "holoscope", "perfil",
-                 "consultas", "bloqueios"];
+                 "consultas", "bloqueios", "aplicacoes"];
 
   /* ---------- o disco de hoje ------------------------------------------- */
 
