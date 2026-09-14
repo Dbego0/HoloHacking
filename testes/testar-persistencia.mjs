@@ -310,7 +310,7 @@ ok(colisao.documentos.join(',') === 'pac-A',
    'o mesmo vale para o documento no IndexedDB');
 
 /* ==================================================================== */
-console.log('\n  4. EXCLUSÃO INDIVIDUAL — os 9 destinos que ficam\n');
+console.log('\n  4. EXCLUSÃO INDIVIDUAL — os 9 destinos, agora removidos\n');
 /* ==================================================================== */
 
 /* Dois pacientes: um a remover, outro que precisa sair intacto. */
@@ -377,24 +377,36 @@ const depoisDeRemover = await p.evaluate(async () => {
 ok(depoisDeRemover.pacientes.indexOf('pac-A') === -1,
    'T1 pacientes: a linha de Ana foi REMOVIDA');
 
-/* os 9 destinos que permanecem — cada um falha quando P0.6 chegar */
-const ORFAOS = [
-  ['aplicações',   depoisDeRemover.aplicacoes >= 1],
-  ['consultas',    depoisDeRemover.consultas === 1],
-  ['holoscope',    depoisDeRemover.holoscope === 1],
-  ['oq3 legado',   depoisDeRemover.oq3 === 1],
-  ['pqq legado',   depoisDeRemover.pqq === 1],
-  ['questionário', depoisDeRemover.questionario === true],
-  ['pontuações',   depoisDeRemover.pontuacao === true],
-  ['exames',       depoisDeRemover.exames === true],
-  ['documentos',   depoisDeRemover.documentos === 1]
+/* ATÉ O P0.6, ESTE BLOCO AFIRMAVA O CONTRÁRIO.
+
+   Remover um paciente apagava uma coisa só — a linha dele na tabela — e estes
+   nove destinos continuavam no disco, ligados a um id que não existia mais:
+   invisíveis em toda tela, fora do backup V1, alcançáveis só pelo "apagar
+   tudo", que apaga também o de todo mundo.
+
+   Cada asserção aqui dizia "PERMANECE após a remoção [muda em P0.6]", e era
+   verdade. O P0.6 chegou, e o veredito virou — que é exatamente o que um
+   teste que documenta defeito serve para fazer.
+
+   A memória do bug fica registrada aqui e em docs/P0-PERSISTENCIA.md; o que
+   mudou foi o comportamento, não a história. */
+const DESTINOS = [
+  ['aplicações',   depoisDeRemover.aplicacoes === 0],
+  ['consultas',    depoisDeRemover.consultas === 0],
+  ['holoscope',    depoisDeRemover.holoscope === 0],
+  ['oq3 legado',   depoisDeRemover.oq3 === 0],
+  ['pqq legado',   depoisDeRemover.pqq === 0],
+  ['questionário', depoisDeRemover.questionario === false],
+  ['pontuações',   depoisDeRemover.pontuacao === false],
+  ['exames',       depoisDeRemover.exames === false],
+  ['documentos',   depoisDeRemover.documentos === 0]
 ];
-ORFAOS.forEach(([nome, ficou]) => {
-  ok(ficou, 'ÓRFÃO — ' + nome + ' de pac-A PERMANECE após a remoção ' +
-     '[muda em P0.6]');
+DESTINOS.forEach(([nome, saiu]) => {
+  ok(saiu, nome + ' de pac-A foi REMOVIDO junto com o paciente ' +
+     '[era órfão até o P0.6]');
 });
-ok(ORFAOS.filter(([, f]) => f).length === 9,
-   'total: 9 destinos com dado clínico órfão por paciente removido');
+ok(DESTINOS.filter(([, f]) => f).length === 9,
+   'total: os 9 destinos saem com o paciente. Antes do P0.6, os 9 ficavam');
 
 ok(depoisDeRemover.zPresente && depoisDeRemover.zAplicacoes === 1 &&
    depoisDeRemover.zQuestionario && depoisDeRemover.zDocumentos === 1,

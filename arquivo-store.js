@@ -268,6 +268,47 @@
     }).then(function () { return registros.length; });
   }
 
+  /** Apaga TODOS os documentos de um paciente, numa transacao so.
+
+      Existe porque a alternativa — listar e chamar remover() em cada um —
+      abre uma transacao por documento: se a quinta falhar, as quatro
+      primeiras ja commitaram e o paciente fica com meia pasta. Aqui e
+      tudo-ou-nada.
+
+      Usa o indice paciente, que ja existia desde o primeiro dia: a cascata
+      nao precisou de campo novo nem de migracao de dado.
+
+      ESTRITA e sem versao tolerante: apagar pela metade em silencio e o pior
+      desfecho possivel de uma exclusao. */
+  function removerDoPacienteEstrito(pid) {
+    if (typeof pid !== "string" || !pid) {
+      return Promise.reject(new TypeError("pid invalido"));
+    }
+    return transacao("readwrite").then(function (t) {
+      var esperar = aguardarTransacao(t.tx);
+      var pedidos;
+      try {
+        /* getAllKeys no indice devolve as CHAVES PRIMARIAS dos registros
+           daquele paciente — exatamente o que o delete precisa, e sem trazer
+           um megabyte de blob para a memoria so para descobrir um id. */
+        pedidos = [promessa(t.loja.index("paciente").getAllKeys(pid))
+          .then(function (chaves) {
+            /* os deletes sao criados DENTRO da mesma transacao; cria-los
+               depois de um await a deixaria fechar por inatividade */
+            return Promise.all((chaves || []).map(function (k) {
+              return promessa(t.loja.delete(k));
+            })).then(function () { return (chaves || []).length; });
+          })];
+      } catch (e) {
+        try { t.tx.abort(); } catch (ignorado) {}
+        return esperar.catch(function () {}).then(function () { throw e; });
+      }
+      return Promise.all([pedidos[0], esperar]).then(function (par) {
+        return par[0];
+      });
+    });
+  }
+
   /* ---------- leitura — o nucleo estrito ---------------------------------
      UMA implementacao por consulta. Ela rejeita erro de verdade. As versoes
      tolerantes, mais abaixo, sao casca por cima destas. */
@@ -374,6 +415,7 @@
 
     /* estritas — para backup, diagnostico e restauracao */
     substituirTudoEstrito: substituirTudoEstrito,
+    removerDoPacienteEstrito: removerDoPacienteEstrito,
     listarEstrito: listarEstrito,
     listarTudoEstrito: listarTudoEstrito,
     pegarEstrito: pegarEstrito,

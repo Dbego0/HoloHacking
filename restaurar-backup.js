@@ -273,7 +273,7 @@
      12 armazenamentos com blobs e hash — e acrescenta as auxiliares, que o
      backup nao leva porque nao sao dado. */
 
-  function montarSnapshot(pacoteNovo) {
+  function montarSnapshot(alvo) {
     return A.gerarBackupV2().then(function (backupAtual) {
       return {
         id: ID_SNAPSHOT,
@@ -287,12 +287,11 @@
         /* todas as chaves de localStorage que serao escritas ou apagadas,
            com o valor de antes e se existiam */
         chaves_antes: lerChaves(chavesTocadas()),
-        /* para conferir, depois, que foi este pacote que se tentou aplicar */
-        alvo: {
-          criado_em: pacoteNovo.criado_em,
-          sha256_conteudo: pacoteNovo.integridade &&
-                           pacoteNovo.integridade.sha256_conteudo
-        }
+        /* um descritor pequeno do que se tentou fazer — sem conteudo clinico.
+           Serve para quem for olhar um snapshot pendente saber do que se
+           tratava. O snapshot nao precisa entender a operacao: so guardar o
+           estado anterior e um rotulo. */
+        alvo: alvo || null
       };
     });
   }
@@ -415,6 +414,92 @@
   }
 
   /* ======================================================================
+     O ANDAIME DE UMA OPERACAO CRITICA
+
+     Restaurar um backup e excluir um paciente sao coisas diferentes por
+     dentro e IGUAIS por fora: as duas apagam o que existe, as duas podem
+     parar no meio, e as duas precisam da mesma sequencia para nao deixar o
+     app num terceiro estado que ninguem projetou.
+
+         snapshot -> marcador -> mutacao -> verificacao -> confirmar
+                  e, se algo falhar: rollback -> verificar -> limpar
+
+     Escrever isso duas vezes seria manter dois motores, e o segundo nunca
+     recebe as correcoes do primeiro. Entao o andaime e um so, e cada operacao
+     entrega as duas partes que sao dela:
+
+         aplicar(snap)   faz a mutacao, marcando as fases pelo caminho
+         verificar()     devolve {ok, problemas} sobre o estado final
+
+     Quem chama ja esta com o Web Lock na mao — a exclusividade e das portas
+     publicas, nao daqui. */
+
+  function executarComSnapshot(spec, opcoes) {
+    opcoes = opcoes || {};
+    _failpointDeTeste = opcoes.failpointDeTeste || null;
+    _travarDeTeste = opcoes.travarDeTeste || null;
+
+    var snap = null;
+
+    return montarSnapshot(spec.alvo)
+      .then(function (s) { snap = s; return gravarSnapshot(snap); })
+      .then(function () {
+        /* O snapshot COMMITOU. So agora o marcador entra — e e a partir daqui
+           que pode haver mutacao. Um crash antes desta linha nao deixa
+           marcador, e nao deixa porque nada foi tocado. */
+        talvezFalhar("antes_do_marcador");
+        if (window.Concorrencia) {
+          window.Concorrencia.marcarOperacaoIncompleta({
+            id: snap.id, tipo: spec.tipo,
+            fase: FASE.SNAPSHOT_CRIADO, snapshot_id: ID_SNAPSHOT
+          });
+        }
+        talvezFalhar("apos_snapshot");
+        return spec.aplicar(snap);
+      })
+      .then(function () {
+        return marcarFase(snap, FASE.VERIFICANDO);
+      })
+      .then(function () {
+        talvezFalhar("antes_da_verificacao");
+        return spec.verificar();
+      })
+      .then(function (conf) {
+        if (!conf.ok) {
+          var e = new Error("a verificacao do estado final falhou");
+          e.verificacao = conf;
+          throw e;
+        }
+        return marcarFase(snap, FASE.CONCLUIDO);
+      })
+      .then(function () { return apagarSnapshot(); })
+      .then(function () {
+        /* operacao verificada e snapshot removido: SO agora o marcador sai */
+        if (window.Concorrencia) window.Concorrencia.limparMarcador();
+        _failpointDeTeste = null;
+        _travarDeTeste = null;
+        return { ok: true, snap: snap };
+      })
+      .catch(function (erroOriginal) {
+        _failpointDeTeste = null;   /* o rollback nao pode falhar por failpoint */
+        _travarDeTeste = null;
+        /* TRAVA DE TESTE: a promessa fica pendente para sempre, como se a aba
+           tivesse morrido ali. Nada de rollback, nada de limpeza — o snapshot
+           fica no disco com a fase que commitou por ultimo, que e exatamente
+           o estado que a recuperacao encontra. */
+        if (erroOriginal && erroOriginal.travar) {
+          return new Promise(function () {});
+        }
+        if (!snap) {
+          return { ok: false, semSnapshot: true, erro: erroOriginal };
+        }
+        return rollback(snap, erroOriginal).then(function (r) {
+          return { ok: false, resultadoRollback: r, erro: erroOriginal };
+        });
+      });
+  }
+
+  /* ======================================================================
      A OPERACAO
      ====================================================================== */
 
@@ -518,68 +603,44 @@
         });
       }
 
-      var snap = null;
       var plano = null;
 
-      return montarSnapshot(pacote)
-        .then(function (s) { snap = s; return gravarSnapshot(snap); })
-        .then(function () {
-          /* O snapshot COMMITOU. So agora o marcador entra — e e a partir
-             daqui que pode haver mutacao. Um crash antes desta linha nao deixa
-             marcador, e nao deixa porque nada foi tocado. */
-          talvezFalhar("antes_do_marcador");
-          if (window.Concorrencia) {
-            window.Concorrencia.marcarOperacaoIncompleta({
-              id: snap.id, tipo: "restauracao",
-              fase: FASE.SNAPSHOT_CRIADO, snapshot_id: ID_SNAPSHOT
-            });
-          }
-          talvezFalhar("apos_snapshot");
-
+      return executarComSnapshot({
+        tipo: "restauracao",
+        alvo: {
+          tipo: "restauracao",
+          criado_em: pacote.criado_em,
+          sha256_conteudo: pacote.integridade && pacote.integridade.sha256_conteudo
+        },
+        aplicar: function (snap) {
           /* TUDO o que pode falhar por serializacao acontece aqui, antes da
              primeira mutacao. */
           plano = prepararLocalStorage(pacote);
-          return marcarFase(snap, FASE.APLICANDO_INDEXEDDB);
-        })
-        .then(function () {
-          var docs = (pacote.conteudo.arquivos || []).map(registroDeDocumento);
-          return window.ArquivoStore.substituirTudoEstrito(docs);
-        })
-        .then(function () {
-          talvezFalhar("apos_indexeddb");
-          return marcarFase(snap, FASE.APLICANDO_LOCALSTORAGE);
-        })
-        .then(function () {
-          /* A escrita propriamente dita: so setItem/removeItem, nenhuma
-             transformacao. Um failpoint pode parar no meio, e e justamente o
-             estado que a recuperacao pos-crash precisa saber desfazer. */
-          var chaves = Object.keys(plano);
-          for (var i = 0; i < chaves.length; i++) {
-            talvezFalhar("apos_localstorage_" + i);
-            var alvo = plano[chaves[i]];
-            if (alvo.existia) localStorage.setItem(chaves[i], alvo.valor);
-            else localStorage.removeItem(chaves[i]);
-          }
-          return marcarFase(snap, FASE.VERIFICANDO);
-        })
-        .then(function () {
-          talvezFalhar("antes_da_verificacao");
-          return verificar(pacote);
-        })
-        .then(function (conf) {
-          if (!conf.ok) {
-            var e = new Error("a verificacao do estado restaurado falhou");
-            e.verificacao = conf;
-            throw e;
-          }
-          return marcarFase(snap, FASE.CONCLUIDO);
-        })
-        .then(function () { return apagarSnapshot(); })
-        .then(function () {
-          /* Aplicacao verificada e snapshot removido: SO agora o marcador sai. */
-          if (window.Concorrencia) window.Concorrencia.limparMarcador();
-          _failpointDeTeste = null;
-          _travarDeTeste = null;
+          return marcarFase(snap, FASE.APLICANDO_INDEXEDDB)
+            .then(function () {
+              var docs = (pacote.conteudo.arquivos || []).map(registroDeDocumento);
+              return window.ArquivoStore.substituirTudoEstrito(docs);
+            })
+            .then(function () {
+              talvezFalhar("apos_indexeddb");
+              return marcarFase(snap, FASE.APLICANDO_LOCALSTORAGE);
+            })
+            .then(function () {
+              /* A escrita propriamente dita: so setItem/removeItem, nenhuma
+                 transformacao. Um failpoint pode parar no meio, e e justamente
+                 o estado que a recuperacao pos-crash precisa saber desfazer. */
+              var chaves = Object.keys(plano);
+              for (var i = 0; i < chaves.length; i++) {
+                talvezFalhar("apos_localstorage_" + i);
+                var alvo = plano[chaves[i]];
+                if (alvo.existia) localStorage.setItem(chaves[i], alvo.valor);
+                else localStorage.removeItem(chaves[i]);
+              }
+            });
+        },
+        verificar: function () { return verificar(pacote); }
+      }, opcoes).then(function (r) {
+        if (r.ok) {
           return resultado({
             fase: FASE.CONCLUIDO,
             aplicado: true,
@@ -589,26 +650,16 @@
             armazenamentos: pacote.armazenamentos.slice(),
             documentos: (pacote.conteudo.arquivos || []).length
           });
-        })
-        .catch(function (erroOriginal) {
-          _failpointDeTeste = null;   /* o rollback nao pode falhar por failpoint */
-          _travarDeTeste = null;
-          /* TRAVA DE TESTE: a promessa fica pendente para sempre, como se a
-             aba tivesse morrido ali. Nada de rollback, nada de limpeza — o
-             snapshot fica no disco com a fase que commitou por ultimo, que e
-             exatamente o estado que detectarRestauracaoPendente() encontra. */
-          if (erroOriginal && erroOriginal.travar) {
-            return new Promise(function () {});
-          }
-          if (!snap) {
-            /* falhou antes de haver snapshot: nada foi escrito */
-            return resultado({
-              fase: null, motivo: "FALHA_ANTES_DO_SNAPSHOT", escreveu: false,
-              erros: [descreverErro("erro_original", erroOriginal)]
-            });
-          }
-          return rollback(snap, erroOriginal);
-        });
+        }
+        if (r.semSnapshot) {
+          /* falhou antes de haver snapshot: nada foi escrito */
+          return resultado({
+            fase: null, motivo: "FALHA_ANTES_DO_SNAPSHOT", escreveu: false,
+            erros: [descreverErro("erro_original", r.erro)]
+          });
+        }
+        return r.resultadoRollback;
+      });
     });
   }
 
@@ -891,5 +942,15 @@
   /* leitura pura, para teste e diagnostico */
   A.lerSnapshotOperacional = lerSnapshot;
   A.estadoOperacional = estadoOperacional;
+  /* o andaime, para a exclusao de paciente usar o MESMO motor */
+  A.executarComSnapshot = executarComSnapshot;
+  /* TESTE, nao produto: quem entrega um aplicar ao andaime precisa poder
+     nomear os seus proprios pontos de parada — senao so daria para travar a
+     operacao nos pontos do andaime, e nunca no meio da mutacao dela. */
+  A.talvezFalharDeTeste = talvezFalhar;
+  A.marcarFaseOperacao = marcarFase;
+  A.FASE_OPERACAO = FASE;
+  A.resultadoOperacao = resultado;
+  A.descreverErroOperacao = descreverErro;
   A.ESTADOS_OPERACIONAIS = ESTADO_OP;
 })();

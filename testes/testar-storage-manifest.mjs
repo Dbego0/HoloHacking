@@ -270,6 +270,7 @@ const ordem = await p.evaluate(() => {
     validador: srcs.indexOf('/validar-backup.js'),
     restaurador: srcs.indexOf('/restaurar-backup.js'),
     v1: srcs.indexOf('/importar-v1.js'),
+    exclusao: srcs.indexOf('/excluir-paciente.js'),
     dados: srcs.indexOf('/dados.js')
   };
 });
@@ -281,10 +282,13 @@ ok(ordem.manifesto < ordem.dados,
    numero de proposito: o manifesto (P0.2), o validador (P0.4a) e o motor de
    restauracao (P0.4b). O teste conta para que nenhuma entre sem ninguem
    reparar. */
-ok(ordem.total === 27,
-   'o index tem 27 tags de script: 22 de antes do P0 + concorrencia.js + ' +
+ok(ordem.total === 28,
+   'o index tem 28 tags de script: 22 de antes do P0 + concorrencia.js + ' +
    'armazenamento.js + validar-backup.js + restaurar-backup.js + ' +
-   'importar-v1.js — ' + ordem.total);
+   'importar-v1.js + excluir-paciente.js — ' + ordem.total);
+ok(ordem.exclusao > ordem.restaurador,
+   'e excluir-paciente.js vem depois do motor, que ele usa: posicao ' +
+   ordem.exclusao + ' contra ' + ordem.restaurador);
 ok(ordem.v1 > ordem.restaurador,
    'e importar-v1.js vem depois do motor de restauracao, que ele usa: ' +
    'posicao ' + ordem.v1 + ' contra ' + ordem.restaurador);

@@ -753,12 +753,31 @@
       : quantos + (novo === "inativo" ? " marcados como inativos." : " reativados."));
   }
 
+  /* Antes, isto apagava UMA coisa: a linha do paciente na tabela. As
+     respostas, a serie de pontuacoes, os exames, os documentos, as aplicacoes,
+     as consultas e o mapa gravado continuavam no disco, ligados a um id que
+     nao existia mais — nove destinos invisiveis em toda tela.
+
+     Agora a exclusao passa pelo motor: um lock, um snapshot, os filhos antes
+     da raiz, verificacao no fim, e rollback se algo falhar. Tudo o mais aqui
+     — o confirm, o toast, a selecao do proximo ativo — continua igual. */
   async function removerPacientes(ids){
-    for(const id of ids){
-      await sb.from("pacientes").delete().eq("id", id);
+    if(!window.Armazenamento || !window.Armazenamento.excluirPaciente){
+      toast("A exclusão segura não está disponível neste navegador.");
+      return;
+    }
+    /* Uma operacao so para todos os selecionados: N operacoes seriam N
+       snapshots e N janelas de crash, e um crash no meio deixaria metade
+       apagada e metade nao, sem nada dizendo qual era qual. */
+    const r = await window.Armazenamento.excluirPaciente(ids, { confirmado: true });
+    if(!r.aplicado){
+      toast("Não foi possível remover: " + (r.motivo || "erro desconhecido"));
+      return;
+    }
+    ids.forEach(id => {
       estado.pacientes = estado.pacientes.filter(x => x.id !== id);
       if(estado.ativo === id) definirAtivo(estado.pacientes[0] ? estado.pacientes[0].id : null);
-    }
+    });
     selecionados.clear();
     renderPacientes();
     toast(ids.length === 1 ? "Paciente removido." : ids.length + " pacientes removidos.");
