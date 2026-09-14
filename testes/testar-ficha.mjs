@@ -12,21 +12,38 @@ await p.addStyleTag({content:'*{transition:none!important;animation:none!importa
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
 
-function verFicha(){ return p.evaluate(() => {
-  document.querySelector('.nav-item[data-secao="pacientes"]').click();
-  document.getElementById('vista-lista-pacientes').classList.add('hidden');
-  document.getElementById('vista-ficha').classList.remove('hidden');
-  window.redesenharFicha();
-  const r = document.getElementById('ficha-resumo');
-  return {
-    alertas: [...r.querySelectorAll('.fic-alerta span')].map(e=>e.textContent),
-    indice: r.querySelector('.fic-indice b')?.textContent || null,
-    triada: [...r.querySelectorAll('.fic-triada span')].map(e=>e.textContent),
-    linhas: [...r.querySelectorAll('.fic-linha')].map(e=>e.textContent.replace(/\s+/g,' ').trim()),
-    chips: [...r.querySelectorAll('.fic-chip')].map(e=>e.textContent),
-    combinada: r.querySelector('.fic-combinada')?.textContent,
-  };
-}); }
+async function verFicha(){
+  const r = await p.evaluate(async () => {
+    document.querySelector('.nav-item[data-secao="pacientes"]').click();
+    document.getElementById('vista-lista-pacientes').classList.add('hidden');
+    document.getElementById('vista-ficha').classList.remove('hidden');
+    document.querySelector('[data-aba="visao"]').click();
+    window.redesenharFicha();
+    await new Promise(x => setTimeout(x, 250));
+    const v = document.getElementById('aba-visao');
+    const faixa = [...document.querySelectorAll('#ficha-faixa .fic-pilula')]
+      .map(e => e.textContent.replace(/\s+/g, ' ').trim());
+
+    // os formularios ficam na aba deles; abrir, ler, e voltar para a visao
+    document.querySelector('[data-aba="formularios"]').click();
+    await new Promise(x => setTimeout(x, 250));
+    const f = document.getElementById('aba-formularios');
+    const formularios = [...f.querySelectorAll('.fic-form-topo')]
+      .map(e => e.textContent.replace(/\s+/g, ' ').trim());
+    const chips = [...f.querySelectorAll('.fic-chip')].map(e => e.textContent);
+    document.querySelector('[data-aba="visao"]').click();
+    await new Promise(x => setTimeout(x, 250));
+
+    return {
+      alertas: [...v.querySelectorAll('.fic-alerta span')].map(e=>e.textContent),
+      indice: v.querySelector('.fic-indice b')?.textContent || null,
+      triada: [...v.querySelectorAll('.fic-triada span')].map(e=>e.textContent),
+      combinada: v.querySelector('.fic-combinada')?.textContent,
+      faixa, formularios, chips,
+    };
+  });
+  return r;
+}
 
 // --- paciente cru: nada aplicado -------------------------------------------
 const cru = await verFicha();
@@ -49,7 +66,8 @@ ok(mapeado.triada.length === 3, 'mostra a Triada: ' + mapeado.triada.join(' '));
 ok(/amea/.test(mapeado.combinada||''), 'mostra a leitura combinada');
 ok(mapeado.alertas.some(a=>/nenhuma ferramenta/i.test(a)),
    'ACUSA mapeado sem conduta: ' + (mapeado.alertas.find(a=>/nenhuma ferramenta/i.test(a))||''));
-ok(mapeado.linhas.some(l=>/84 de 84/.test(l)), 'questionario completo na lista');
+ok(mapeado.formularios.some(l=>/84 de 84 respondidas/.test(l)),
+   'o questionario completo aparece em Formularios');
 
 // --- aplica uma ferramenta ---------------------------------------------------
 await p.evaluate(() => {
@@ -61,13 +79,15 @@ await p.evaluate(() => {
 const conduzido = await verFicha();
 ok(!conduzido.alertas.some(a=>/nenhuma ferramenta/i.test(a)), 'o alerta some depois da conduta');
 ok(conduzido.chips.length === 1, 'lista a ferramenta aplicada: ' + conduzido.chips.join(', '));
-ok(conduzido.linhas.some(l=>/1 de 30/.test(l)), 'conta 1 de 30 ferramentas');
+ok(conduzido.formularios.some(l=>/1 de 30 aplicadas/.test(l)),
+   'conta 1 de 30 ferramentas');
 
 // --- exame que diverge vira alerta -------------------------------------------
 await p.evaluate(() => {
   document.querySelector('.nav-item[data-secao="pacientes"]').click();
   document.getElementById('vista-lista-pacientes').classList.add('hidden');
   document.getElementById('vista-ficha').classList.remove('hidden');
+  document.querySelector('[data-aba="documentos"]').click();
   const l = [...document.querySelectorAll('.ex-linha')].find(x=>x.dataset.exame==='EXA-015');
   l.querySelector('input').value = '78';
   l.querySelector('input').dispatchEvent(new Event('input',{bubbles:true}));
@@ -75,7 +95,10 @@ await p.evaluate(() => {
 const comExame = await verFicha();
 ok(comExame.alertas.some(a=>/n[aã]o batem/i.test(a)),
    'ACUSA divergencia entre relato e exame: ' + (comExame.alertas.find(a=>/batem/.test(a))||''));
-ok(comExame.linhas.some(l=>/1 preenchidos/.test(l)), 'conta os exames preenchidos');
+ok(comExame.faixa.some(l=>/1 preenchidos/.test(l)),
+   'a faixa conta os exames preenchidos: ' + (comExame.faixa.find(l=>/preenchid/.test(l))||''));
+ok(comExame.faixa.some(l=>/ÚLTIMA APLICAÇÃO/i.test(l) || /Última aplicação/i.test(l)),
+   'e diz quando foi a ultima aplicacao');
 
 await nav.close();
 console.log(ruim.length?'\n  ERRO: '+ruim[0]:'\n  sem erro de JS');

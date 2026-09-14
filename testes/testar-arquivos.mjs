@@ -24,21 +24,28 @@ const base = await p.evaluate(() => {
   document.querySelector('.nav-item[data-secao="pacientes"]').click();
   document.getElementById('vista-lista-pacientes').classList.add('hidden');
   document.getElementById('vista-ficha').classList.remove('hidden');
+  document.querySelector('[data-aba="documentos"]').click();
   return {
     visivel: !document.getElementById('ficha-arquivos').classList.contains('hidden'),
     abas: [...document.querySelectorAll('#ficha-arquivos .aba')].map(b => b.textContent.trim()),
-    exames: document.querySelectorAll('#aba-exames .ex-linha').length,
-    blocos: [...document.querySelectorAll('#aba-exames .ex-bloco h4')].map(h => h.textContent),
+    exames: document.querySelectorAll('#ex-corpo .ex-linha').length,
+    blocos: [...document.querySelectorAll('#ex-corpo .ex-bloco h4')].map(h => h.textContent),
+    cartoes: [...document.querySelectorAll('#aba-documentos .arq-titulo')].map(h => h.textContent),
   };
 });
 ok(base.visivel, 'a secao Arquivos abre');
-ok(base.abas.join(',') === 'Exames,Documentos,Relatório', 'abas: ' + base.abas.join(' · '));
+ok(base.abas.join(',') === 'Visão clínica,Linha do tempo,Formulários,Documentos,Relatório',
+   'as cinco abas: ' + base.abas.join(' · '));
+/* Exames e documentos eram duas abas, e a separacao estava errada: os valores
+   saem do PDF. Agora e um lugar so, em dois passos. */
+ok(base.cartoes.join(' / ') === 'O que o paciente trouxe / Os valores do exame',
+   'o papel e os numeros no mesmo lugar: ' + base.cartoes.join(' · '));
 ok(base.exames === 24, base.exames + ' exames no formulario');
 ok(base.blocos.length === 5, 'agrupados nos ' + base.blocos.length + ' sistemas');
 
 // --- sem mapa, o exame nao tem com o que confrontar ------------------------
 const semMapa = await p.evaluate(() => {
-  const l = [...document.querySelectorAll('#aba-exames .ex-linha')]
+  const l = [...document.querySelectorAll('#ex-corpo .ex-linha')]
     .find(x => x.dataset.exame === 'EXA-005');
   l.querySelector('input').value = '115';
   l.querySelector('input').dispatchEvent(new Event('input', { bubbles: true }));
@@ -69,7 +76,7 @@ const conf = await p.evaluate(() => {
   document.getElementById('vista-ficha').classList.remove('hidden');
   // metabolico esta baixo (0.4) e detox esta alto (6.7)
   const por = {};
-  [...document.querySelectorAll('#aba-exames .ex-linha')].forEach(l => por[l.dataset.exame] = l);
+  [...document.querySelectorAll('#ex-corpo .ex-linha')].forEach(l => por[l.dataset.exame] = l);
   por['EXA-005'].querySelector('input').value = '115';   // metabolico, alterado
   por['EXA-015'].querySelector('input').value = '78';    // detox GGT, alterado
   por['EXA-005'].querySelector('input').dispatchEvent(new Event('input', { bubbles: true }));

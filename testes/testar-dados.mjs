@@ -12,7 +12,11 @@ const nav = await puppeteer.launch({
   headless: 'new', args: ['--hide-scrollbars'] });
 const p = await nav.newPage();
 await p.setViewport({ width: 1400, height: 1000 });
-const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
+let falhou = false;
+const ok = (c, t) => {
+  if (!c) falhou = true;
+  console.log((c ? '  ok    ' : '  FALHA ') + t);
+};
 
 const erros = [];
 p.on('pageerror', e => erros.push(e.message));
@@ -75,16 +79,23 @@ ok(depois.marcados === 3, 'as respostas voltaram: ' + depois.marcados);
 const pacote = await p.evaluate(() => {
   const x = window.DadosLocais.exportar();
   return { versao: x.versao, tabelas: Object.keys(x.tabelas).sort().join(','),
+           conhecidas: Object.keys(window.DadosLocais.resumo()).sort(),
            pacientes: x.tabelas.pacientes.length };
 });
 ok(pacote.versao === 1 && pacote.pacientes === 1, 'exportar traz tudo: ' + pacote.pacientes + ' paciente');
-ok(pacote.tabelas === 'holoscope,oq3,pacientes,pqq', 'as 4 tabelas: ' + pacote.tabelas);
+/* A lista de tabelas cresce com o app; o que este teste cobra é que o pacote
+   leve TODAS elas, e não uma quantidade fixa que envelhece a cada módulo. */
+ok(pacote.tabelas === pacote.conhecidas.join(','),
+   'exportar leva todas as tabelas: ' + pacote.tabelas);
 
 // --- excluir apaga de verdade ---------------------------------------------
+// Remover saiu do X do cartao e foi para o menu de acoes: um clique torto na
+// lista nao pode mais apagar a ficha de ninguem.
 const removido = await p.evaluate(async () => {
   window.confirm = () => true;
   document.querySelector('.nav-item[data-secao="pacientes"]').click();
-  document.querySelector('[data-excluir]').click();
+  document.querySelector('[data-menu]').click();
+  document.querySelector('[data-item="remover"]').click();
   await new Promise(r => setTimeout(r, 400));
   return { cards: document.querySelectorAll('.card-paciente').length,
            tabelas: window.DadosLocais.resumo() };
@@ -94,3 +105,4 @@ ok(removido.cards === 0 && removido.tabelas.pacientes === 0,
 
 await nav.close();
 console.log(erros.length ? '\n  ERRO: ' + erros[0] : '\n  sem erro de JS');
+process.exit(falhou || erros.length ? 1 : 0);

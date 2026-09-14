@@ -16,12 +16,16 @@
 
      from(tabela).select("*").order(coluna, { ascending })   ->  { data, error }
      from(tabela).insert(obj).select().single()              ->  { data, error }
+     from(tabela).update(obj).eq("id", id)                   ->  { data, error }
      from(tabela).delete().eq("id", id)                      ->  { data, error }
 
    Trocar por Supabase de verdade e trocar a linha que define `sb` no app.js.
-   Nenhuma tela muda, nenhuma funcao muda. Se um dia este arquivo precisar de
-   uma quarta operacao, e sinal de que o app cresceu — e ela entra aqui, nao
-   espalhada pelas telas.
+   Nenhuma tela muda, nenhuma funcao muda.
+
+   O update foi a quarta operacao, e ela entrou aqui — nao espalhada pelas
+   telas. Chegou quando o paciente ganhou estado que muda depois do cadastro
+   (ativo/inativo): ate ali tudo o que o app sabia de uma pessoa ou nascia com
+   ela ou morava em outra caixa.
 
    NAO guarda arquivo: exame em PDF e foto de laudo vivem no IndexedDB, em
    arquivo-store.js, porque localStorage nao aguenta binario.
@@ -31,7 +35,14 @@
   "use strict";
 
   var PREFIXO = "holohacking.dados.";
-  var TABELAS = ["pacientes", "oq3", "pqq", "holoscope"];
+  // "perfil" e uma linha so, a de quem usa o app. Entra aqui para viajar
+  // junto no exportar/importar: levar os pacientes sem levar quem os assina
+  // deixaria os relatorios sem rodape do outro lado.
+  /* "consultas" e "bloqueios" sao a agenda: o atendimento marcado e o tempo
+     que nao esta disponivel. Entram aqui para viajar no exportar — levar os
+     pacientes sem levar a agenda deixaria a semana vazia do outro lado. */
+  var TABELAS = ["pacientes", "oq3", "pqq", "holoscope", "perfil",
+                 "consultas", "bloqueios"];
 
   /* ---------- o disco de hoje ------------------------------------------- */
 
@@ -93,6 +104,12 @@
     return this;
   };
 
+  Consulta.prototype.update = function (valores) {
+    this.acao = "update";
+    this.valores = valores;
+    return this;
+  };
+
   Consulta.prototype.delete = function () {
     this.acao = "delete";
     return this;
@@ -122,6 +139,22 @@
       var erroEscrita = escrever(this.tabela, linhas);
       if (erroEscrita) return { data: null, error: erroEscrita };
       return { data: this.umSo ? linha : [linha], error: null };
+    }
+
+    if (this.acao === "update") {
+      var alvo = this.filtro;
+      if (!alvo) return { data: null, error: { message: "update sem eq(): recusado" } };
+      var mexidas = [];
+      linhas.forEach(function (l) {
+        if (l[alvo.coluna] !== alvo.valor) return;
+        for (var c in this.valores) {
+          if (Object.prototype.hasOwnProperty.call(this.valores, c)) l[c] = this.valores[c];
+        }
+        mexidas.push(l);
+      }, this);
+      var erroUpdate = escrever(this.tabela, linhas);
+      if (erroUpdate) return { data: null, error: erroUpdate };
+      return { data: this.umSo ? (mexidas[0] || null) : mexidas, error: null };
     }
 
     if (this.acao === "delete") {

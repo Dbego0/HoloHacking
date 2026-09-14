@@ -2,64 +2,159 @@
    A FICHA DO PACIENTE
    ===========================================================================
 
-   Tudo o que o app sabe sobre uma pessoa ja estava guardado — o mapa, as
-   ferramentas preenchidas, os exames, os documentos — mas espalhado por cinco
-   telas. Para saber onde a Marina esta, era preciso passear por todas.
+   Tudo o que o app sabe sobre uma pessoa já estava guardado — o mapa, as
+   ferramentas preenchidas, os exames, os documentos — mas espalhado. Esta tela
+   reúne, e ACUSA o que ninguém via: respondeu e nunca teve conduta, parou o
+   questionário no meio, exame alterado onde ele não se queixa, reavaliação
+   vencida.
 
-   Isto reune. E, principalmente, ACUSA o que ninguem via:
+   A ficha tem quatro partes, nesta ordem, porque é a ordem das perguntas que
+   se faz antes de atender:
 
-     . respondeu o questionario e nunca teve ferramenta aplicada  -> abandono
-     . questionario comecado e parado no meio
-     . exame alterado em sistema de que ele nao se queixa
-     . mais de 4 semanas desde a ultima aplicacao (a reavaliacao venceu)
+     FAIXA          quando foi a última, quando é a próxima, o que está aberto
+     VISÃO CLÍNICA  o mapa mais recente e o que ele diz
+     LINHA DO TEMPO o que aconteceu com esta pessoa, em ordem
+     FORMULÁRIOS    o que foi respondido — e o que dá para reler
 
-   Nada aqui calcula: le o que o motor e as telas ja gravaram.
+   Sobre Formulários: no método, o HOLOSCOPE É um formulário — 84 perguntas
+   respondidas numa escala de 0 a 3. O OQ³, o PQQ e o Mapa do Propósito também
+   são. O que faltava era poder RELER o que a pessoa respondeu: o app calculava
+   a nota e jogava as respostas numa caixa que nenhuma tela abria. A janela de
+   respostas abre essa caixa, agrupada por sistema, com o peso de cada uma.
+
+   Nada aqui calcula: lê o que o motor e as telas já gravaram.
    =========================================================================== */
 
 (function () {
   "use strict";
 
   var SEM_PACIENTE = "_sem_paciente";
+  var CAIXA_Q = "holohacking.questionario";
+
+  var ESCALAS = {
+    frequencia:  ["Nunca", "Às vezes", "Frequente", "Sempre"],
+    intensidade: ["Nada", "Um pouco", "Bastante", "Muito"]
+  };
+
+  var NOME_ORIGEM = {
+    sintoma: "Raízes físicas",
+    emocao: "Padrões emocionais",
+    espiritual: "Terreno Espiritual"
+  };
+
+  var MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+               "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+  var abaAtual = "visao";
 
   function paciente() {
     try { return (window.pacienteAtivoId && window.pacienteAtivoId()) || SEM_PACIENTE; }
     catch (e) { return SEM_PACIENTE; }
   }
+  function pacienteObj() {
+    var todos = (window.pacientesTodos && window.pacientesTodos()) || [];
+    var id = paciente();
+    for (var i = 0; i < todos.length; i++) if (todos[i].id === id) return todos[i];
+    return null;
+  }
   function escapar(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
+  function dataBR(iso) { return iso ? iso.split("-").reverse().join("/") : ""; }
 
-  /* ---------- juntar o que existe ----------------------------------------
-
-     As regras moraram para panorama.js: o dashboard precisa das mesmas, para
-     todos os pacientes, e regra clinica em dois lugares diverge. Aqui fica so
-     a leitura do paciente que esta aberto.                                  */
-
-  function reunir() {
-    return window.Panorama.doPaciente(paciente());
+  function diasDesde(iso) {
+    if (!iso) return null;
+    var d = new Date(iso + "T00:00:00");
+    if (isNaN(d)) return null;
+    var hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    return Math.round((hoje - d) / 86400000);
   }
+  function haQuantoTempo(dias) {
+    if (dias === null) return "";
+    if (dias <= 0) return "hoje";
+    if (dias === 1) return "ontem";
+    if (dias < 30) return "há " + dias + " dias";
+    var m = Math.round(dias / 30);
+    if (m < 12) return "há " + m + (m === 1 ? " mês" : " meses");
+    var a = Math.floor(dias / 365);
+    return "há " + a + (a === 1 ? " ano" : " anos");
+  }
+  function emQuantoTempo(dias) {
+    if (dias === null) return "";
+    if (dias === 0) return "hoje";
+    if (dias === 1) return "amanhã";
+    return dias < 0 ? haQuantoTempo(-dias) : "em " + dias + " dias";
+  }
+
+  function reunir() { return window.Panorama.doPaciente(paciente()); }
+  function alertas(d) { return window.Panorama.alertas(d); }
 
   function nomeFerramenta(id) {
     var fixos = { oq3: "OQ³", pqq: "PQQ", mapa: "Mapa do Propósito" };
     if (fixos[id]) return fixos[id];
     var lista = window.CATALOGO_FERRAMENTAS || [];
-    for (var i = 0; i < lista.length; i++) {
-      if (lista[i].id === id) return lista[i].titulo;
-    }
+    for (var i = 0; i < lista.length; i++) if (lista[i].id === id) return lista[i].titulo;
     return id;
   }
 
-  /* ---------- o que precisa de atencao ----------------------------------- */
+  /* ======================================================= A FAIXA ======== */
 
-  function alertas(d) {
-    return window.Panorama.alertas(d);
+  /* As quatro perguntas que se faz antes de abrir qualquer aba. Cada uma tem
+     resposta em algum lugar do app — o problema era ter que ir aos quatro. */
+  function desenharFaixa() {
+    var alvo = document.getElementById("ficha-faixa");
+    if (!alvo) return;
+    var d = reunir();
+    var pid = paciente();
+
+    var ultima = d.pontuacao && d.pontuacao.quando
+      ? dataBR(d.pontuacao.quando) + " &middot; " + haQuantoTempo(diasDesde(d.pontuacao.quando))
+      : null;
+
+    var prox = window.Agenda && window.Agenda.proxima ? window.Agenda.proxima(pid) : null;
+    var proxTexto = prox
+      ? dataBR(prox.data) + " às " + prox.hora + " &middot; " + emQuantoTempo(-diasDesde(prox.data))
+      : null;
+
+    var abertas = alertas(d).length;
+
+    var itens = [
+      { rot: "Última aplicação", valor: ultima, vazio: "nenhuma", acao: "holoscope" },
+      { rot: "Próxima consulta", valor: proxTexto, vazio: "não agendada", acao: "agenda" },
+      { rot: "Em aberto",
+        valor: abertas === 0 ? "tudo em dia" : abertas + (abertas === 1 ? " pendência" : " pendências"),
+        alerta: abertas > 0, acao: "aba:visao" },
+      { rot: "Exames", valor: d.exames > 0 ? d.exames + " preenchidos" : null,
+        vazio: "nenhum valor", acao: "aba:documentos" },
+      { rot: "Documentos", valor: null, vazio: "carregando…", id: "fic-faixa-docs",
+        acao: "aba:documentos" }
+    ];
+
+    alvo.innerHTML = itens.map(function (i) {
+      return '<button type="button" class="fic-pilula' +
+        (i.valor ? "" : " vazia") + (i.alerta ? " alerta" : "") + '"' +
+        (i.id ? ' id="' + i.id + '"' : "") +
+        ' data-ir="' + i.acao + '">' +
+        '<span class="fic-pilula-rot">' + i.rot + "</span>" +
+        '<b>' + (i.valor || i.vazio) + "</b></button>";
+    }).join("");
+
+    if (window.ArquivoStore) {
+      window.ArquivoStore.listar(pid).then(function (itens) {
+        var el = document.getElementById("fic-faixa-docs");
+        if (!el) return;
+        el.classList.toggle("vazia", itens.length === 0);
+        el.querySelector("b").textContent = itens.length === 0
+          ? "nenhum" : itens.length + (itens.length === 1 ? " arquivo" : " arquivos");
+      });
+    }
   }
 
-  /* ---------- desenhar ---------------------------------------------------- */
+  /* ================================================= ABA: VISÃO CLÍNICA === */
 
-  function desenhar() {
-    var alvo = document.getElementById("ficha-resumo");
+  function desenharVisao() {
+    var alvo = document.getElementById("aba-visao");
     if (!alvo) return;
     var d = reunir();
     var html = "";
@@ -77,92 +172,369 @@
       html += "</div>";
     }
 
-    // --- o mapa ---
-    if (d.pontuacao) {
-      var p = d.pontuacao;
-      html += '<div class="fic-mapa"><div class="fic-indice">' +
-        '<span class="fic-rot">Índice HOLOS</span>' +
-        '<b>' + p.indice + "</b><span class=\"fic-de\">de " + p.indice_maximo + "</span>" +
-        (p.quando ? '<span class="fic-quando">' +
-          escapar(p.quando.split("-").reverse().join("/")) + "</span>" : "") +
-        "</div>";
-
-      if (p.triada) {
-        html += '<div class="fic-triada">' +
-          ["fisico", "mental", "espiritual"].map(function (e) {
-            return "<span><i>" + e[0].toUpperCase() + e.slice(1) + "</i>" +
-                   p.triada[e].toFixed(1) + "</span>";
-          }).join("") + "</div>";
-      }
-
-      var piores = p.sistemas.slice().sort(function (a, b) { return a.nota - b.nota; }).slice(0, 2);
-      html += '<div class="fic-piores"><span class="fic-rot">Mais baixos</span>' +
-        piores.map(function (s) {
-          return "<span class=\"fic-sis\">" + escapar(s.nome) +
-                 " <b>" + s.nota.toFixed(1) + "</b></span>";
-        }).join("") + "</div>";
-      html += "</div>";
-
-      if (p.combinacoes && p.combinacoes.length > 0) {
-        html += '<p class="fic-combinada">&ldquo;' +
-          escapar(p.combinacoes[0].leitura) + "&rdquo;</p>";
-      }
+    if (!d.pontuacao) {
+      html += '<div class="dash-vazio">Sem HOLOSCOPE aplicado. O mapa é o que ' +
+        "transforma o que ela conta em leitura — e é dele que sai tudo o que " +
+        "aparece nesta aba.</div>";
+      alvo.innerHTML = html;
+      ligar(alvo);
+      return;
     }
 
-    // --- o que ja foi feito ---
-    html += '<div class="fic-linhas">';
-    html += linha("Questionário",
-      d.respondidas === 0 ? "não aplicado"
-        : d.respondidas + " de " + d.totalPerguntas + " respondidas",
-      d.respondidas >= d.totalPerguntas, "holoscope");
-    html += linha("Ferramentas aplicadas",
-      d.ferramentas.length === 0 ? "nenhuma"
-        : d.ferramentas.length + " de 30",
-      d.ferramentas.length > 0, "corpo");
-    html += linha("Exames",
-      d.exames === 0 ? "nenhum valor" : d.exames + " preenchidos",
-      d.exames > 0, "aba:exames");
-    html += '<div class="fic-linha" id="fic-docs">' +
-      '<span class="fic-nome">Documentos</span>' +
-      '<span class="fic-valor">carregando…</span></div>';
-    html += "</div>";
+    var p = d.pontuacao;
+    html += '<div class="fic-mapa"><div class="fic-indice">' +
+      '<span class="fic-rot">Índice HOLOS</span>' +
+      "<b>" + p.indice + '</b><span class="fic-de">de ' + p.indice_maximo + "</span>" +
+      (p.quando ? '<span class="fic-quando">' + escapar(dataBR(p.quando)) + "</span>" : "") +
+      "</div>";
 
-    if (d.ferramentas.length > 0) {
-      html += '<div class="fic-ferramentas"><span class="fic-rot">O que já foi aplicado</span>' +
-        d.ferramentas.map(function (id) {
-          return '<button type="button" class="fic-chip" data-ferr="' + escapar(id) + '">' +
-                 escapar(nomeFerramenta(id)) + "</button>";
+    if (p.triada) {
+      html += '<div class="fic-triada">' +
+        ["fisico", "mental", "espiritual"].map(function (e) {
+          return "<span><i>" + e[0].toUpperCase() + e.slice(1) + "</i>" +
+                 p.triada[e].toFixed(1) + "</span>";
+        }).join("") + "</div>";
+    }
+
+    var piores = p.sistemas.slice().sort(function (a, b) { return a.nota - b.nota; }).slice(0, 2);
+    html += '<div class="fic-piores"><span class="fic-rot">Mais baixos</span>' +
+      piores.map(function (s) {
+        return '<span class="fic-sis">' + escapar(s.nome) + " <b>" + s.nota.toFixed(1) + "</b></span>";
+      }).join("") + "</div></div>";
+
+    /* Os cinco sistemas, do mais carregado ao mais equilibrado. Antes só os
+       dois piores apareciam aqui, e quem quisesse o resto ia para o relatório. */
+    html += '<div class="fic-sistemas"><span class="fic-rot">Os cinco sistemas</span>' +
+      p.sistemas.slice().sort(function (a, b) { return a.nota - b.nota; })
+        .map(function (s) {
+          var largura = Math.round(s.nota / 10 * 100);
+          return '<div class="fic-barra' + (s.avaliavel === false ? " sem-dado" : "") + '">' +
+            '<span class="fic-barra-nome">' + escapar(s.nome) + "</span>" +
+            '<span class="fic-barra-trilho"><i style="width:' + largura + '%"></i></span>' +
+            '<span class="fic-barra-n">' + s.nota.toFixed(1) + "</span>" +
+            '<span class="fic-barra-faixa">' + escapar(s.faixa || "") + "</span></div>";
+        }).join("") + "</div>";
+
+    if (p.combinacoes && p.combinacoes.length > 0) {
+      html += '<div class="fic-leituras"><span class="fic-rot">Leitura combinada</span>' +
+        p.combinacoes.map(function (c) {
+          return '<p class="fic-combinada">&ldquo;' + escapar(c.leitura) + "&rdquo;</p>";
         }).join("") + "</div>";
     }
 
     alvo.innerHTML = html;
-    contarDocumentos();
     ligar(alvo);
   }
 
-  function linha(nome, valor, feito, ir) {
-    return '<div class="fic-linha' + (feito ? " feito" : "") + '">' +
-      '<span class="fic-nome">' + nome + "</span>" +
-      '<span class="fic-valor">' + valor + "</span>" +
-      '<button type="button" class="fic-ir-min" data-ir="' + ir + '">abrir</button></div>';
+  /* ================================================ ABA: LINHA DO TEMPO === */
+
+  /* O que aconteceu com esta pessoa, em ordem. O app guardava os pedaços com
+     data — aplicação do mapa, consulta marcada, arquivo entregue — mas nunca
+     os tinha posto na mesma régua.
+
+     Ferramenta preenchida NÃO entra: ela não guarda data. Botá-la aqui com a
+     data de hoje seria inventar quando aconteceu. */
+  function desenharLinha() {
+    var alvo = document.getElementById("aba-linha");
+    if (!alvo) return;
+    var pid = paciente();
+    var d = reunir();
+    var eventos = [];
+
+    (d.historico || []).forEach(function (p, i) {
+      eventos.push({
+        quando: p.quando, tipo: "mapa", selo: "HOLOSCOPE",
+        titulo: (i + 1) + "ª aplicação do HOLOSCOPE",
+        detalhe: "Índice " + p.indice + " de " + p.indice_maximo,
+        acao: "aba:visao"
+      });
+    });
+
+    if (window.Agenda && window.Agenda.todas) {
+      window.Agenda.todas(pid).forEach(function (c) {
+        eventos.push({
+          quando: c.data, hora: c.hora, tipo: "consulta", selo: c.tipo || "Consulta",
+          titulo: (diasDesde(c.data) < 0 ? "Consulta marcada" : "Consulta"),
+          detalhe: c.hora + " &middot; " + (c.duracao || 60) + " min" +
+                   (c.nota ? " &middot; " + escapar(c.nota) : ""),
+          acao: "agenda"
+        });
+      });
+    }
+
+    var pintar = function (arquivos) {
+      arquivos.forEach(function (a) {
+        eventos.push({
+          quando: a.data || "", tipo: "documento", selo: a.tipo || "Documento",
+          titulo: a.nome, detalhe: window.ArquivoStore.tamanhoLegivel(a.tamanho),
+          acao: "aba:documentos"
+        });
+      });
+
+      eventos.sort(function (a, b) { return (b.quando || "").localeCompare(a.quando || ""); });
+
+      if (!eventos.length) {
+        alvo.innerHTML = '<div class="dash-vazio">Nada aconteceu ainda. ' +
+          "A linha do tempo se enche sozinha conforme você aplica o mapa, " +
+          "marca consultas e guarda documentos.</div>";
+        return;
+      }
+
+      var html = '<p class="dash-sub">' + eventos.length +
+        (eventos.length === 1 ? " registro" : " registros") +
+        ", do mais recente para o mais antigo. Ferramenta preenchida não " +
+        "aparece aqui: ela não guarda data, e datar no chute seria inventar " +
+        "quando aconteceu.</p><div class=\"fic-tempo\">";
+
+      var mesCorrente = null;
+      eventos.forEach(function (e) {
+        var mes = (e.quando || "").slice(0, 7);
+        if (mes !== mesCorrente) {
+          mesCorrente = mes;
+          var p = (e.quando || "").split("-");
+          html += '<div class="fic-tempo-mes">' +
+            (p.length === 3 ? MESES[Number(p[1]) - 1] + " de " + p[0] : "sem data") +
+            "</div>";
+        }
+        var futuro = diasDesde(e.quando) < 0;
+        html += '<button type="button" class="fic-evento ' + e.tipo +
+          (futuro ? " futuro" : "") + '" data-ir="' + e.acao + '">' +
+          '<span class="fic-evento-marca" aria-hidden="true"></span>' +
+          '<span class="fic-evento-corpo">' +
+            '<span class="fic-evento-topo"><b>' + escapar(e.titulo) + "</b>" +
+              '<span class="fic-selo">' + escapar(e.selo) + "</span></span>" +
+            '<span class="fic-evento-quando">' + dataBR(e.quando) +
+              (e.quando ? " &middot; " + (futuro ? emQuantoTempo(-diasDesde(e.quando))
+                                                : haQuantoTempo(diasDesde(e.quando))) : "") +
+              " &middot; " + e.detalhe + "</span>" +
+          "</span></button>";
+      });
+
+      alvo.innerHTML = html + "</div>";
+      ligar(alvo);
+    };
+
+    if (window.ArquivoStore) window.ArquivoStore.listar(pid).then(pintar);
+    else pintar([]);
   }
 
-  function contarDocumentos() {
-    var el = document.getElementById("fic-docs");
-    if (!el || !window.ArquivoStore) return;
-    window.ArquivoStore.listar(paciente()).then(function (itens) {
-      el.classList.toggle("feito", itens.length > 0);
-      el.innerHTML = '<span class="fic-nome">Documentos</span>' +
-        '<span class="fic-valor">' +
-        (itens.length === 0 ? "nenhum" : itens.length + " arquivo(s)") + "</span>" +
-        '<button type="button" class="fic-ir-min" data-ir="aba:documentos">abrir</button>';
-    });
+  /* ================================================== ABA: FORMULÁRIOS ==== */
+
+  function respostasGuardadas() {
+    try { return (JSON.parse(localStorage.getItem(CAIXA_Q)) || {})[paciente()] || {}; }
+    catch (e) { return {}; }
   }
+
+  function perguntasDoMotor() {
+    try {
+      return (window.HOLOSCOPE && window.HOLOSCOPE.questionario)
+        ? window.HOLOSCOPE.questionario() : [];
+    } catch (e) { return []; }
+  }
+
+  function temConteudo(o) {
+    return window.Panorama.temConteudo(o);
+  }
+
+  /* Os quatro formulários do método, mais as 30 ferramentas. Cada um diz o que
+     é, o que já foi respondido, e o que dá para fazer com ele agora. */
+  function desenharFormularios() {
+    var alvo = document.getElementById("aba-formularios");
+    if (!alvo) return;
+    var d = reunir();
+    var p = pacienteObj() || {};
+
+    var fichas = [
+      {
+        id: "holoscope",
+        nome: "HOLOSCOPE&reg; &mdash; questionário integral",
+        sub: "84 perguntas em três blocos: raízes físicas, padrões emocionais e " +
+             "Terreno Espiritual. É dele que sai o Índice e os cinco sistemas.",
+        estado: d.respondidas === 0
+          ? "não iniciado"
+          : d.respondidas + " de " + d.totalPerguntas + " respondidas",
+        pronto: d.respondidas >= d.totalPerguntas,
+        comeco: d.respondidas > 0,
+        extra: d.pontuacao
+          ? "Mapa gerado em " + dataBR(d.pontuacao.quando) + " &middot; Índice " + d.pontuacao.indice
+          : (d.respondidas > 0 ? "Respondido e ainda sem mapa gerado." : ""),
+        ver: d.respondidas > 0 ? "questionario" : null,
+        abrir: "holoscope"
+      },
+      {
+        id: "oq3", nome: "OQ³ &mdash; O Que Quer, Precisa, Consegue",
+        sub: "Clareza clínica entre desejo, necessidade e capacidade prática.",
+        estado: temConteudo(p.oq3) ? "preenchido" : "não aplicado",
+        pronto: temConteudo(p.oq3), comeco: temConteudo(p.oq3),
+        extra: temConteudo(p.oq3)
+          ? [p.oq3.quer && "Quer: " + p.oq3.quer,
+             p.oq3.precisa && "Precisa: " + p.oq3.precisa,
+             p.oq3.consegue && "Consegue: " + p.oq3.consegue].filter(Boolean).join(" &middot; ")
+          : "",
+        abrir: "corpo"
+      },
+      {
+        id: "pqq", nome: "PQQ &mdash; Pra Que Que?",
+        sub: "A chave dos porquês profundos: o propósito por trás do objetivo.",
+        estado: temConteudo(p.pqq) ? "preenchido" : "não aplicado",
+        pronto: temConteudo(p.pqq), comeco: temConteudo(p.pqq),
+        extra: temConteudo(p.pqq)
+          ? [p.pqq.objetivo && "Objetivo: " + p.pqq.objetivo,
+             p.pqq.verdadeiro && "Pra que: " + p.pqq.verdadeiro].filter(Boolean).join(" &middot; ")
+          : "",
+        abrir: "mente"
+      },
+      {
+        id: "mapa", nome: "Mapa do Propósito",
+        sub: "Síntese do OQ³ e do PQQ: direção e um plano que pode ser vivido.",
+        estado: d.ferramentas.indexOf("mapa") >= 0 ? "preenchido" : "não aplicado",
+        pronto: d.ferramentas.indexOf("mapa") >= 0,
+        comeco: d.ferramentas.indexOf("mapa") >= 0,
+        extra: "", abrir: "espirito"
+      }
+    ];
+
+    var html = '<p class="dash-sub">No método, o HOLOSCOPE é um formulário: 84 ' +
+      "respostas numa escala de 0 a 3. Aqui estão os quatro do método e o que " +
+      "já foi respondido em cada um.</p>";
+
+    html += '<div class="fic-forms">' + fichas.map(function (f) {
+      return '<div class="fic-form' + (f.pronto ? " pronto" : f.comeco ? " comecado" : "") + '">' +
+        '<div class="fic-form-topo">' +
+          '<span class="fic-form-quem"><b>' + f.nome + "</b>" +
+            "<span>" + f.sub + "</span></span>" +
+          '<span class="fic-form-estado">' + escapar(f.estado) + "</span>" +
+        "</div>" +
+        (f.extra ? '<p class="fic-form-extra">' + f.extra + "</p>" : "") +
+        '<div class="fic-form-acoes">' +
+          (f.ver ? '<button type="button" class="perf-botao" data-ver="' + f.ver +
+            '">Ver respostas</button>' : "") +
+          '<button type="button" class="fic-ir-min" data-ir="' + f.abrir + '">' +
+            (f.comeco ? "Abrir" : "Preencher agora") + "</button>" +
+        "</div></div>";
+    }).join("") + "</div>";
+
+    html += '<div class="fic-forms-rodape">' +
+      '<div class="fic-form-topo"><span class="fic-form-quem">' +
+        "<b>Ferramentas do método</b><span>As 30 ferramentas de Corpo, Mente e " +
+        "Espírito. Não são formulário do paciente: são conduta.</span></span>" +
+        '<span class="fic-form-estado">' +
+          (d.ferramentas.length === 0 ? "nenhuma aplicada"
+            : d.ferramentas.length + " de 30 aplicadas") + "</span></div>" +
+      (d.ferramentas.length > 0
+        ? '<div class="fic-ferramentas">' + d.ferramentas.map(function (id) {
+            return '<button type="button" class="fic-chip" data-ferr="' + escapar(id) + '">' +
+              escapar(nomeFerramenta(id)) + "</button>";
+          }).join("") + "</div>"
+        : "") +
+      "</div>";
+
+    alvo.innerHTML = html;
+    ligar(alvo);
+  }
+
+  /* ============================================ A JANELA DE RESPOSTAS ===== */
+
+  /* O app calculava a nota e guardava as 84 respostas numa caixa que nenhuma
+     tela abria. Isso quer dizer que, depois de aplicar, ninguém conseguia
+     reler o que a pessoa tinha respondido — nem para conferir, nem para
+     explicar de onde a nota saiu. Esta janela abre a caixa. */
+  function abrirRespostas() {
+    var perguntas = perguntasDoMotor();
+    var dadas = respostasGuardadas();
+    var d = reunir();
+    var p = pacienteObj();
+
+    var respondidas = perguntas.filter(function (q) {
+      return dadas[q.id] !== undefined && dadas[q.id] !== null;
+    });
+
+    document.getElementById("fic-janela-titulo").innerHTML =
+      "HOLOSCOPE&reg; &mdash; respostas de " + escapar(p ? p.nome : "paciente");
+    document.getElementById("fic-janela-sub").textContent =
+      respondidas.length + " de " + perguntas.length + " perguntas respondidas. " +
+      "O número ao lado de cada uma é o que ela vale na escala, de 0 a 3.";
+
+    var html = "";
+
+    /* O resultado vem primeiro, como no papel: a conta, e depois as respostas
+       que a produziram. Sem mapa gerado, diz isso em vez de mostrar nada. */
+    if (d.pontuacao) {
+      html += '<div class="fic-res"><div class="fic-res-topo">' +
+        "<b>Índice HOLOS " + d.pontuacao.indice + "</b>" +
+        "<span>de " + d.pontuacao.indice_maximo + " &middot; mapa de " +
+        dataBR(d.pontuacao.quando) + "</span></div>" +
+        '<div class="fic-res-grade">' + d.pontuacao.sistemas.map(function (s) {
+          return '<div class="fic-res-sis"><span>' + escapar(s.nome) + "</span><b>" +
+            s.nota.toFixed(1) + "</b></div>";
+        }).join("") + "</div></div>";
+    } else if (respondidas.length > 0) {
+      html += '<div class="dash-vazio">Respondido, e o mapa ainda não foi gerado. ' +
+        "As respostas estão aqui; a leitura sai quando você calcular.</div>";
+    }
+
+    // agrupado por bloco, que e como a pessoa respondeu
+    var porOrigem = {};
+    respondidas.forEach(function (q) {
+      var o = q.origem || "sintoma";
+      (porOrigem[o] = porOrigem[o] || []).push(q);
+    });
+
+    ["sintoma", "emocao", "espiritual"].forEach(function (origem) {
+      var lista = porOrigem[origem];
+      if (!lista || !lista.length) return;
+      html += '<h4 class="fic-bloco-titulo">' + (NOME_ORIGEM[origem] || origem) +
+        ' <span>' + lista.length + "</span></h4>";
+      html += '<div class="fic-respostas">' + lista.map(function (q) {
+        var valor = dadas[q.id];
+        var escala = ESCALAS[q.escala] || ESCALAS.frequencia;
+        /* Sentido invertido quer dizer que a resposta alta é a boa. Mostrar a
+           carga sem dizer isso faria "Sempre = 3" parecer ruim onde é ótimo. */
+        var invertido = q.sentido === "invertido";
+        return '<div class="fic-resposta">' +
+          '<span class="fic-pergunta">' + escapar(q.pergunta) +
+            (invertido ? '<i title="Nesta pergunta, responder alto é sinal bom">sentido invertido</i>' : "") +
+          "</span>" +
+          '<span class="fic-valor-resposta"><b>' + valor + "</b>" +
+          "<span>" + escapar(escala[valor] || "") + "</span></span>" +
+          "</div>";
+      }).join("") + "</div>";
+    });
+
+    if (!respondidas.length) {
+      html = '<div class="dash-vazio">Nenhuma resposta guardada para esta pessoa.</div>';
+    } else {
+      html += '<div class="fic-janela-acoes">' +
+        '<button type="button" class="perf-botao" data-ir="holoscope">' +
+        "Abrir o questionário para corrigir</button></div>";
+    }
+
+    document.getElementById("fic-janela-corpo").innerHTML = html;
+    var janela = document.getElementById("fic-janela");
+    janela.classList.remove("hidden");
+    document.getElementById("fic-janela-fechar").focus();
+  }
+
+  function fecharJanela() {
+    var j = document.getElementById("fic-janela");
+    if (j) j.classList.add("hidden");
+  }
+
+  /* ---------- ligar --------------------------------------------------------- */
+
+  var ligados = [];
 
   function ligar(alvo) {
+    if (ligados.indexOf(alvo) >= 0) return;
+    ligados.push(alvo);
+
     alvo.addEventListener("click", function (ev) {
+      var ver = ev.target.closest("[data-ver]");
+      if (ver) { abrirRespostas(); return; }
+
       var ir = ev.target.closest("[data-ir]");
       if (ir) {
+        fecharJanela();
         // "aba:x" abre uma aba aqui mesmo; o resto e secao do menu
         if (ir.dataset.ir.indexOf("aba:") === 0) {
           var aba = document.querySelector('[data-aba="' + ir.dataset.ir.slice(4) + '"]');
@@ -173,32 +545,56 @@
         if (b) b.click();
         return;
       }
+
       var f = ev.target.closest("[data-ferr]");
       if (f && window.abrirFerramentaPorId) window.abrirFerramentaPorId(f.dataset.ferr);
     });
   }
 
+  /* ---------- desenhar o que está à vista ---------------------------------- */
+
+  var DESENHOS = {
+    visao: desenharVisao,
+    linha: desenharLinha,
+    formularios: desenharFormularios
+  };
+
+  /** Chamada por arquivos.js quando a aba muda: só a aba aberta é desenhada. */
+  window.desenharAbaDaFicha = function (nome) {
+    abaAtual = nome;
+    if (DESENHOS[nome]) DESENHOS[nome]();
+  };
+
+  function desenhar() {
+    if (!document.getElementById("ficha-faixa")) return;
+    desenharFaixa();
+    if (DESENHOS[abaAtual]) DESENHOS[abaAtual]();
+  }
+
+  window.redesenharFicha = desenhar;
+
   document.addEventListener("DOMContentLoaded", function () {
-    var ficha = document.querySelector("#vista-ficha .ficha-grade");
-    if (!ficha) return;
-    var caixaNova = document.createElement("div");
-    caixaNova.id = "ficha-resumo";
-    caixaNova.className = "ficha-resumo";
-    ficha.parentNode.insertBefore(caixaNova, ficha);
+    if (!document.getElementById("ficha-faixa")) return;
+
+    ligar(document.getElementById("ficha-faixa"));
+    ligar(document.getElementById("fic-janela-corpo"));
+
+    document.getElementById("fic-janela-fechar")
+      .addEventListener("click", fecharJanela);
+    // clicar fora da caixa fecha; dentro, não
+    document.getElementById("fic-janela").addEventListener("click", function (ev) {
+      if (ev.target.id === "fic-janela") fecharJanela();
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") fecharJanela();
+    });
 
     desenhar();
+
     var anterior = window.aoTrocarPaciente;
     window.aoTrocarPaciente = function () {
       if (typeof anterior === "function") anterior();
       desenhar();
     };
-    // abrir a ficha de alguem redesenha
-    document.addEventListener("click", function (ev) {
-      if (ev.target.closest("[data-paciente], .card-paciente, .pac-item")) {
-        setTimeout(desenhar, 60);
-      }
-    });
   });
-
-  window.redesenharFicha = desenhar;
 })();

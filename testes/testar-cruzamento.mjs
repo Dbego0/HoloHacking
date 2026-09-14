@@ -72,10 +72,10 @@ const daTela = await p.evaluate(async () => {
   await new Promise(r => setTimeout(r, 350));
   document.querySelector('.card-paciente').click();
   await new Promise(r => setTimeout(r, 350));
-  document.querySelector('[data-aba="exames"]').click();
+  document.querySelector('[data-aba="documentos"]').click();
   await new Promise(r => setTimeout(r, 350));
 
-  const campo = document.querySelector('#aba-exames input[type="number"]');
+  const campo = document.querySelector('#ex-corpo input[type="number"]');
   const idExame = campo.id || campo.dataset.exame || campo.name;
   campo.value = '115';
   campo.dispatchEvent(new Event('input', { bubbles: true }));
