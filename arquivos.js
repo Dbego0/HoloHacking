@@ -68,6 +68,112 @@
            String(d.getMonth() + 1).padStart(2, "0") + "/" + d.getFullYear();
   }
 
+  /* ============================================================ HOLOSCAN ===
+     Camada de apresentacao sobre o confronto relato x laboratorio que o
+     motor ja calcula (motor/src/exames.ts, confrontar()). O contrato do
+     motor NAO muda nesta rodada — continua devolvendo
+     concordancia: 'confirma'|'diverge'|'sem_exame', usado por
+     testes/testar-exames.mjs, por panorama.js e pelo CSS existente (.conf-
+     item.confirma/.diverge). O que muda e so como a TELA le esse resultado:
+     tres estados, com texto fixo, nunca a frase `leitura` que o motor gera
+     (tem tom causal — "e o que a anamnese nao pega" — e nao deve chegar a
+     interface clinica nem ao relatorio do paciente).
+
+     Regra de seguranca: qualquer caso que este mapeamento nao reconheca cai
+     em DADOS_INSUFICIENTES — nunca inventa uma conclusao.
+
+     O caso (relato sem alteracao + laboratorio sem alteracao) e CONVERGENTE
+     tecnicamente (preserva o comportamento atual de concordancia), mas usa
+     um texto proprio que nao conclui "saudavel"/"normal"/"sem prioridade" —
+     decisao 4, redacao final PENDENTE RODRIGO. Para distinguir esse caso do
+     de "relato baixo + exame alterado", usamos a MESMA nota-corte que o
+     motor ja aplica por padrao dentro de confrontar() (limiteBaixo=3,
+     motor/src/exames.ts) — nao e um corte novo, e o mesmo que decide
+     'confirma' la dentro. */
+  var HOLOSCAN_TEXTO = {
+    CONVERGENTE: "Existe convergência entre o relato do paciente e os dados laboratoriais nesta dimensão.",
+    CONVERGENTE_SEM_ALTERACAO: "Relato e dados laboratoriais disponíveis estão convergentes nesta dimensão.",
+    DIVERGENTE: "O relato e os dados laboratoriais não estão caminhando na mesma direção neste momento.",
+    DADOS_INSUFICIENTES: "Ainda não há dados laboratoriais suficientes para realizar o confronto desta dimensão."
+  };
+  var HOLOSCAN_ROTULO = {
+    CONVERGENTE: "Convergente",
+    CONVERGENTE_SEM_ALTERACAO: "Convergente",
+    DIVERGENTE: "Divergente",
+    DADOS_INSUFICIENTES: "Dados insuficientes"
+  };
+  var HOLOSCAN_LIMITE_BAIXO = 3;
+
+  function holoscanEstado(c) {
+    if (!c || c.concordancia === "sem_exame") return "DADOS_INSUFICIENTES";
+    if (c.concordancia === "diverge") return "DIVERGENTE";
+    if (c.concordancia === "confirma") {
+      return (c.nota !== null && c.nota !== undefined && c.nota <= HOLOSCAN_LIMITE_BAIXO)
+        ? "CONVERGENTE" : "CONVERGENTE_SEM_ALTERACAO";
+    }
+    return "DADOS_INSUFICIENTES";
+  }
+
+  window.Holoscan = {
+    estado: holoscanEstado,
+    rotulo: function (c) { return HOLOSCAN_ROTULO[holoscanEstado(c)]; },
+    texto: function (c) { return HOLOSCAN_TEXTO[holoscanEstado(c)]; }
+  };
+
+  /* Leitura do Holoscan dentro da jornada do HOLOSCOPE (#secao-holoscope).
+     O lancamento dos valores continua na aba Documentos da ficha (nao move
+     #ex-corpo nem os listeners de ligarPainel()) — este bloco e so leitura,
+     por sistema: exames disponiveis, valor lancado, unidade, faixa cadastrada,
+     estado do exame e o resultado do confronto (Holoscan). Chamado de
+     desenharPontuacao() em app.js. */
+  window.desenharHoloscan = function (alvoId) {
+    var alvo = document.getElementById(alvoId || "holo-holoscan");
+    if (!alvo) return;
+    var g = motor();
+    if (!g || !g.listaDeExames) { alvo.innerHTML = ""; return; }
+
+    var lista = g.listaDeExames();
+    var valores = ler(CHAVE_EX);
+    var r = g.lerExames(valores, notasDoPaciente());
+    var avaliadoPorId = {};
+    r.exames.forEach(function (a) { avaliadoPorId[a.id] = a; });
+    var confrontoPorSistema = {};
+    r.confronto.forEach(function (c) { confrontoPorSistema[c.sistema] = c; });
+
+    var porSistema = {};
+    lista.forEach(function (e) { (porSistema[e.sistema] = porSistema[e.sistema] || []).push(e); });
+
+    var html = '<div class="terr-cabeca"><span class="eyebrow">Holoscan</span>' +
+      "<p>O que os exames acrescentam a este mapa. O lançamento e a edição dos " +
+      "valores ficam na aba Documentos, na ficha do paciente.</p></div>";
+
+    Object.keys(porSistema).forEach(function (sis) {
+      var c = confrontoPorSistema[sis] || null;
+      var estado = window.Holoscan.estado(c);
+      html += '<div class="holo-dominante-sistema"><h5>' + NOME_SISTEMA[sis] +
+        ' <span class="conf-selo ' + estado.toLowerCase() + '">' +
+        escapar(window.Holoscan.rotulo(c)) + "</span></h5>";
+      html += '<ul class="holo-dominante-lista">';
+      porSistema[sis].forEach(function (e) {
+        var v = valores[e.id];
+        var a = avaliadoPorId[e.id];
+        html += "<li>" + escapar(e.exame) + ": " +
+          (v === undefined
+            ? "sem valor lançado"
+            : escapar(v) + " " + escapar(e.unidade) +
+              " · faixa cadastrada " + escapar(e.faixa) +
+              (a ? " · " + (a.situacao === "ok" ? "na faixa" : a.situacao === "baixo" ? "abaixo" : "acima") : "")
+          ) + "</li>";
+      });
+      html += "</ul><p class=\"terr-conta\">" + escapar(window.Holoscan.texto(c)) + "</p></div>";
+    });
+
+    html += '<p class="arq-nota holo-fronteira">O Holoscan organiza informações laboratoriais ' +
+      "para apoiar a interpretação profissional. Não realiza diagnóstico.</p>";
+
+    alvo.innerHTML = html;
+  };
+
   /* ================================================================ EXAMES */
 
   function notasDoPaciente() {
@@ -111,7 +217,7 @@
         var v = valores[e.id];
         html += '<div class="ex-linha" data-exame="' + e.id + '">' +
           '<span class="ex-nome">' + escapar(e.exame) + "</span>" +
-          '<span class="ex-faixa">ideal ' + e.faixa + " " + escapar(e.unidade) + "</span>" +
+          '<span class="ex-faixa">faixa cadastrada ' + e.faixa + " " + escapar(e.unidade) + "</span>" +
           '<input type="number" step="any" inputmode="decimal" value="' +
             (v === undefined ? "" : escapar(v)) + '" placeholder="—">' +
           '<span class="ex-situacao"></span></div>';
@@ -121,7 +227,7 @@
 
     html += '<p class="arq-nota">As faixas são as da literatura funcional, mais estreitas ' +
       'que as do laboratório de propósito: laboratório marca doença, aqui se olha terreno. ' +
-      '<b>São rascunho e esperam a revisão do Rodrigo.</b></p>';
+      '<b>São rascunho, não homologadas clinicamente, e esperam a revisão do Rodrigo.</b></p>';
 
     alvo.innerHTML = html;
     ligarPainel();
@@ -160,16 +266,30 @@
       s.textContent = a.situacao === "baixo" ? "abaixo" : "acima";
       s.className = "ex-situacao fora";
       l.classList.add("alterado");
-      if (a.leitura) l.title = a.leitura;
+      // Revisao clinica do HOLOSCOPE: o tooltip deixou de mostrar o texto
+      // cru de exames.csv (leitura_baixo/leitura_alto) — frases como
+      // "Resistência à insulina instalada" ou "Sobrecarga hepática" vazando
+      // direto no DOM. O CSV continua intacto para revisao futura; a tela
+      // so descreve o numero, nao a interpretacao.
+      l.title = "Valor " + a.valor + " " + a.unidade + " · faixa cadastrada " + a.faixa +
+        " · " + (a.situacao === "baixo" ? "abaixo" : "acima") + " da faixa cadastrada. " +
+        "Faixa em revisão — não homologada clinicamente.";
     });
 
     desenharConfronto(r, n);
+    // #holo-holoscan (dentro de #secao-holoscope) le os MESMOS exames — sem
+    // isso, editar um exame aqui na aba Documentos deixava aquele bloco
+    // parado na leitura de antes ate o proximo "Salvar HOLOSCOPE".
+    if (window.desenharHoloscan) window.desenharHoloscan("holo-holoscan");
   }
 
   function desenharConfronto(r, quantos) {
     var alvo = document.getElementById("ex-confronto");
     if (!alvo) return;
-    if (quantos === 0) { alvo.innerHTML = ""; return; }
+
+    // Revisao clinica do HOLOSCOPE (Holoscan): nao esconde mais o bloco so
+    // porque nenhum exame foi lancado ainda — sem exame e DADOS
+    // INSUFICIENTES, um estado que a tela precisa mostrar, nao omitir.
 
     var temMapa = Object.keys(notasDoPaciente()).length > 0;
     if (!temMapa) {
@@ -178,22 +298,29 @@
       return;
     }
 
-    var html = '<h4 class="leitura-titulo">Relato contra laboratório</h4>' +
+    // Revisao clinica do HOLOSCOPE (Holoscan): os tres estados aparecem
+    // sempre, incluindo DADOS INSUFICIENTES — antes a linha simplesmente
+    // sumia quando nao havia exame do sistema, e a ausencia de dado nao
+    // pode virar ausencia de linha na tela. O texto e sempre o do Holoscan,
+    // nunca a `leitura` que o motor gera internamente (ver window.Holoscan).
+    var html = '<h4 class="leitura-titulo">Relato e laboratório (Holoscan)</h4>' +
                '<div class="conf-lista">';
     r.confronto.forEach(function (c) {
-      if (c.concordancia === "sem_exame") return;
-      html += '<div class="conf-item ' + c.concordancia + '">' +
-        '<span class="conf-selo">' + (c.concordancia === "confirma" ? "confirma" : "diverge") + "</span>" +
+      var estado = window.Holoscan.estado(c);
+      html += '<div class="conf-item ' + estado.toLowerCase() + '">' +
+        '<span class="conf-selo">' + escapar(window.Holoscan.rotulo(c)) + "</span>" +
         "<b>" + NOME_SISTEMA[c.sistema] + "</b>" +
         '<span class="conf-nota">nota ' + (c.nota === null ? "—" : c.nota.toFixed(1)) + "</span>" +
-        '<span class="conf-leitura">' + escapar(c.leitura) + "</span></div>";
+        '<span class="conf-leitura">' + escapar(window.Holoscan.texto(c)) + "</span></div>";
     });
     html += "</div>";
-    var divergem = r.confronto.filter(function (c) { return c.concordancia === "diverge"; }).length;
+    var divergem = r.confronto.filter(function (c) { return window.Holoscan.estado(c) === "DIVERGENTE"; }).length;
     if (divergem > 0) {
-      html += '<p class="arq-nota conf-alerta">' + divergem + ' sistema(s) em divergência. ' +
-        'É o achado mais valioso do exame: onde o relato e o corpo contam histórias diferentes.</p>';
+      html += '<p class="arq-nota conf-alerta">' + divergem +
+        ' dimensão(ões) com divergência — aprofundar na consulta.</p>';
     }
+    html += '<p class="arq-nota holo-fronteira">O Holoscan organiza informações ' +
+      'laboratoriais para apoiar a interpretação profissional. Não realiza diagnóstico.</p>';
     alvo.innerHTML = html;
   }
 
@@ -272,6 +399,7 @@
 
       '<section class="arq-cartao">' +
         '<h4 class="arq-titulo">Os valores do exame</h4>' +
+        '<p class="fluxo-clinico">História &rarr; HOLOSCOPE &rarr; <b>Holoscan</b> &rarr; Aprofundamento &rarr; Interpretação &rarr; Conduta &rarr; Evolução</p>' +
         '<p class="arq-sub">Opcional. Na primeira consulta o paciente costuma não ter ' +
         "exame nenhum, e o mapa não depende disto. O exame <b>não altera o Índice</b> " +
         "&mdash; ele confronta o que o paciente relatou com o que o sangue mostra.</p>" +
@@ -442,57 +570,127 @@
         "</span>" +
       "</div>" +
       "<h3>Mapa HOLOS" + (nome ? " &middot; " + escapar(nome) : "") + "</h3>" +
-      '<p class="rel-meta">' + hoje() + " &middot; Índice HOLOS <b>" + p.indice +
-        "</b> de " + p.indice_maximo + " &middot; cobertura " + p.cobertura.percentual + "%</p>" +
+      '<p class="rel-meta">' + hoje() + " &middot; cobertura " + p.cobertura.percentual + "%</p>" +
       '<p class="rel-fronteira">Avaliação nutricional integral construída a partir ' +
         "do que o paciente relata. Não é exame, não é diagnóstico médico e não " +
         "substitui avaliação clínica.</p>" +
       "</header>";
 
+    /* ====================================================================
+       A. HOLOSCOPE — autorrelato, prioridades, sistemas, triade, cobertura.
+       O Indice entra no FIM desta secao, como informacao secundaria — nao
+       no cabecalho — e as CMB/textos interpretativos nao confirmados nao
+       aparecem (ver decisoes 1 e 2 da revisao clinica do HOLOSCOPE). */
+    html += '<section class="rel-parte" data-origem="automatico">' +
+      "<h3>A. HOLOSCOPE — o que o paciente relatou</h3>";
+
+    var ordenados = p.sistemas.slice().sort(function (a, b) { return a.nota - b.nota; });
+    html += '<div class="rel-bloco"><h4>Mapa de prioridades</h4>';
+    ordenados.forEach(function (s) {
+      var semDado = s.avaliavel === false;
+      // respondidos/total_marcadores podem faltar num snapshot bem antigo —
+      // nao inventa numero quando o campo nao existe.
+      var temContagem = typeof s.respondidos === "number" && typeof s.total_marcadores === "number";
+      var partes = [
+        semDado ? "nenhuma pergunta respondida" : (temContagem ? s.respondidos + " de " + s.total_marcadores + " respondidas" : ""),
+        s.faixa ? "faixa " + escapar(s.faixa) : ""
+      ].filter(Boolean);
+      html += '<p class="rel-prioridade"><b>' + escapar(s.nome) + "</b> — " +
+        (semDado ? "—" : s.nota.toFixed(1)) +
+        (partes.length ? " &middot; " + partes.join(" &middot; ") : "") +
+        "</p>";
+    });
+    html += "</div>";
+
+    var comDominantes = p.sistemas.filter(function (s) { return s.dominantes && s.dominantes.length; });
+    if (comDominantes.length > 0) {
+      html += '<div class="rel-bloco"><h4>Sinais dominantes</h4>';
+      comDominantes.forEach(function (s) {
+        html += "<p><b>" + escapar(s.nome) + "</b> — " +
+          s.dominantes.map(function (d) { return escapar(d.rotulo || d.marcador_id); }).join(", ") +
+          "</p>";
+      });
+      html += "</div>";
+    }
+
     if (p.triada) {
-      html += '<section class="rel-bloco"><h4>Triada</h4><p class="rel-triada">' +
+      html += '<div class="rel-bloco"><h4>Triada</h4><p class="rel-triada">' +
         "Físico <b>" + p.triada.fisico.toFixed(1) + "</b> &middot; " +
         "Mental <b>" + p.triada.mental.toFixed(1) + "</b> &middot; " +
-        "Espiritual <b>" + p.triada.espiritual.toFixed(1) + "</b></p></section>";
+        "Espiritual <b>" + p.triada.espiritual.toFixed(1) + "</b></p></div>";
     }
 
-    if (p.combinacoes && p.combinacoes.length > 0) {
-      html += '<section class="rel-bloco"><h4>Leitura combinada</h4>';
-      p.combinacoes.forEach(function (c) {
+    // Revisao clinica do HOLOSCOPE: nenhuma CMB aparece no relatorio nesta
+    // rodada (ver app.js, cmbParaExibir()) — inclusive a CMB-001, e nos dois
+    // registros ("nutricionista" e "paciente"). Bloco so nasce se houver algo.
+    var combinacoesParaExibir = window.cmbParaExibir ? window.cmbParaExibir(p.combinacoes) : [];
+    if (combinacoesParaExibir.length > 0) {
+      html += '<div class="rel-bloco"><h4>Leitura combinada</h4>';
+      combinacoesParaExibir.forEach(function (c) {
         html += '<p class="rel-combinada">&ldquo;' + escapar(c.leitura) + "&rdquo;</p>";
       });
-      html += "</section>";
+      html += "</div>";
     }
 
-    html += '<section class="rel-bloco"><h4>Os cinco sistemas</h4>';
-    var ordenados = p.sistemas.slice().sort(function (a, b) { return a.nota - b.nota; });
+    // Revisao clinica do HOLOSCOPE (decisao 2): o paragrafo interpretativo de
+    // mensagens.csv (status=rascunho nas 30 linhas) sai da saida clinica; a
+    // secao "Os cinco sistemas" continua, so com dado objetivo/calculado.
+    html += '<div class="rel-bloco"><h4>Os cinco sistemas</h4>';
     ordenados.forEach(function (s) {
-      var m = g.mensagem(s.sistema, s.nota, registroAtual);
       html += '<div class="rel-sistema"><div class="rel-sistema-topo">' +
         "<b>" + escapar(s.nome) + "</b>" +
-        '<span class="rel-nota">' + s.nota.toFixed(1) + "</span>" +
-        '<span class="rel-faixa">' + escapar(s.faixa) + "</span></div>";
-      if (m) {
-        html += "<p>" + escapar(m.texto) + "</p>";
-        if (m.primeiros_passos) {
-          html += '<p class="rel-passos"><em>Primeiros passos:</em> ' +
-            escapar(m.primeiros_passos) + "</p>";
-        }
-      }
-      html += "</div>";
+        '<span class="rel-nota">' + (s.avaliavel === false ? "—" : s.nota.toFixed(1)) + "</span>" +
+        '<span class="rel-faixa">' + escapar(s.faixa || "") + "</span></div>" +
+        '<p class="rel-passos">Área do mapa. Investigar com mais profundidade na consulta.</p>' +
+        "</div>";
     });
+    html += '<p class="rel-fronteira">Os cinco sistemas são categorias de organização do mapa, ' +
+      "não categorias de doença.</p></div>";
+
+    html += '<div class="rel-bloco rel-indice"><h4>Índice HOLOS (informação secundária)</h4>' +
+      "<p><b>" + p.indice + "</b> de " + p.indice_maximo + "</p>" +
+      '<p class="rel-fronteira">O Índice HOLOS resume as respostas deste mapa e não ' +
+      "representa percentual de saúde.</p></div>";
+
     html += "</section>";
 
+    /* ====================================================================
+       B. HOLOSCAN — exames disponiveis e confronto por area. Aparece
+       sempre, mesmo sem nenhum exame lancado (dados insuficientes e um
+       estado a mostrar, nao motivo para a secao sumir). */
     var ex = ler(CHAVE_EX);
-    if (Object.keys(ex).length > 0) {
-      var r = g.lerExames(ex, notasDoPaciente());
-      html += '<section class="rel-bloco"><h4>Exames</h4>';
-      r.confronto.forEach(function (c) {
-        if (c.concordancia === "sem_exame") return;
-        html += "<p><b>" + NOME_SISTEMA[c.sistema] + "</b> — " + escapar(c.leitura) + "</p>";
-      });
-      html += "</section>";
+    var rExames = g.lerExames(ex, notasDoPaciente());
+    html += '<section class="rel-parte" data-origem="automatico">' +
+      "<h3>B. HOLOSCAN — o que os exames acrescentam</h3><div class=\"rel-bloco\">";
+    rExames.confronto.forEach(function (c) {
+      html += "<p><b>" + NOME_SISTEMA[c.sistema] + "</b> — " +
+        escapar(window.Holoscan.rotulo(c)) + ". " + escapar(window.Holoscan.texto(c)) + "</p>";
+    });
+    html += '<p class="rel-fronteira">O Holoscan organiza informações laboratoriais para ' +
+      "apoiar a interpretação profissional. Não realiza diagnóstico.</p></div></section>";
+
+    /* ====================================================================
+       C. INTERPRETACAO PROFISSIONAL — texto que a nutricionista escreveu,
+       nunca gerado automaticamente. Nunca misturado com A/B sem etiqueta.
+       Editavel so no registro "nutri"; no registro "paciente" e so leitura,
+       exatamente com o que foi escrito — sem gerar nada em cima. */
+    var interpretacao = window.interpretacaoDe ? window.interpretacaoDe() : null;
+    var textoInterpretacao = (interpretacao && interpretacao.texto) || "";
+    html += '<section class="rel-parte" data-origem="profissional">' +
+      "<h3>C. Interpretação profissional</h3><div class=\"rel-bloco\">";
+    if (registroAtual === "nutri") {
+      html += '<textarea id="rel-interpretacao" class="rel-interpretacao-campo" ' +
+        'placeholder="Registre aqui a leitura profissional deste mapa.">' +
+        escapar(textoInterpretacao) + "</textarea>" +
+        '<div class="acoes-form"><button type="button" class="btn-verde" ' +
+        'data-acao="salvar-interpretacao">Salvar interpretação</button>' +
+        '<span class="rel-interpretacao-aviso" id="rel-interpretacao-aviso"></span></div>';
+    } else {
+      html += (textoInterpretacao
+        ? "<p>" + escapar(textoInterpretacao).replace(/\n/g, "<br>") + "</p>"
+        : '<p class="rel-vazio">Sem interpretação registrada.</p>');
     }
+    html += "</div></section>";
 
     /* A assinatura e o carimbo vem antes da identificacao, como no papel:
        a imagem, e embaixo dela quem assinou e sob qual registro. */
@@ -560,7 +758,19 @@
     alvo.addEventListener("click", function (ev) {
       var r = ev.target.closest("[data-registro]");
       if (r) { registroAtual = r.dataset.registro; desenharRelatorio(); return; }
-      if (ev.target.closest('[data-acao="imprimir"]')) window.print();
+      if (ev.target.closest('[data-acao="imprimir"]')) { window.print(); return; }
+      if (ev.target.closest('[data-acao="salvar-interpretacao"]')) {
+        var campo = document.getElementById("rel-interpretacao");
+        var aviso = document.getElementById("rel-interpretacao-aviso");
+        if (!campo) return;
+        var salvou = window.guardarInterpretacao && window.guardarInterpretacao(campo.value);
+        if (aviso) {
+          aviso.textContent = salvou
+            ? "Salvo."
+            : "Aplique o HOLOSCOPE hoje antes de registrar a interpretação.";
+        }
+        return;
+      }
     });
   }
 

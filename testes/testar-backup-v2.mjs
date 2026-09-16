@@ -84,7 +84,13 @@ const semeado = await p.evaluate(async (UNICODE) => {
     '_sem_paciente': { m1: 3 }
   });
   g('holohacking.pontuacao', {
-    'pac-A': [{ quando: '2026-01-10', indice: 43 }, { quando: '2026-03-10', indice: 61 }],
+    /* interpretacao (revisao clinica do HOLOSCOPE, campo opcional dentro do
+       proprio snapshot — sem entrada nova no manifesto) precisa viajar no
+       V2 igual a qualquer outro campo do box `pontuacao`, ja que o box
+       inteiro e exportar:true. */
+    'pac-A': [{ quando: '2026-01-10', indice: 43 },
+              { quando: '2026-03-10', indice: 61, versao_estrutura: 2,
+                interpretacao: { texto: UNICODE, quando_escrita: '2026-03-10', versao: 1 } }],
     'pac-FANTASMA': [{ quando: '2026-01-01', indice: 9 }]
   });
   g('holohacking.exames', { 'pac-A': { ferritina: 30, b12: null }, 'pac-B': { ferritina: 80 } });
@@ -240,6 +246,13 @@ ok(dados.doPacote.pontuacao === dados.doDisco.pontuacao,
    'I — a serie de pontuacoes idem');
 ok(dados.serieA.length === 2 && dados.serieA[0].indice === 43 && dados.serieA[1].indice === 61,
    'e a ORDEM do array foi preservada — nela a ordem e o dado: 43 -> 61');
+/* L (revisao clinica do HOLOSCOPE): a interpretacao profissional e um campo
+   opcional dentro do MESMO snapshot de pontuacao — nenhuma entrada nova no
+   manifesto, entao ela so viaja no V2 se o box inteiro continuar
+   exportar:true (ja provado acima) e o campo nao for perdido no caminho. */
+ok(dados.serieA[1].interpretacao && dados.serieA[1].interpretacao.texto.indexOf('🙂') >= 0,
+   'L — a interpretação profissional (com unicode) viaja dentro do snapshot: "' +
+   (dados.serieA[1].interpretacao || {}).texto + '"');
 ok(dados.doPacote.exames === dados.doDisco.exames,
    'J — os exames idem');
 

@@ -208,7 +208,7 @@
             <span class="icone">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e2c98a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5.5" r="2.6"/><path d="M12 8.5v6M12 14.5l-3.5 5M12 14.5l3.5 5M7 10.5h10"/></svg>
             </span>
-            <span class="ferramenta">Módulo - 10 ferramentas</span>
+            <span class="ferramenta">Módulo - 2 ferramentas</span>
             <h4>Corpo</h4>
             <p>Rotina, hábitos, sinais do corpo e capacidade prática. Inclui o OQ3 - clareza clínica sobre a realidade do paciente.</p>
             <span class="abrir">Ver ferramentas <span aria-hidden="true">&rarr;</span></span>
@@ -218,7 +218,7 @@
             <span class="icone">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e2c98a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5a6 6 0 0 1 8.4 6.6c-.2 1.1.1 1.7.9 2.7l.7.9-1.8.6v2.2c0 .9-.7 1.6-1.6 1.6h-1.6v2.4H8.3v-3.2A6.9 6.9 0 0 1 9.5 3.5Z"/></svg>
             </span>
-            <span class="ferramenta">Módulo - 10 ferramentas</span>
+            <span class="ferramenta">Módulo - 2 ferramentas</span>
             <h4>Mente</h4>
             <p>Crenças, emoções e comportamentos. Inclui o PQQ - a chave dos porquês profundos por trás dos objetivos.</p>
             <span class="abrir">Ver ferramentas <span aria-hidden="true">&rarr;</span></span>
@@ -232,6 +232,9 @@
           <span class="eyebrow">HOLOSCOPE&reg; &mdash; Scanner Integral</span>
           <h2>O mapa <em>invisível</em> da saúde humana</h2>
           <p>O HOLOSCOPE organiza, numa leitura só, o que o paciente relata sobre corpo, emoção e propósito — e mostra por onde a conduta começa: quais sistemas pesam mais, o que aparece junto e qual ferramenta responde a isso.</p>
+          <!-- Fluxo clinico do metodo, so como referencia visual — nao e um
+               wizard, nenhuma etapa bloqueia a seguinte. -->
+          <p class="fluxo-clinico">História &rarr; <b>HOLOSCOPE</b> &rarr; Holoscan &rarr; Aprofundamento &rarr; Interpretação &rarr; Conduta &rarr; Evolução</p>
         </div>
 
         <div class="barra-paciente">
@@ -257,9 +260,26 @@
 
           <div id="holoscope-manual">
           <div class="painel-escuro">
-          <span class="eyebrow">Os 5 Sistemas Centrais</span>
+
+          <!-- ===== 1. MAPA DE PRIORIDADES =====
+               Revisao clinica do HOLOSCOPE: a tela deixou de dar protagonismo
+               ao Indice (bloco 6, la embaixo, rebaixado) e passa a abrir pelo
+               que orienta a investigacao — o radar e a ordem dos sistemas. -->
+          <span class="eyebrow">1 &middot; Mapa de Prioridades</span>
+          <h3>Onde olhar primeiro</h3>
+          <p>O radar mostra os cinco sistemas juntos; a lista ordena do que pede mais investigação para o que pede menos — é prioridade de olhar, não conclusão.</p>
+          <div class="holo-resultado">
+            <div class="holo-radar-box">
+              <svg id="radar-svg" viewBox="0 0 300 300" width="280" height="280"></svg>
+            </div>
+            <div id="holo-prioridades" class="holo-caixa-mapa"></div>
+          </div>
+
+          <!-- ===== 2. CINCO SISTEMAS ===== -->
+          <span class="eyebrow">2 &middot; Cinco Sistemas</span>
           <h3>Avaliação Integral do Terreno</h3>
           <p>Pontue cada sistema de 0 (comprometido) a 10 (muito bom). O sistema cruzará tudo e gerará a leitura sistêmica.</p>
+          <p class="holo-nota-neutra">Os cinco sistemas são categorias de organização do mapa, não categorias de doença.</p>
 
           <div class="holo-sistemas">
             <div class="holo-card" data-sistema="fungico">
@@ -329,20 +349,14 @@
             </div>
           </div>
 
-          <div class="holo-resultado">
-            <div class="holo-radar-box">
-              <svg id="radar-svg" viewBox="0 0 300 300" width="280" height="280"></svg>
-            </div>
-            <div class="holo-score-box">
-              <span class="eyebrow">Índice HOLOS</span>
-              <div class="holo-score-numero" id="holo-score-total">0</div>
-              <span class="holo-score-label">de 100</span>
-              <p class="holo-origem" id="holo-origem"></p>
-              <p class="holo-score-interpretacao" id="holo-interpretacao">Pontue os sistemas para gerar a leitura.</p>
-            </div>
-          </div>
+          <!-- ===== 3. SINAIS / MARCADORES DOMINANTES =====
+               "dominantes" ja vem pronto do motor (top-5 marcadores por
+               pontos, por sistema) — so nao era desenhado em lugar nenhum. -->
+          <span class="eyebrow">3 &middot; Sinais Dominantes</span>
+          <h3>O que mais pesou nas respostas</h3>
+          <div class="holo-caixa-mapa hidden" id="holo-dominantes"></div>
 
-          <!-- Triada HOLOS: fisico, mental, espiritual num grafico so.
+          <!-- ===== 4. TRIADE CORPO · MENTE · ESPÍRITO =====
                So aparece com o questionario respondido — ela vem da origem dos
                marcadores, nao das notas dos cinco sistemas. -->
           <div class="holo-triada hidden" id="holo-triada"></div>
@@ -353,14 +367,39 @@
                nao tem, de proposito. -->
           <div class="holo-frequencias hidden" id="holo-frequencias"></div>
 
+          <!-- ===== 5. COBERTURA DO QUESTIONÁRIO ===== -->
+          <span class="eyebrow">5 &middot; Cobertura do Questionário</span>
+          <p class="holo-origem" id="holo-origem"></p>
           <!-- A cobertura do olhar: o que foi perguntado e o que ficou de
                fora, pelos territorios do metodo. Escondido enquanto
                territorios.csv nao tiver nenhum declarado. -->
           <div class="holo-territorios hidden" id="holo-territorios"></div>
 
-          <!-- padrao emocional, impacto espiritual e direcao terapeutica.
+          <!-- ===== 6. ÍNDICE HOLOS — informação secundária =====
+               Revisao clinica do HOLOSCOPE: era o elemento hero da tela
+               (5rem, dourado, primeiro bloco). Continua existindo — so
+               deixou de ser o que a tela promove primeiro. -->
+          <span class="eyebrow">6 &middot; Índice HOLOS (informação secundária)</span>
+          <div class="holo-score-box holo-secundario">
+            <div class="holo-score-numero" id="holo-score-total">0</div>
+            <span class="holo-score-label">de 100</span>
+            <p class="holo-score-interpretacao" id="holo-interpretacao">Pontue os sistemas para gerar a leitura.</p>
+          </div>
+
+          <!-- ===== 7. APROFUNDAMENTO =====
+               padrao emocional, hipoteses, direcao terapeutica e conduta.
                Preenchido por lerTerreno() em app.js. -->
+          <span class="eyebrow">7 &middot; Aprofundamento</span>
           <div class="holo-leitura" id="holo-leitura"></div>
+
+          <!-- ===== 8. HOLOSCAN — o que os exames acrescentam a este mapa =====
+               Camada complementar e separada do HOLOSCOPE: le os exames ja
+               lancados na aba Documentos e confronta com o mapa. Nunca altera
+               nota, indice, triade ou respostas — ver window.Holoscan em
+               arquivos.js. Renderizado por desenharHoloscan(). -->
+          <span class="eyebrow">8 &middot; Holoscan</span>
+          <h3>O que os exames acrescentam a este mapa</h3>
+          <div class="holo-caixa-mapa" id="holo-holoscan"></div>
 
           <!-- A fronteira. Ficava so no rodape do relatorio impresso; a tela
                onde a nutricionista abre o mapa junto com a paciente nao dizia
@@ -650,20 +689,12 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <span class="contador-busca" id="contador-corpo"><b>10</b> ferramentas</span>
+          <span class="contador-busca" id="contador-corpo"><b>2</b> ferramentas</span>
         </div>
 
         <div class="galeria-ferramentas" id="galeria-corpo" aria-label="Selecione uma ferramenta">
           <button class="card-ferr" data-vista="vista-oq3"><span class="ferr-num">01</span><span class="ferr-info"><h4>OQ3 &mdash; O Que Quer - Precisa - Consegue</h4><p>Clareza clínica entre desejo, necessidade e capacidade prática do paciente.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="mapa_rotina"><span class="ferr-num">02</span><span class="ferr-info"><h4>Mapa da Rotina</h4><p>Mapeamento das 24 horas do dia alimentar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="energia_vital"><span class="ferr-num">03</span><span class="ferr-info"><h4>Escala de Energia Vital</h4><p>Registro da energia física ao longo do dia.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="leitura_sinais"><span class="ferr-num">04</span><span class="ferr-info"><h4>Leitura de Sinais &mdash; O Corpo que Fala</h4><p>Tradução de sintomas físicos em informações clínicas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="diario_corporal"><span class="ferr-num">05</span><span class="ferr-info"><h4>Diário Corporal</h4><p>Registro de fome, saciedade e sensações corporais.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="ritmo_sono"><span class="ferr-num">06</span><span class="ferr-info"><h4>Ritmo &amp; Sono</h4><p>Avaliação do sono, descanso e recuperação.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="inventario_habitos"><span class="ferr-num">07</span><span class="ferr-info"><h4>Inventário de Hábitos</h4><p>Identificação dos hábitos que sustentam ou sabotam a transformação.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="hidratacao_movimento"><span class="ferr-num">08</span><span class="ferr-info"><h4>Termômetro de Hidratação &amp; Movimento</h4><p>Check rápido de água, movimento e pausas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="linha_momentum"><span class="ferr-num">09</span><span class="ferr-info"><h4>Linha do Momentum</h4><p>Leitura do momento de vida e do que o corpo consegue sustentar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="check_comprometimento"><span class="ferr-num">10</span><span class="ferr-info"><h4>Check-in de Comprometimento</h4><p>Medida do nível de comprometimento prático.</p></span><span class="ferr-status disponivel">Disponível</span></button>
+          <button class="card-ferr" data-ferramenta="linha_momentum"><span class="ferr-num">02</span><span class="ferr-info"><h4>Linha do Momentum</h4><p>Leitura do momento de vida e do que o corpo consegue sustentar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <div class="sem-resultado"><strong>Nenhuma ferramenta encontrada</strong><span>Tente outro termo ou limpe a busca.</span></div>
         </div>
 
@@ -748,20 +779,12 @@
             <input type="search" id="busca-mente" data-galeria="galeria-mente" placeholder="Buscar ferramenta em Mente..." aria-label="Buscar ferramenta no módulo Mente" autocomplete="off">
             <button type="button" class="btn-limpar-busca" aria-label="Limpar busca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
-          <span class="contador-busca" id="contador-mente"><b>10</b> ferramentas</span>
+          <span class="contador-busca" id="contador-mente"><b>2</b> ferramentas</span>
         </div>
 
         <div class="galeria-ferramentas" id="galeria-mente" aria-label="Selecione uma ferramenta">
           <button class="card-ferr" data-vista="vista-pqq"><span class="ferr-num">01</span><span class="ferr-info"><h4>PQQ &mdash; Pra Que Que?</h4><p>A chave dos porquês profundos: o propósito por trás dos objetivos do paciente.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <button class="card-ferr" data-ferramenta="mapa_crencas"><span class="ferr-num">02</span><span class="ferr-info"><h4>Mapa de Crenças Alimentares</h4><p>Levantamento das crenças limitantes sobre a comida.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="diario_emocoes"><span class="ferr-num">03</span><span class="ferr-info"><h4>Diário de Emoções &amp; Comida</h4><p>Registro da fome emocional: o que sente antes, durante e depois de comer.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="historia_alimentar"><span class="ferr-num">04</span><span class="ferr-info"><h4>Linha da História Alimentar</h4><p>Memórias e padrões que se repetem na relação com o alimento.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="gatilhos_respostas"><span class="ferr-num">05</span><span class="ferr-info"><h4>Gatilhos &amp; Respostas</h4><p>Mapeamento das situações que disparam comportamentos automaticos.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="roda_valores"><span class="ferr-num">06</span><span class="ferr-info"><h4>Roda dos Valores Essenciais</h4><p>Clarificação dos valores que orientam decisões e prioridades.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="reenquadramento"><span class="ferr-num">07</span><span class="ferr-info"><h4>Reenquadramento de Pensamentos</h4><p>Transformação de pensamentos sabotadores em narrativas possíveis.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="ancoras_motivacao"><span class="ferr-num">08</span><span class="ferr-info"><h4>Âncoras de Motivação</h4><p>Construção de lembretes e âncoras que sustentam a constância.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="autocompaixao"><span class="ferr-num">09</span><span class="ferr-info"><h4>Escala de Autocompaixão</h4><p>Avaliação do diálogo interno e da forma como o paciente trata a si mesmo.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="autoestima"><span class="ferr-num">10</span><span class="ferr-info"><h4>Termômetro de Autoestima</h4><p>Acompanhamento da autoimagem e do reconhecimento das próprias conquistas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <div class="sem-resultado"><strong>Nenhuma ferramenta encontrada</strong><span>Tente outro termo ou limpe a busca.</span></div>
         </div>
 
@@ -834,20 +857,13 @@
             <input type="search" id="busca-espirito" data-galeria="galeria-espirito" placeholder="Buscar ferramenta em Espírito..." aria-label="Buscar ferramenta no módulo Espírito" autocomplete="off">
             <button type="button" class="btn-limpar-busca" aria-label="Limpar busca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
-          <span class="contador-busca" id="contador-espirito"><b>10</b> ferramentas</span>
+          <span class="contador-busca" id="contador-espirito"><b>3</b> ferramentas</span>
         </div>
 
         <div class="galeria-ferramentas" id="galeria-espirito" aria-label="Selecione uma ferramenta">
           <button class="card-ferr" data-vista="vista-mapa"><span class="ferr-num">01</span><span class="ferr-info"><h4>Mapa do Propósito</h4><p>Síntese do OQ3 e do PQQ: clareza, direção e um plano que pode ser vivido.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="roda_vida"><span class="ferr-num">02</span><span class="ferr-info"><h4>Roda da Vida Integral</h4><p>Visão panorâmica das áreas da vida e do equilibrio entre elas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="ritual_mesa"><span class="ferr-num">03</span><span class="ferr-info"><h4>Ritual de Presença à Mesa</h4><p>Prática de comer consciente: presença, gratidão e conexão.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="carta_futuro"><span class="ferr-num">04</span><span class="ferr-info"><h4>Carta ao Futuro Eu</h4><p>Escrita guiada para conectar o paciente a pessoa que deseja se tornar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="inventario_gratidao"><span class="ferr-num">05</span><span class="ferr-info"><h4>Inventário de Gratidão</h4><p>Registro diário do que nutre além do prato.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="conexao_pertencimento"><span class="ferr-num">06</span><span class="ferr-info"><h4>Conexão &amp; Pertencimento</h4><p>Mapeamento das relações que sustentam a jornada.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="circulo_sentido"><span class="ferr-num">07</span><span class="ferr-info"><h4>Círculo de Sentido</h4><p>Investigação do que da significado a vida do paciente.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="praticas_contemplativas"><span class="ferr-num">08</span><span class="ferr-info"><h4>Práticas Contemplativas</h4><p>Repertório de respiração, silêncio e presença.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="legado"><span class="ferr-num">09</span><span class="ferr-info"><h4>Legado &amp; Transcendência</h4><p>Reflexão sobre o que o paciente quer deixar e a quem quer servir.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="alinhamento"><span class="ferr-num">10</span><span class="ferr-info"><h4>Alinhamento Corpo - Mente - Espírito</h4><p>Check de equilibrio entre as três dimensões.</p></span><span class="ferr-status disponivel">Disponível</span></button>
+          <button class="card-ferr" data-ferramenta="roda_vida"><span class="ferr-num">02</span><span class="ferr-info"><h4>Roda Holística da Vida</h4><p>Visão panorâmica das áreas da vida e do equilibrio entre elas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
+          <button class="card-ferr" data-ferramenta="carta_futuro"><span class="ferr-num">03</span><span class="ferr-info"><h4>Carta ao Futuro Eu</h4><p>Escrita guiada para conectar o paciente a pessoa que deseja se tornar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <div class="sem-resultado"><strong>Nenhuma ferramenta encontrada</strong><span>Tente outro termo ou limpe a busca.</span></div>
         </div>
 

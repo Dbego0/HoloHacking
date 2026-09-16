@@ -130,7 +130,14 @@ const semear = () => p.evaluate(async (PONT) => {
   await window.ArquivoStore.salvar('_sem_paciente', doc('sem dono nenhum', 's1.txt'),
     { nome: 'Sem dono', tipo: 'Outro', data: '2026-02-04' });
   return true;
-}, { a: PONTUACAO(40), b: PONTUACAO(70), c: PONTUACAO(55) });
+}, { a: PONTUACAO(40),
+     // interpretacao (revisao clinica do HOLOSCOPE): campo opcional dentro
+     // do proprio snapshot — some junto com o resto de pac-ALVO, sem
+     // precisar de tratamento especial na exclusao (nao ha entrada nova no
+     // manifesto para ela).
+     b: Object.assign(PONTUACAO(70),
+       { interpretacao: { texto: 'leitura do alvo', quando_escrita: '2026-06-01', versao: 1 } }),
+     c: PONTUACAO(55) });
 
 const OPERACIONAIS = ['holohacking.revisao', 'holohacking.operacao-em-curso',
                       'holohacking.operacao_critica'];

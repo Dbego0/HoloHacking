@@ -31,10 +31,14 @@ async function pontuar(v){
   }));
 }
 
-// o caso do exemplo, com as notas REAIS do motor
+/* Revisao clinica do HOLOSCOPE (decisao 1): nenhuma CMB aparece na
+   interface clinica nesta rodada — nem a CMB-001, mesmo quando a condicao
+   dela e satisfeita aqui (metabolico<=3 E mental_emocional_espiritual<=3).
+   O motor continua disparando por baixo (ver testar-motor.mjs); a tela e
+   quem nunca mais mostra (app.js, cmbParaExibir()). */
 const a = await pontuar([6.7,6.7,0.8,6.7,0.7].map(Math.round));
-ok(a.combinadas.length>0, 'combinacao do banco disparou: ' + (a.combinadas[0]||'nenhuma'));
-ok((a.ids[0]||'').startsWith('CMB-001'), 'e a CMB-001: ' + (a.ids[0]||'-'));
+ok(a.combinadas.length===0,
+   'CMB-001 dispararia no motor mas nao aparece na tela: ' + a.combinadas.length);
 
 // paciente saudavel: nao pode disparar nada
 const b = await pontuar([9,9,9,9,9]);

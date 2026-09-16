@@ -59,11 +59,11 @@ async function trocarPara(id) {
 async function preencher(texto) {
   await p.evaluate(async () => {
     document.querySelector('.nav-item[data-secao="mente"]').click();
-    document.querySelector('[data-ferramenta="gatilhos_respostas"]').click();
+    document.querySelector('[data-ferramenta="mapa_crencas"]').click();
   await new Promise(r => setTimeout(r, 350));
   });
   await p.evaluate((t) => {
-    document.getElementById('campo-gatilho1').value = t;
+    document.getElementById('campo-crencas').value = t;
     document.querySelector('#vista-gen-mente [data-acao="concluir"]').click();
   }, texto);
 }
@@ -71,9 +71,9 @@ async function preencher(texto) {
 async function lerCampo() {
   return p.evaluate(async () => {
     document.querySelector('.nav-item[data-secao="mente"]').click();
-    document.querySelector('[data-ferramenta="gatilhos_respostas"]').click();
+    document.querySelector('[data-ferramenta="mapa_crencas"]').click();
   await new Promise(r => setTimeout(r, 350));
-    return document.getElementById('campo-gatilho1').value;
+    return document.getElementById('campo-crencas').value;
   });
 }
 
@@ -102,7 +102,7 @@ ok(marinaDepois === 'Briga em casa no fim do dia',
 // --- o selo da galeria segue o paciente ------------------------------------
 const selo = await p.evaluate(async () => {
   document.querySelector('.btn-voltar')?.click();
-  return document.querySelector('[data-ferramenta="gatilhos_respostas"] .ferr-status').textContent;
+  return document.querySelector('[data-ferramenta="mapa_crencas"] .ferr-status').textContent;
 });
 ok(selo === 'Concluída', 'selo da Marina: ' + selo);
 
@@ -117,7 +117,7 @@ const guardado = await p.evaluate(() => {
   const apps = window.DadosLocais.exportar().tabelas.aplicacoes || [];
   return apps.map(a => ({
     paciente: a.paciente_id, ferramenta: a.ferramenta_id,
-    estado: a.status, gatilho1: (a.respostas || {}).gatilho1
+    estado: a.status, crencas: (a.respostas || {}).crencas
   }));
 });
 ok(guardado.length === 2, 'duas aplicacoes, uma por paciente: ' + guardado.length);

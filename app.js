@@ -229,7 +229,7 @@
       });
       galeria.classList.toggle("vazia", visiveis === 0);
       campo.classList.toggle("com-texto", termo.length > 0);
-      contador.innerHTML = termo ? "<b>" + visiveis + "</b> de 10" : "<b>10</b> ferramentas";
+      contador.innerHTML = termo ? "<b>" + visiveis + "</b> de " + cards.length : "<b>" + cards.length + "</b> ferramentas";
     }
     input.addEventListener("input", filtrar);
     input.addEventListener("keydown", e => {
@@ -1432,16 +1432,15 @@
     const semMapa = !pronta && scores.every(s => s === 0) && !temMapaSalvo();
     $("#holo-score-total").textContent = semMapa ? "—" : total;
 
-    // A escala e 10 = muito bom, decisao registrada no motor. Estava invertida
-    // aqui: antes, indice alto era diagnosticado como estado grave. Duas partes
-    // do mesmo produto mediam ao contrario.
-    let msg = "Pontue os sistemas para gerar a leitura.";
-    if(semMapa) msg = "Aplique o questionário ou pontue os cinco sistemas à mão para gerar a leitura.";
-    else if(total === 0) msg = "Estado crônico de ameaça. Abordagem integrativa prioritária: corpo, mente e espírito.";
-    else if(total < 40) msg = "Estado crônico de ameaça. Abordagem integrativa prioritária: corpo, mente e espírito.";
-    else if(total < 60) msg = "Desequilíbrios significativos. Conduta nutricional recomendada.";
-    else if(total < 80) msg = "Desequilíbrios moderados. Atenção aos sistemas de nota mais baixa.";
-    else msg = "Terreno equilibrado. Manter acompanhamento preventivo.";
+    // As quatro faixas que existiam aqui (<40/<60/<80/>=80, cada uma com uma
+    // frase clinica propria, incluindo "Estado cronico de ameaca" repetida da
+    // CMB-001) nao tem fonte, nao tem status, nao estao em nenhum CSV — eram
+    // regra clinica escrita direto no JS. Removidas nesta rodada (revisao
+    // clinica do HOLOSCOPE): o Indice fica com uma frase fixa, a mesma para
+    // qualquer valor, dizendo o que ele E, nao o que ele "significa".
+    const msg = semMapa
+      ? "Aplique o questionário ou pontue os cinco sistemas à mão para gerar a leitura."
+      : "O Índice HOLOS resume as respostas deste mapa e não representa percentual de saúde.";
     $("#holo-interpretacao").textContent = msg;
     lerTerreno(scores, pronta);
   }
@@ -1702,13 +1701,19 @@
      com fonte e status em cada uma, como manda a Especificação Mestre §18 e a
      regra do projeto de não escrever método em JavaScript. */
   function regrasDeRecomendacao(){
-    /* regrasAtivas() deixa de fora o que esta com status rascunho_nao_validado
-       — hoje, as oito regras de Momentum, que foram escritas pela
-       implementacao e nao pelo metodo. Elas seguem cadastradas em
-       corpo-bancos.js para nao sumirem sem rastro; so nao executam. */
+    /* Revisao clinica do HOLOSCOPE (rodada de reorganizacao): "Por onde
+       comecar" passou a usar regrasApresentaveis(), nao regrasAtivas().
+       regrasAtivas() so tira o rascunho_nao_validado e deixava passar as
+       REC-001..015 legado — que, alem de nao validadas pelo metodo, apontam
+       recommended_tool_id para ferramentas que a revisao de Corpo/Mente/
+       Espirito ja tirou da galeria (mapa_rotina, diario_corporal,
+       gatilhos_respostas, etc.). Sem esse troca, "Por onde comecar" era uma
+       porta dos fundos ativa reabrindo o que foi fechado de proposito.
+       regrasApresentaveis() so deixa passar regra com status=confirmado —
+       hoje, nenhuma. */
     const b = window.CorpoBancos;
     if(!b) return [];
-    return b.regrasAtivas ? b.regrasAtivas() : (b.RECOMENDACOES || []);
+    return b.regrasApresentaveis ? b.regrasApresentaveis() : [];
   }
 
   /* As cotas da conduta sairam daqui e viraram dado (SEL-001). Se o banco nao
@@ -1816,6 +1821,21 @@
     return conduta.every(c => b.validada(porId.get(c.regra)));
   }
 
+  /* Revisao clinica do HOLOSCOPE: as 16 regras de combinacao (CMB-001..016)
+     ficam fora da interface clinica e do relatorio nesta rodada inteira —
+     inclusive a CMB-001, que tem status=confirmado no banco mas cujo texto
+     ("Paciente vivendo em estado cronico de ameaca") ainda nao passou por
+     revisao de tom/redacao com o Rodrigo. status no banco != homologacao
+     clinica. PENDENTE RODRIGO: revisar tom da CMB-001 e decidir criterio de
+     reexibicao regra a regra (nao construir toggle nem allow-list agora).
+     O motor continua retornando as 16 (HOLOSCOPE.calcular(), CLI, testes) e
+     combinacoes.csv continua com as 16 linhas — so a tela nunca mais le
+     esta lista. */
+  function cmbParaExibir(){
+    return [];
+  }
+  window.cmbParaExibir = cmbParaExibir;
+
   function lerTerreno(scores, pronta){
     const caixa = $("#holo-leitura");
     if(!caixa) return;
@@ -1907,7 +1927,7 @@
        2. Combinacao com tipo=encaminhar nao e leitura clinica: e o sistema
           reconhecendo que aquilo sai do escopo da nutricao. Vai em bloco
           proprio, na frente de tudo. */
-    const combinadas = pronta ? pronta.combinacoes : combinacoesDoMotor(scores);
+    const combinadas = cmbParaExibir(pronta ? pronta.combinacoes : combinacoesDoMotor(scores));
     const encaminhar = combinadas.filter(c => c.tipo === "encaminhar");
     const hipoteses  = combinadas.filter(c => c.tipo !== "encaminhar");
 
@@ -1978,6 +1998,16 @@
               + '<span class="conduta-abrir">abrir &rarr;</span></button>';
       }
       html += "</div>";
+    } else {
+      /* Revisao clinica do HOLOSCOPE: regrasApresentaveis() so deixa passar
+         regra com status=confirmado (hoje, nenhuma), entao "Por onde
+         comecar" fica sem itens. Sem esta linha a secao simplesmente
+         sumiria, sem dizer por que — e a nutricionista precisa saber que a
+         ausencia e decisao, nao bug. */
+      html += '<h4 class="leitura-titulo">Por onde começar</h4>'
+            + '<p class="leitura-aviso">As sugestões de ferramenta herdadas do app '
+            + 'anterior estão desativadas até serem validadas pelo método. A escolha '
+            + 'da conduta é da nutricionista.</p>';
     }
 
     caixa.innerHTML = html;
@@ -2027,11 +2057,25 @@
     const id = (window.pacienteAtivoId && window.pacienteAtivoId()) || "_sem_paciente";
     const tudo = lerHistorico();
     const hoje = hojeISO();
-    const nova = Object.assign({}, r, { quando: hoje });
+    // versao_estrutura marca snapshots desta rodada (revisao clinica do
+    // HOLOSCOPE) sem tocar nos antigos — nada le esse campo ainda, existe
+    // so para uma migracao futura saber distinguir os dois formatos.
+    const nova = Object.assign({}, r, { quando: hoje, versao_estrutura: 2 });
     if(!tudo[id]) tudo[id] = [];
     // reaplicar no mesmo dia substitui, em vez de criar duas do mesmo dia
     const mesmoDia = tudo[id].findIndex(x => x.quando === hoje);
-    if(mesmoDia >= 0) tudo[id][mesmoDia] = nova; else tudo[id].push(nova);
+    if(mesmoDia >= 0){
+      // Interpretacao profissional e escrita por fora, num campo separado
+      // do resultado calculado. Reaplicar o HOLOSCOPE no mesmo dia
+      // sobrescrevia a entrada inteira (Object.assign de cima) e apagava
+      // essa interpretacao sem ninguem pedir. Ela sobrevive a troca.
+      if(nova.interpretacao === undefined && tudo[id][mesmoDia].interpretacao !== undefined){
+        nova.interpretacao = tudo[id][mesmoDia].interpretacao;
+      }
+      tudo[id][mesmoDia] = nova;
+    } else {
+      tudo[id].push(nova);
+    }
     tudo[id].sort((a, b) => (a.quando || "").localeCompare(b.quando || ""));
     localStorage.setItem("holohacking.pontuacao", JSON.stringify(tudo));
     if (window.Concorrencia) window.Concorrencia.avancarRevisao("pontuacao");
@@ -2041,6 +2085,40 @@
   window.historicoPontuacao = function(id){
     const pid = id || (window.pacienteAtivoId && window.pacienteAtivoId()) || "_sem_paciente";
     return lerHistorico()[pid] || [];
+  };
+
+  /* ------------------------------------------------------------------------
+     INTERPRETACAO PROFISSIONAL — campo opcional no proprio snapshot
+
+     Reaproveita a estrutura que ja existe (o snapshot de Pontuacao dentro de
+     holohacking.pontuacao) em vez de criar um armazenamento novo fora do
+     manifesto: essa tabela ja e exportar:true/excluirComPaciente:true no
+     Storage Manifest, entao Backup V2 e exclusao de paciente cobrem o campo
+     novo automaticamente, sem precisar tocar em armazenamento.js.
+
+     NAO cria um snapshot so para guardar o texto: se nao existir aplicacao
+     do dia, nao ha onde prender a interpretacao, e a funcao recusa. */
+  window.guardarInterpretacao = function(texto, quando){
+    const id = (window.pacienteAtivoId && window.pacienteAtivoId()) || "_sem_paciente";
+    const tudo = lerHistorico();
+    const dia = quando || hojeISO();
+    const lista = tudo[id] || [];
+    const alvo = quando ? lista.find(x => x.quando === dia) : lista[lista.length - 1];
+    if(!alvo) return false;
+    alvo.interpretacao = { texto: String(texto || ""), quando_escrita: hojeISO(), versao: 1 };
+    localStorage.setItem("holohacking.pontuacao", JSON.stringify(tudo));
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("pontuacao");
+    return true;
+  };
+
+  /** A interpretacao da aplicacao pedida, ou da mais recente se `quando`
+      nao for informado. null quando nao ha nenhuma escrita ainda. */
+  window.interpretacaoDe = function(quando, id){
+    const pid = id || (window.pacienteAtivoId && window.pacienteAtivoId()) || "_sem_paciente";
+    const lista = window.historicoPontuacao(pid);
+    if(!lista.length) return null;
+    const alvo = quando ? lista.find(x => x.quando === quando) : lista[lista.length - 1];
+    return (alvo && alvo.interpretacao) || null;
   };
   window.ultimaPontuacao = function(id){
     const h = window.historicoPontuacao(id);
@@ -2081,9 +2159,12 @@
     });
 
     updateRadar(notas, r);                      // desenha com o decimal, nao com o arredondado
+    desenharPrioridades(r);
+    desenharDominantes(r);
     desenharTriada(r.triada, r.triada_com_dado);
     desenharFrequencias(r.frequencias);
     desenharTerritorios(r.territorios);
+    if(window.desenharHoloscan) window.desenharHoloscan("holo-holoscan");
     if(window.redesenharEvolucao) window.redesenharEvolucao();
 
     $("#holo-score-total").textContent = r.indice;
@@ -2112,6 +2193,8 @@
         $("#val-" + s).textContent = el.value;
       });
       $("#holo-origem").textContent = "";
+      desenharPrioridades(null);
+      desenharDominantes(null);
       desenharTriada(null);   // pontuando a mao nao ha Triada: ela vem das respostas
       desenharFrequencias(null);
       desenharTerritorios(null);
@@ -2160,6 +2243,63 @@
      ser eleito como a dimensao mais baixa.
 
      Ausencia tambem NAO virou zero: nao ha nota nenhuma atribuida. */
+  /* ------------------------------------------------------------------------
+     MAPA DE PRIORIDADES e SINAIS DOMINANTES — revisao clinica do HOLOSCOPE
+
+     Duas telas novas, dado nenhum novo: "prioridades" e so os cinco sistemas
+     reordenados do mais carregado para o mais leve (a mesma ordem que
+     lerTerreno() e o relatorio ja usam para escolher os "criticos"), e
+     "dominantes" e o campo NotaSistema.dominantes que o motor ja calcula
+     (top-5 marcadores por pontos, por sistema) e que nenhuma tela desenhava.
+     So aparecem com Pontuacao calculada via questionario — pontuando a mao
+     nao ha cobertura nem marcador nenhum para mostrar, exatamente como a
+     Triade ja se comporta. */
+  function desenharPrioridades(r){
+    const caixa = $("#holo-prioridades");
+    if(!caixa) return;
+    if(!r){ caixa.innerHTML = ""; return; }
+    const ordenado = r.sistemas.slice().sort((a, b) => a.nota - b.nota);
+    const linhas = ordenado.map(s => {
+      const semDado = s.avaliavel === false;
+      // s.respondidos/total_marcadores podem faltar num snapshot bem antigo,
+      // salvo antes desses campos existirem no motor — nao inventa numero.
+      const temContagem = typeof s.respondidos === "number" && typeof s.total_marcadores === "number";
+      const cobertura = semDado
+        ? "nenhuma pergunta respondida"
+        : temContagem ? s.respondidos + " de " + s.total_marcadores + " respondidas" : "";
+      const conta = [cobertura, s.faixa ? "faixa " + s.faixa : ""].filter(Boolean).join(" &middot; ");
+      // Classes proprias (prio-*), NAO terr-*: territorios (#holo-territorios)
+      // ja usa .terr-linha para outra lista, e testar-raciocinio.mjs conta
+      // .terr-linha esperando achar so as dele. Reaproveitar o nome de
+      // classe misturava as duas listas na mesma consulta.
+      return '<li class="prio-linha' + (semDado ? " sem-dado" : "") + '">'
+           + '<span class="prio-nome">' + s.nome
+             + '<i>Área do mapa. Investigar com mais profundidade na consulta.</i></span>'
+           + '<span class="prio-conta">' + conta + '</span>'
+           + '<span class="prio-nota">' + (semDado ? "—" : s.nota.toFixed(1)) + '</span>'
+           + '</li>';
+    }).join("");
+    caixa.innerHTML = '<ul class="prio-lista">' + linhas + '</ul>';
+  }
+
+  function desenharDominantes(r){
+    const caixa = $("#holo-dominantes");
+    if(!caixa) return;
+    if(!r){ caixa.classList.add("hidden"); caixa.innerHTML = ""; return; }
+    const comSinais = r.sistemas.filter(s => s.dominantes && s.dominantes.length > 0);
+    if(comSinais.length === 0){ caixa.classList.add("hidden"); caixa.innerHTML = ""; return; }
+    const blocos = comSinais.map(s => {
+      const itens = s.dominantes.map(d => "<li>" + (d.rotulo || d.marcador_id) + "</li>").join("");
+      return '<div class="holo-dominante-sistema"><h5>' + s.nome + '</h5>'
+           + '<ul class="holo-dominante-lista">' + itens + '</ul></div>';
+    }).join("");
+    caixa.innerHTML =
+      '<div class="terr-cabeca"><span class="eyebrow">Os sinais que mais pesaram</span>'
+      + "<p>Os sinais que mais pesaram nas respostas de cada sistema — é a "
+      + "aritmética das respostas, não um achado novo.</p></div>" + blocos;
+    caixa.classList.remove("hidden");
+  }
+
   function desenharTriada(triada, comDado){
     const caixa = $("#holo-triada");
     if(!caixa) return;

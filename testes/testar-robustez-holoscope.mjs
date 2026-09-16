@@ -495,9 +495,15 @@ ok(sel.maximo === 4,
 ok(sel.provenance === 'decisao_implementacao' && sel.status === 'rascunho',
    'com procedência e status inalterados');
 
-ok(comEmpate.itens.length === 3,
-   'o máximo real hoje, sem Momentum, é 3: ' + comEmpate.itens.length +
-   ' (2 do pior + 1 do segundo, teto 4 nunca alcançado)');
+/* Revisao clinica do HOLOSCOPE: "Por onde comecar" passou a ler
+   regrasApresentaveis() (so status=confirmado), nao regrasAtivas() (que so
+   excluia nao_validado e deixava passar legado). Hoje nenhuma REC e
+   confirmado, entao o maximo real da conduta e 0 — as cotas (2+1, teto 4)
+   continuam definidas em SEL-001, so nao ha regra elegivel para preenche-las
+   ate o metodo validar alguma. */
+ok(comEmpate.itens.length === 0,
+   'o máximo real hoje é 0: nenhuma REC tem status=confirmado (cotas 2+1, teto 4, seguem definidas em SEL-001): ' +
+   comEmpate.itens.length);
 
 const ferramentas = await p.evaluate(() => {
   const B = window.CorpoBancos;

@@ -226,11 +226,22 @@
             '<span class="fic-barra-faixa">' + escapar(s.faixa || "") + "</span></div>";
         }).join("") + "</div>";
 
-    if (p.combinacoes && p.combinacoes.length > 0) {
+    // Revisao clinica do HOLOSCOPE: nenhuma CMB aparece na interface clinica
+    // nesta rodada (ver app.js, cmbParaExibir()) — inclusive a CMB-001.
+    var combinacoesParaExibir = window.cmbParaExibir ? window.cmbParaExibir(p.combinacoes) : [];
+    if (combinacoesParaExibir.length > 0) {
       html += '<div class="fic-leituras"><span class="fic-rot">Leitura combinada</span>' +
-        p.combinacoes.map(function (c) {
+        combinacoesParaExibir.map(function (c) {
           return '<p class="fic-combinada">&ldquo;' + escapar(c.leitura) + "&rdquo;</p>";
         }).join("") + "</div>";
+    }
+
+    // Espelho somente-leitura da Interpretacao profissional (escrita na aba
+    // Relatorio) — nunca editada aqui, e nunca gerada automaticamente.
+    var interpretacao = window.interpretacaoDe ? window.interpretacaoDe() : null;
+    if (interpretacao && interpretacao.texto) {
+      html += '<div class="fic-leituras"><span class="fic-rot">Interpretação profissional</span>' +
+        "<p class=\"fic-combinada\">" + escapar(interpretacao.texto).replace(/\n/g, "<br>") + "</p></div>";
     }
 
     alvo.innerHTML = html;

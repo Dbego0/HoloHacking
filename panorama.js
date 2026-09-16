@@ -137,14 +137,20 @@
       d.pontuacao.sistemas.forEach(function (s) { notas[s.sistema] = s.nota; });
       try {
         var r = window.HOLOSCOPE.lerExames(d.valoresExames, notas);
-        r.confronto.filter(function (c) { return c.concordancia === "diverge"; })
-          .forEach(function (c) {
-            var nome = NOME_SISTEMA[c.sistema] || c.sistema;
-            saida.push({ peso: 2, grau: "aviso",
-                         curto: "relato e exame não batem no " + nome,
-                         texto: "Sistema " + nome + ": relato e exame não batem.",
-                         acao: "aba:documentos", botao: "Ver exames" });
-          });
+        // Revisao clinica do HOLOSCOPE (Holoscan): "nao batem" sugeria que um
+        // dos dois lados esta errado. Divergencia e convite a aprofundar, nao
+        // veredito. window.Holoscan (arquivos.js) e quem decide o estado —
+        // se ainda nao carregou, nao alertamos nada (fail-safe, nao inventa).
+        if (window.Holoscan) {
+          r.confronto.filter(function (c) { return window.Holoscan.estado(c) === "DIVERGENTE"; })
+            .forEach(function (c) {
+              var nome = NOME_SISTEMA[c.sistema] || c.sistema;
+              saida.push({ peso: 2, grau: "aviso",
+                           curto: "relato e exames divergem no " + nome,
+                           texto: "Sistema " + nome + ": relato e exames laboratoriais divergem — aprofundar.",
+                           acao: "aba:documentos", botao: "Ver exames" });
+            });
+        }
       } catch (e) { /* sem alerta e melhor do que alerta errado */ }
     }
 

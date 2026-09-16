@@ -273,7 +273,7 @@ window.CATALOGO_FERRAMENTAS = [
   },
 
   {
-    id: "linha_momentum", modulo: "corpo", numero: "09",
+    id: "linha_momentum", modulo: "corpo", numero: "02",
     papel: "estrutural",
     titulo: "Linha do Momentum",
     chamada: "o quanto de mudanca cabe agora",
@@ -469,7 +469,7 @@ window.CATALOGO_FERRAMENTAS = [
 
   {
     id: "roda_vida", modulo: "espirito", numero: "02",
-    titulo: "Roda da Vida Integral",
+    titulo: "Roda Holística da Vida",
     chamada: "o equilibrio entre as áreas",
     descricao: "Visão panorâmica das áreas da vida e do equilibrio entre elas.",
     campos: [
@@ -499,7 +499,7 @@ window.CATALOGO_FERRAMENTAS = [
   },
 
   {
-    id: "carta_futuro", modulo: "espirito", numero: "04",
+    id: "carta_futuro", modulo: "espirito", numero: "03",
     titulo: "Carta ao Futuro Eu",
     chamada: "escrever para quem ele quer ser",
     descricao: "Escrita guiada para conectar o paciente a pessoa que deseja se tornar.",

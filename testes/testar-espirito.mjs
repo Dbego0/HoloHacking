@@ -37,6 +37,14 @@ const AS_NOVE = ['roda_vida', 'ritual_mesa', 'carta_futuro', 'inventario_gratida
                  'conexao_pertencimento', 'circulo_sentido', 'praticas_contemplativas',
                  'legado', 'alinhamento'];
 
+/* A revisao clinica de Corpo/Mente/Espirito (rodada anterior a esta) reduziu
+   a galeria de Espirito a 3 ferramentas: Mapa do Proposito, roda_vida e
+   carta_futuro. As outras 7 de AS_NOVE continuam com dado e logica intactos
+   em ferramentas.js — so sem card na galeria. O catalogo (abaixo) continua
+   com as 9, porque o dado nao foi apagado; so o que se pode ABRIR pela tela
+   e o que esta em DISPONIVEIS. */
+const DISPONIVEIS = ['roda_vida', 'carta_futuro'];
+
 const novaPaciente = (nome) => p.evaluate(async (n) => {
   document.querySelector('.nav-item[data-secao="pacientes"]').click();
   document.getElementById('btn-abrir-novo').click();
@@ -89,7 +97,13 @@ console.log('\n  AS NOVE: abrir, salvar, atualizar, nova aplicação\n');
 
 const marina = await novaPaciente('Marina Alves');
 
-/* Abre e conclui cada uma das nove, com um texto marcado por ferramenta. */
+/* Abre e conclui roda_vida (a unica das DISPONIVEIS que este lote usa —
+   carta_futuro fica reservada para o teste de ciclo/isolamento logo abaixo,
+   para nao poluir o "fresh start" que aquele teste pressupoe). Antes da
+   revisao de Corpo/Mente/Espirito este lote rodava as nove; hoje so roda_vida
+   e carta_futuro tem card na galeria, e o modelo de persistencia (abrir,
+   salvar, Nova aplicacao, isolamento por paciente) e o mesmo para qualquer
+   ferramenta generica — nao precisa das nove para provar isso. */
 const todas = await p.evaluate(async (ids) => {
   const saida = [];
   for (const id of ids) {
@@ -128,59 +142,61 @@ const todas = await p.evaluate(async (ids) => {
     await new Promise(r => setTimeout(r, 250));
   }
   return saida;
-}, AS_NOVE);
+}, ['roda_vida']);
 
-ok(todas.length === 9 && todas.every(t => t.ferramenta === t.id),
-   'as nove abrem e concluem uma aplicação cada');
+ok(todas.length === 1 && todas.every(t => t.ferramenta === t.id),
+   'roda_vida abre e conclui uma aplicação');
 ok(todas.every(t => t.paciente === marina),
-   'todas ligadas à paciente ativa');
+   'ligada à paciente ativa');
 ok(todas.every(t => t.status === 'concluida'),
-   'concluir fecha a aplicação em todas as nove');
+   'concluir fecha a aplicação');
 ok(todas.every(t => t.versao != null),
-   'todas com versao_ferramenta declarada: ' +
+   'com versao_ferramenta declarada: ' +
    [...new Set(todas.map(t => t.versao))].join(','));
 ok(todas.every(t => t.consulta === null || typeof t.consulta === 'string'),
    'consultation_id preenchido ou null — nunca inventado');
 ok(todas.every(t => t.iniciada && t.concluida && t.atualizada),
-   'os três carimbos de tempo em todas');
+   'os três carimbos de tempo presentes');
 ok(todas.every(t => t.resultado === null),
-   'RESULTADO NULL nas nove: nenhuma deriva síntese, score ou classificação');
+   'RESULTADO NULL: nenhuma ferramenta genérica deriva síntese, score ou classificação');
 ok(todas.every(t => t.sintese.trim() === ''),
    'e a caixa de síntese fica vazia — nenhum quadro com ar de resultado');
-ok(todas.find(t => t.id === 'roda_vida').campos === 9 &&
-   todas.find(t => t.id === 'carta_futuro').campos === 2 &&
-   todas.find(t => t.id === 'alinhamento').campos === 5,
-   'os campos de cada uma são os do catálogo, sem acréscimo');
+ok(todas.find(t => t.id === 'roda_vida').campos === 9,
+   'os campos são os do catálogo, sem acréscimo: ' + todas.find(t => t.id === 'roda_vida').campos);
 
 /* ---- atualizar não duplica, Nova aplicação preserva ------------------- */
 
+/* circulo_sentido foi retirada da galeria de Espirito nessa revisao;
+   carta_futuro (mantida) serve igualmente para provar atualizar-nao-duplica
+   e Nova-aplicacao-preserva — o modelo de persistencia e o mesmo para
+   qualquer ferramenta generica. */
 const ciclo = await p.evaluate(async () => {
   document.querySelector('.nav-item[data-secao="espirito"]').click();
-  document.querySelector('[data-ferramenta="circulo_sentido"]').click();
+  document.querySelector('[data-ferramenta="carta_futuro"]').click();
   await new Promise(r => setTimeout(r, 420));
   const vista = document.getElementById('vista-gen-espirito');
-  const campo = vista.querySelector('#campo-da_sentido');
+  const campo = vista.querySelector('#campo-carta');
   campo.value = 'primeira leitura, corrigida';
   campo.dispatchEvent(new Event('change', { bubbles: true }));
   vista.querySelector('[data-acao="concluir"]').click();
   await new Promise(r => setTimeout(r, 430));
-  const depoisDeEditar = window.Aplicacoes.historico('circulo_sentido').length;
+  const depoisDeEditar = window.Aplicacoes.historico('carta_futuro').length;
 
   vista.querySelector('[data-acao="nova"]').click();
   await new Promise(r => setTimeout(r, 430));
-  const vazio = document.getElementById('campo-da_sentido').value;
-  const campo2 = document.getElementById('campo-da_sentido');
+  const vazio = document.getElementById('campo-carta').value;
+  const campo2 = document.getElementById('campo-carta');
   campo2.value = 'segunda leitura';
   campo2.dispatchEvent(new Event('change', { bubbles: true }));
   document.querySelector('#vista-gen-espirito [data-acao="concluir"]').click();
   await new Promise(r => setTimeout(r, 430));
 
-  const h = window.Aplicacoes.historico('circulo_sentido');
+  const h = window.Aplicacoes.historico('carta_futuro');
   return {
     depoisDeEditar,
     vazioNaNova: vazio,
     quantas: h.length,
-    conteudos: h.map(a => a.respostas.da_sentido),
+    conteudos: h.map(a => a.respostas.carta),
     estados: h.map(a => a.status)
   };
 });
@@ -198,15 +214,15 @@ ok(ciclo.estados.every(s => s === 'concluida'), 'as duas concluídas');
 const carla = await novaPaciente('Carla Ribeiro');
 const isolamento = await p.evaluate(async (ctx) => {
   document.querySelector('.nav-item[data-secao="espirito"]').click();
-  document.querySelector('[data-ferramenta="circulo_sentido"]').click();
+  document.querySelector('[data-ferramenta="carta_futuro"]').click();
   await new Promise(r => setTimeout(r, 450));
-  const campo = document.getElementById('campo-da_sentido');
+  const campo = document.getElementById('campo-carta');
   const todas = (window.DadosLocais.exportar().tabelas.aplicacoes || [])
     .filter(a => ctx.ids.indexOf(a.ferramenta_id) >= 0);
   return {
     campo: campo.value,
-    daCarla: window.Aplicacoes.historico('circulo_sentido').length,
-    respostasDaCarla: window.Aplicacoes.historico('circulo_sentido')
+    daCarla: window.Aplicacoes.historico('carta_futuro').length,
+    respostasDaCarla: window.Aplicacoes.historico('carta_futuro')
       .map(a => JSON.stringify(a.respostas || {})),
     daMarina: todas.filter(a => a.paciente_id === ctx.marina).length,
     vazamento: todas.filter(a => a.paciente_id === ctx.carla &&
@@ -220,8 +236,9 @@ ok(isolamento.respostasDaCarla.every(r => r === '{}' || r === 'null'),
    'o rascunho da nova paciente nasce sem resposta herdada');
 ok(isolamento.vazamento === 0,
    'NENHUMA resposta da Marina aparece sob a Carla');
-ok(isolamento.daMarina === 10,
-   'e as dez aplicações da Marina continuam dela: ' + isolamento.daMarina);
+// 1 de roda_vida (lote) + 2 de carta_futuro (ciclo: atualizar + nova aplicação)
+ok(isolamento.daMarina === 3,
+   'e as aplicações da Marina continuam dela: ' + isolamento.daMarina);
 
 /* ==================================================================== */
 console.log('\n  MAPA DO PROPÓSITO — tela derivada, sem persistência\n');

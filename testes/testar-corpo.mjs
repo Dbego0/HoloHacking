@@ -44,11 +44,25 @@ await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarr
 let falhou = false;
 const ok = (c, t) => { if (!c) falhou = true; console.log((c ? '  ok    ' : '  FALHA ') + t); };
 
+/* A revisao clinica de Corpo/Mente/Espirito (rodada anterior a esta) reduziu
+   a galeria de Corpo a 2 ferramentas: OQ3 e linha_momentum. As outras 7 que
+   este arquivo testa (ritmo_sono, energia_vital, leitura_sinais,
+   inventario_habitos, check_comprometimento, mapa_rotina, diario_corporal)
+   continuam com dado e logica intactos em ferramentas.js/resultado-corpo.js
+   — so nao tem mais card na galeria, e abrirFerramentaPorId() ja se recusa a
+   abrir ferramenta sem card (formulario.js). Reabrir via selector direto
+   seria simular uma porta que a revisao anterior fechou de proposito.
+   abrirFerr() agora devolve se conseguiu abrir; quem chama decide pular. */
 const abrirFerr = (id) => p.evaluate(async (x) => {
   document.querySelector('.nav-item[data-secao="corpo"]').click();
-  document.querySelector('[data-ferramenta="' + x + '"]').click();
+  const card = document.querySelector('[data-ferramenta="' + x + '"]');
+  if (!card) return false;
+  card.click();
   await new Promise(r => setTimeout(r, 400));
+  return true;
 }, id);
+
+const pular = (id, motivo) => console.log('  --    ' + id + ': ' + motivo);
 
 const voltar = () => p.evaluate(async () => {
   document.querySelector('.btn-voltar').click();
@@ -261,7 +275,7 @@ ok(/retirar barreiras/.test(comEstado.texto),
 /* ============================== sono: quatro indicadores, zero classificação */
 
 await voltar();
-await abrirFerr('ritmo_sono');
+if (await abrirFerr('ritmo_sono')) {
 const tiposSono = await p.evaluate(() => ({
   deita: document.getElementById('campo-deita').type,
   acorda: document.getElementById('campo-acorda').type,
@@ -310,10 +324,12 @@ ok(/3 de 4 indicadores têm dados/.test(sono.texto),
 ok(!/apareceram adequados/i.test(sono.texto),
    'a frase antiga, que afirmava quatro quando avaliara menos, não existe mais');
 
+} else { pular('ritmo_sono', 'fora da galeria desde a revisao de Corpo/Mente/Espirito'); }
+
 /* ============ energia: a queda não atravessa momento sem registro ======== */
 
 await voltar();
-await abrirFerr('energia_vital');
+if (await abrirFerr('energia_vital')) {
 
 const dois = await p.evaluate(async () => {
   const dia = (i, v) => Object.keys(v).forEach(k => {
@@ -398,10 +414,12 @@ ok(hist.quantas === 2 && hist.estados.join(',') === 'concluida,rascunho',
 ok(hist.primeiraTemDias === 3,
    'e a anterior continua com os três dias dentro: ' + hist.primeiraTemDias);
 
+} else { pular('energia_vital', 'fora da galeria desde a revisao de Corpo/Mente/Espirito'); }
+
 /* ============= sinais: nenhuma prioridade automática ==================== */
 
 await voltar();
-await abrirFerr('leitura_sinais');
+if (await abrirFerr('leitura_sinais')) {
 const sinais = await p.evaluate(async () => {
   const texto = (id, v) => {
     const el = document.getElementById(id);
@@ -443,10 +461,12 @@ ok(sinais.res.por_frequencia.some(f => f.nome === 'Quase diário' && f.quantos =
    'o que a síntese faz é contar, na escala do método: ' +
    JSON.stringify(sinais.res.por_frequencia));
 
+} else { pular('leitura_sinais', 'fora da galeria desde a revisao de Corpo/Mente/Espirito'); }
+
 /* ============= hábitos: matriz 2D, e ausência não vira "atrapalha" ======= */
 
 await voltar();
-await abrirFerr('inventario_habitos');
+if (await abrirFerr('inventario_habitos')) {
 const habitos = await p.evaluate(async () => {
   const texto = (id, v) => {
     const el = document.getElementById(id);
@@ -498,10 +518,12 @@ ok(habitos.res.por_consistencia.some(c => c.nome === 'Não acontece' && c.quanto
    'o que resta é a contagem do que foi relatado: ' +
    JSON.stringify(habitos.res.por_consistencia));
 
+} else { pular('inventario_habitos', 'fora da galeria desde a revisao de Corpo/Mente/Espirito'); }
+
 /* ============= compromisso: nenhum corte de confiança =================== */
 
 await voltar();
-await abrirFerr('check_comprometimento');
+if (await abrirFerr('check_comprometimento')) {
 const compromisso = await p.evaluate(async () => {
   const texto = (id, v) => {
     const el = document.getElementById(id);
@@ -537,10 +559,12 @@ ok(compromisso.temPergunta,
    'mas a pergunta do §15.7 continua ali, para qualquer nota — ela não depende de limiar');
 ok(/confiança média/.test(compromisso.texto), 'as notas aparecem como foram dadas');
 
+} else { pular('check_comprometimento', 'fora da galeria desde a revisao de Corpo/Mente/Espirito'); }
+
 /* ============= rotina: mede e mostra, sem classificar =================== */
 
 await voltar();
-await abrirFerr('mapa_rotina');
+if (await abrirFerr('mapa_rotina')) {
 const rotina = await p.evaluate(async () => {
   const texto = (id, v) => {
     const el = document.getElementById(id);
@@ -601,10 +625,12 @@ ok(!/carregada|vulner/i.test(rotina.texto),
 ok(rotina.res.sem_limiar === true && !/Fome 8 ou mais|Estresse 8 ou mais/.test(rotina.texto),
    'nenhum limiar sobrou na rotina');
 
+} else { pular('mapa_rotina', 'fora da galeria desde a revisao de Corpo/Mente/Espirito'); }
+
 /* ============= diário: horários reais, sem agrupamento ================== */
 
 await voltar();
-await abrirFerr('diario_corporal');
+if (await abrirFerr('diario_corporal')) {
 const diario = await p.evaluate(async () => {
   const texto = (id, v) => {
     const el = document.getElementById(id);
@@ -651,6 +677,7 @@ ok(/09:00/.test(diario.texto) && /20:00/.test(diario.texto),
    'e aparecem na tela como foram dados');
 ok(/2 registros/.test(diario.texto) && /1 dia/.test(diario.texto),
    'o que o sistema afirma é a contagem: N registros em X dias');
+} else { pular('diario_corporal', 'fora da galeria desde a revisao de Corpo/Mente/Espirito'); }
 
 /* ------------------------------------------------------------------ fim - */
 console.log('');

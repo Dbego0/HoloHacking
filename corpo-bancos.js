@@ -509,6 +509,16 @@
     return RECOMENDACOES.filter(executavel);
   }
 
+  /** As regras que podem aparecer na interface clínica hoje — não confundir
+      com regrasAtivas(): executavel() só exclui nao_validado, e deixa passar
+      legado (procedência rastreável não é validação). Além disso, a maioria
+      dos recommended_tool_id aponta para ferramentas que a revisão clínica de
+      Corpo/Mente/Espírito já retirou da galeria — apresentar essas regras
+      reabriria uma porta que foi fechada de propósito. Hoje: nenhuma. */
+  function regrasApresentaveis() {
+    return RECOMENDACOES.filter(validada);
+  }
+
   /* ---------- quanto disto já passou pelo autor ---------------------------- */
 
   function pendencias() {
@@ -585,6 +595,7 @@
     SELECAO: SELECAO,
     executavel: executavel,
     regrasAtivas: regrasAtivas,
+    regrasApresentaveis: regrasApresentaveis,
     validada: validada,
     pendencias: pendencias
   };

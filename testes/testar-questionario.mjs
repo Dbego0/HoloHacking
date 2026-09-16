@@ -90,7 +90,12 @@ ok(fim.conta.includes('84'), 'respondeu tudo: ' + fim.conta.trim());
 ok(fim.indice === '43', 'INDICE = ' + fim.indice + '  (o terminal da 43)');
 ok(fim.notas.join(' ') === '6.7 6.7 0.8 6.7 0.7', 'notas exatas: ' + fim.notas.join(' · '));
 ok(fim.travadas, 'as reguas viraram resultado, nao entrada');
-ok(fim.combinadas.length > 0, 'leitura combinada: ' + (fim.combinadas[0] || 'nenhuma'));
+/* Revisao clinica do HOLOSCOPE (decisao 1): nenhuma CMB aparece na
+   interface clinica nesta rodada, nem a CMB-001 (status=confirmado no
+   banco, mas sem revisao de tom) — ver app.js, cmbParaExibir(). O motor
+   continua disparando as 16 (ver testar-motor.mjs, testar-combinacoes-
+   status.mjs); so a tela nunca mais mostra. */
+ok(fim.combinadas.length === 0, 'nenhuma leitura combinada na tela: ' + fim.combinadas.length);
 ok(fim.voltouAoMapa, 'o questionario fecha e mostra o mapa');
 ok(/84/.test(fim.origem), 'diz de onde veio: ' + fim.origem.trim().slice(0, 60));
 

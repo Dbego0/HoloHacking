@@ -718,6 +718,39 @@ input[type="range"]::-moz-range-thumb{
   font-family:var(--fonte-display);
 }
 
+/* Revisao clinica do HOLOSCOPE: o Indice deixou de ser o elemento hero da
+   tela (era 5rem, dourado, primeiro bloco) e virou informacao secundaria —
+   mesma caixa, escala reduzida, sem competir com o Mapa de Prioridades. */
+.holo-score-box.holo-secundario{
+  max-width:26rem;margin:0 auto;padding:18px 24px;
+}
+.holo-score-box.holo-secundario .holo-score-numero{font-size:2rem;font-weight:600}
+.holo-score-box.holo-secundario .holo-score-label{margin-top:2px}
+.holo-score-box.holo-secundario .holo-score-interpretacao{margin-top:10px;font-size:.82rem}
+
+/* Aviso neutro dentro do painel escuro do HOLOSCOPE — mesmo padrao visual de
+   .holo-fronteira (a unica outra frase solta que ja vive direto no fundo
+   escuro do painel, sem caixa de cartao por baixo). */
+.holo-nota-neutra{
+  font-size:.8rem;font-weight:300;line-height:1.6;color:var(--texto-suave);
+  border-left:2px solid rgba(201,163,90,.4);padding-left:14px;margin:14px 0 22px;max-width:74ch;
+}
+
+/* Sinais dominantes por sistema — reaproveita a mesma caixa clara de
+   .holo-territorios (ver abaixo, selector compartilhado) para poder usar
+   var(--texto)/var(--texto-suave) com contraste garantido nos dois temas. */
+.holo-dominante-sistema{margin-bottom:16px}
+.holo-dominante-sistema:last-child{margin-bottom:0}
+.holo-dominante-sistema h5{
+  font-family:var(--fonte-display);font-size:.9rem;font-weight:600;
+  color:var(--texto);margin:0 0 8px;
+}
+.holo-dominante-lista{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.holo-dominante-lista li{
+  font-size:.78rem;font-weight:300;color:var(--texto-suave);
+  border:1px solid var(--borda-suave);border-radius:20px;padding:5px 13px;
+}
+
 .holo-subtools{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:28px}
 .holo-subtool{
   border:1px solid rgba(201,163,90,.3);border-radius:12px;
@@ -1277,12 +1310,17 @@ body.escuro .btn-tema .icone-lua{display:none}
   padding:14px 20px;border-radius:var(--raio,12px);
   border:1px solid rgba(201,163,90,.2);
 }
-.conf-item.diverge{border-color:var(--dourado);background:rgba(201,163,90,.09)}
+/* Revisao clinica do HOLOSCOPE (Holoscan): os nomes de classe passaram a
+   ser os tres estados do Holoscan (convergente/divergente/dados_insuficientes)
+   em vez de confirma/diverge do motor — so a apresentacao, o motor continua
+   devolvendo confirma/diverge/sem_exame como sempre. */
+.conf-item.divergente{border-color:var(--dourado);background:rgba(201,163,90,.09)}
+.conf-item.dados_insuficientes{opacity:.62;border-style:dashed}
 .conf-selo{
   font-size:.56rem;letter-spacing:.2em;text-transform:uppercase;font-weight:600;
   color:var(--texto-suave);
 }
-.conf-item.diverge .conf-selo{color:var(--dourado)}
+.conf-item.divergente .conf-selo{color:var(--dourado)}
 .conf-item b{font-family:var(--fonte-display);font-size:1rem;font-weight:400;color:var(--titulo)}
 .conf-nota{text-align:right;font-size:.78rem;color:var(--texto-suave);font-variant-numeric:tabular-nums}
 .conf-leitura{grid-column:2 / -1;font-size:.84rem;font-weight:300;line-height:1.5;color:var(--texto-suave)}
@@ -1405,6 +1443,44 @@ body.escuro .btn-tema .icone-lua{display:none}
 .rel-faixa{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--texto-suave)}
 .rel-sistema p{font-size:.9rem;font-weight:300;line-height:1.6;color:var(--texto-suave);margin:0 0 6px}
 .rel-passos em{color:var(--dourado);font-style:normal;font-weight:500}
+
+/* Revisao clinica do HOLOSCOPE: o relatorio passou a separar tres partes —
+   HOLOSCOPE (automatico), HOLOSCAN (automatico) e Interpretacao profissional
+   — cada uma com etiqueta visivel, para nunca misturar texto automatico com
+   o que a nutricionista escreveu sem dizer qual e qual (teste J). */
+.rel-parte{margin-top:34px;padding-top:22px;border-top:2px solid rgba(201,163,90,.25)}
+.rel-parte:first-of-type{margin-top:0}
+.rel-parte > h3{
+  font-family:var(--fonte-display);font-size:1.1rem;font-weight:600;
+  color:var(--titulo);margin:0 0 18px;
+}
+.rel-parte[data-origem="profissional"]{border-top-color:var(--dourado)}
+.rel-parte[data-origem="profissional"] > h3::after{
+  content:"escrito pela nutricionista";
+  display:inline-block;margin-left:10px;font-size:.6rem;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--dourado);
+  vertical-align:middle;
+}
+.rel-prioridade{font-size:.88rem;font-weight:300;color:var(--texto-suave);margin:0 0 6px}
+.rel-prioridade b{color:var(--texto);font-weight:500}
+.rel-indice p{font-size:1.1rem;color:var(--texto);margin:0 0 6px}
+.rel-indice b{font-family:var(--fonte-display);color:var(--dourado);font-size:1.4rem}
+.rel-vazio{font-size:.9rem;font-weight:300;font-style:italic;color:var(--texto-suave)}
+
+/* Fluxo clinico do metodo — referencia visual, nao wizard. Aparece em mais
+   de uma tela (H3.4); nenhuma etapa bloqueia a seguinte. */
+.fluxo-clinico{
+  font-size:.7rem;font-weight:400;letter-spacing:.03em;color:var(--texto-suave);
+  margin:6px 0 14px;
+}
+.fluxo-clinico b{color:var(--dourado);font-weight:700}
+.rel-interpretacao-campo{
+  width:100%;min-height:120px;resize:vertical;
+  font-size:.92rem;line-height:1.6;padding:12px 14px;font-weight:300;
+  border:1px solid var(--input-borda);border-radius:10px;
+  background:var(--input-fundo);color:var(--texto);
+}
+.rel-interpretacao-aviso{font-size:.8rem;color:var(--texto-suave);margin-left:10px}
 .rel-rodape{
   border-top:1px solid rgba(201,163,90,.2);padding-top:18px;margin-top:8px;
   font-size:.76rem;font-weight:300;line-height:1.6;color:var(--texto-suave);
@@ -3025,8 +3101,8 @@ a.pac-link:hover{color:var(--dourado);text-decoration:underline;text-underline-o
 }
 .leitura-definicao i{
   display:block;margin-top:6px;font-style:normal;
-  font-size:.66rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--texto-suave);
+  font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dourado);
 }
 
 /* =========================================================================
@@ -3091,26 +3167,31 @@ a.pac-link:hover{color:var(--dourado);text-decoration:underline;text-underline-o
    TERRITORIOS DO OLHAR — cobertura, nao mais uma nota
    ========================================================================= */
 
-.holo-territorios{
+.holo-territorios, .holo-caixa-mapa{
   border:1px solid var(--borda-suave);background:var(--sup-card);
   padding:24px 26px;margin-top:22px;
 }
 .terr-cabeca p{font-size:.8rem;font-weight:300;color:var(--texto-suave);margin:6px 0 18px;max-width:44rem}
-.terr-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.terr-linha{
+/* .prio-* (Mapa de Prioridades, #holo-prioridades) reaproveita exatamente o
+   mesmo desenho de linha do .terr-* (Territorios), com nome de classe
+   proprio — as duas listas convivem na mesma tela e nao podem responder a
+   uma consulta so por .terr-linha (testar-raciocinio.mjs conta uma, nao a
+   soma das duas). */
+.terr-lista, .prio-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.terr-linha, .prio-linha{
   display:grid;grid-template-columns:1fr auto 3rem;align-items:baseline;gap:14px;
   padding:10px 0;border-bottom:1px solid var(--borda-suave);
 }
-.terr-linha:last-child{border-bottom:none}
-.terr-nome{display:flex;flex-direction:column;gap:1px;font-size:.9rem;color:var(--texto)}
-.terr-nome i{font-style:normal;font-size:.74rem;font-weight:300;color:var(--texto-suave)}
-.terr-conta{font-size:.78rem;font-weight:300;color:var(--texto-suave);white-space:nowrap}
-.terr-nota{
+.terr-linha:last-child, .prio-linha:last-child{border-bottom:none}
+.terr-nome, .prio-nome{display:flex;flex-direction:column;gap:1px;font-size:.9rem;color:var(--texto)}
+.terr-nome i, .prio-nome i{font-style:normal;font-size:.74rem;font-weight:300;color:var(--texto-suave)}
+.terr-conta, .prio-conta{font-size:.78rem;font-weight:300;color:var(--texto-suave);white-space:nowrap}
+.terr-nota, .prio-nota{
   font-size:.9rem;font-weight:500;color:var(--texto);text-align:right;
   font-variant-numeric:lining-nums tabular-nums;
 }
-.terr-linha.sem-dado{opacity:.62}
-.terr-linha.sem-dado .terr-conta{color:#b4553c;opacity:1}
+.terr-linha.sem-dado, .prio-linha.sem-dado{opacity:.62}
+.terr-linha.sem-dado .terr-conta, .prio-linha.sem-dado .prio-conta{color:#b4553c;opacity:1}
 .terr-buraco{
   font-size:.84rem;font-weight:300;color:var(--texto-suave);
   margin:18px 0 0;padding-top:14px;border-top:1px solid var(--borda-suave);
@@ -3119,8 +3200,8 @@ a.pac-link:hover{color:var(--dourado);text-decoration:underline;text-underline-o
 .terr-buraco.ok{color:var(--texto-suave)}
 
 @media (max-width:640px){
-  .terr-linha{grid-template-columns:1fr 3rem}
-  .terr-conta{grid-column:1/-1;margin-top:2px}
+  .terr-linha, .prio-linha{grid-template-columns:1fr 3rem}
+  .terr-conta, .prio-conta{grid-column:1/-1;margin-top:2px}
 }
 
 /* =========================================================================
