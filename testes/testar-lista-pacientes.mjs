@@ -38,6 +38,37 @@ const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
 let falhou = false;
 const conferir = (c, t) => { if (!c) falhou = true; ok(c, t); };
 
+/* ------------------------------------------------- carteira zerada ------- */
+
+const vazia = await p.evaluate(() => {
+  document.querySelector('.nav-item[data-secao="pacientes"]').click();
+  const v = document.querySelector('.lista-vazia');
+  return {
+    titulo: v?.querySelector('strong')?.textContent,
+    texto: v?.querySelector('span')?.textContent,
+    temCta: !!v?.querySelector('#btn-vazio-cadastrar'),
+    total: document.getElementById('pac-total-cabeca').textContent.trim(),
+    buscaEscondida: document.querySelector('.acoes-topo').classList.contains('hidden'),
+    chipsEscondidos: document.getElementById('pac-chips').classList.contains('hidden'),
+  };
+});
+conferir(vazia.titulo === 'Nenhum paciente cadastrado ainda', 'título do estado vazio: ' + vazia.titulo);
+conferir(vazia.texto === 'Cadastre o primeiro paciente para iniciar a jornada clínica.',
+  'texto do estado vazio: ' + vazia.texto);
+conferir(vazia.temCta, 'e vem com o botão "Cadastrar primeiro paciente"');
+conferir(vazia.total === '0 pacientes', 'contador no cabeçalho: ' + vazia.total);
+conferir(vazia.buscaEscondida && vazia.chipsEscondidos,
+  'busca e filtros somem sem carteira — sem tabela vazia sem contexto');
+
+const abriuPeloVazio = await p.evaluate(async () => {
+  document.getElementById('btn-vazio-cadastrar').click();
+  await new Promise(r => setTimeout(r, 120));
+  const aberto = !document.getElementById('painel-novo').classList.contains('hidden');
+  document.getElementById('btn-cancelar-paciente').click();
+  return aberto;
+});
+conferir(abriuPeloVazio, 'o CTA do estado vazio abre o mesmo formulário de cadastro');
+
 /* ---------------------------------------------- montar uma carteira ------ */
 
 const ids = await p.evaluate(async (respostas) => {

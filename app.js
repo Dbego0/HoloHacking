@@ -428,6 +428,14 @@
       itens.push('<span class="pac-dado">' + ico(ICONES.agenda) + " Cadastrado "
         + dataBR(p.created_at.slice(0, 10)) + "</span>");
     }
+    // So consulta MARCADA de verdade (Agenda) — nada de data inventada.
+    if(window.Agenda && window.Agenda.proxima){
+      const prox = window.Agenda.proxima(p.id);
+      if(prox){
+        itens.push('<span class="pac-dado">' + ico(ICONES.agenda) + " Próximo atendimento "
+          + dataBR(prox.data) + (prox.hora ? " às " + prox.hora : "") + "</span>");
+      }
+    }
     if(p.telefone){
       itens.push('<a class="pac-dado pac-link" href="tel:' + escapar(p.telefone) + '">'
         + ico(ICONES.fone) + " " + escapar(p.telefone) + "</a>");
@@ -556,7 +564,17 @@
   function renderPacientes(){
     const termo = semAcento($("#busca-pacientes").value.trim());
     const lista = $("#lista-pacientes");
+    const semCarteira = estado.pacientes.length === 0;
     $("#nav-total-pac").textContent = estado.pacientes.length;
+    $("#pac-total-cabeca").innerHTML = "<b>" + estado.pacientes.length + "</b> "
+      + (estado.pacientes.length === 1 ? "paciente" : "pacientes");
+
+    // Sem ninguem na carteira, busca/ordenar/filtros/selecao nao tem sobre o
+    // que operar — mostrar esses controles vazios so criaria uma tabela sem
+    // contexto acima do convite para cadastrar a primeira pessoa.
+    $(".acoes-topo").classList.toggle("hidden", semCarteira);
+    $("#pac-chips").classList.toggle("hidden", semCarteira);
+    $(".pac-selecao").classList.toggle("hidden", semCarteira);
 
     const sit = {};
     estado.pacientes.forEach(p => {
@@ -576,9 +594,11 @@
       if(!visiveis.some(p => p.id === id)) selecionados.delete(id);
     });
 
-    if(!estado.pacientes.length){
-      lista.innerHTML = '<div class="lista-vazia"><strong>Nenhum paciente cadastrado</strong>'
-        + "<span>Cadastre a primeira pessoa para começar.</span></div>";
+    if(semCarteira){
+      lista.innerHTML = '<div class="lista-vazia"><strong>Nenhum paciente cadastrado ainda</strong>'
+        + "<span>Cadastre o primeiro paciente para iniciar a jornada clínica.</span>"
+        + '<button type="button" class="btn-verde" id="btn-vazio-cadastrar">Cadastrar primeiro paciente</button>'
+        + "</div>";
     } else if(!visiveis.length){
       lista.innerHTML = '<div class="lista-vazia"><strong>Nenhum paciente aqui</strong>'
         + "<span>" + (termo ? "Nenhum nome, e-mail ou telefone bate com a busca."
@@ -792,6 +812,8 @@
   /* ---------- os cliques ---------- */
 
   $("#painel-pac-lista").addEventListener("click", e => {
+    if(e.target.closest("#btn-vazio-cadastrar")){ $("#btn-abrir-novo").click(); return; }
+
     // marcar nao e navegar: a caixa de selecao nao pode abrir a ficha
     const caixa = e.target.closest("[data-sel]");
     if(caixa){

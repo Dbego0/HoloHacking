@@ -201,6 +201,16 @@ input,textarea,select{font-family:inherit}
 .secao-cabeca p{color:var(--texto-suave);font-weight:300;font-size:1rem;line-height:1.7}
 
 /* ---------- pacientes ---------- */
+/* O cabecalho leva o contador e o botao principal para o mesmo bloco do
+   titulo — antes os dois so apareciam la embaixo, junto da busca. */
+.pac-cabeca{
+  max-width:none;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:16px 28px;flex-wrap:wrap;
+}
+.pac-cabeca-texto{max-width:42rem}
+.pac-cabeca-acoes{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+
 .acoes-topo{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
 .btn-novo{
   display:inline-flex;align-items:center;gap:9px;
@@ -250,7 +260,8 @@ input,textarea,select{font-family:inherit}
   display:block;font-family:var(--fonte-display);font-size:1.35rem;
   color:var(--titulo);font-weight:600;margin-bottom:8px;
 }
-.lista-vazia span{font-size:.86rem;font-weight:300}
+.lista-vazia span{font-size:.86rem;font-weight:300;display:block}
+.lista-vazia .btn-verde{margin-top:20px}
 
 .barra-paciente{
   display:flex;align-items:center;gap:14px;flex-wrap:wrap;

@@ -583,10 +583,19 @@
       <!-- ============ PACIENTES ============ -->
       <section class="secao" id="secao-pacientes">
         <div id="vista-lista-pacientes">
-          <div class="secao-cabeca">
-            <span class="eyebrow">Módulo - Pacientes</span>
-            <h2>Seus <em>pacientes</em></h2>
-            <p>Cadastre uma pessoa uma única vez e todas as ferramentas passam a registrar nela. Escolha um paciente para ver a ficha completa.</p>
+          <div class="secao-cabeca pac-cabeca">
+            <div class="pac-cabeca-texto">
+              <span class="eyebrow">Módulo - Pacientes</span>
+              <h2>Pacientes</h2>
+              <p>Gerencie sua carteira e acompanhe a jornada de cada paciente.</p>
+            </div>
+            <div class="pac-cabeca-acoes">
+              <span class="contador-busca" id="pac-total-cabeca"><b>0</b> pacientes</span>
+              <button class="btn-novo" id="btn-abrir-novo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                Novo paciente
+              </button>
+            </div>
           </div>
 
           <div class="abas abas-pacientes" role="tablist">
@@ -602,13 +611,9 @@
 
           <div id="painel-pac-lista">
           <div class="acoes-topo">
-            <button class="btn-novo" id="btn-abrir-novo">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-              Novo paciente
-            </button>
             <div class="campo-busca" style="max-width:320px">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              <input type="search" id="busca-pacientes" placeholder="Buscar por nome, e-mail ou telefone..." aria-label="Buscar por nome, e-mail ou telefone" autocomplete="off">
+              <input type="search" id="busca-pacientes" placeholder="Buscar paciente…" aria-label="Buscar por nome, e-mail ou telefone" autocomplete="off">
               <button type="button" class="btn-limpar-busca" id="limpar-busca-pac" aria-label="Limpar busca">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
