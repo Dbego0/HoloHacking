@@ -3270,6 +3270,8 @@ a.pac-link:hover{color:var(--dourado);text-decoration:underline;text-underline-o
 
 body.login-aberto{overflow:hidden}
 
+body.login-aberto #app{display:none!important}
+
 .tela-login{
   position:fixed;inset:0;z-index:2000;
   display:flex;align-items:center;justify-content:center;

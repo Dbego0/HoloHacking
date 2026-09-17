@@ -58,6 +58,7 @@ ok(parcial.barra !== '0%' && parcial.barra !== '', 'barra de progresso andou: ' 
 
 // --- salvamento parcial: recarregar a pagina nao pode perder --------------
 await p.reload({ waitUntil: 'networkidle2' });
+await p.evaluate(() => window.LoginView && window.LoginView.abrirApp());
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 const depois = await p.evaluate(() => {
   document.querySelector('.nav-item[data-secao="holoscope"]').click();
