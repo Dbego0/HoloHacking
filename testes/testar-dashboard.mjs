@@ -31,7 +31,7 @@ const vazio = await p.evaluate(() => ({
   texto: document.getElementById('dash-trabalho').innerText.replace(/\s+/g, ' ').trim(),
   metodo: !document.getElementById('dash-metodo').classList.contains('hidden'),
   pendentes: document.querySelectorAll('#dash-lista-pendentes .dash-pendente').length,
-  jornada: document.querySelectorAll('.dash-jornada-passo').length,
+  jornada: document.querySelectorAll('#dash-trabalho .dash-jornada-passo').length,
 }));
 ok(/nenhum paciente cadastrado/i.test(vazio.texto), 'sem paciente, convida a cadastrar');
 ok(/nenhuma consulta agendada/i.test(vazio.texto), 'sem consulta marcada, estado vazio elegante');

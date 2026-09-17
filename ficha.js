@@ -164,10 +164,69 @@
 
   /* ================================================= ABA: VISÃO CLÍNICA === */
 
+  /* Exames: resumo compacto, nao duplica o HOLOSCAN — so diz quantos valores
+     ja foram lancados (mesmo d.exames que a faixa e o panorama ja contam) e
+     manda para onde eles moram ou para o confronto em si. */
+  function blocoExames(d) {
+    return '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Exames</h3>' +
+      (d.exames > 0
+        ? '<p class="dash-sub">' + d.exames +
+          (d.exames === 1 ? " valor registrado." : " valores registrados.") + "</p>" +
+          '<button type="button" class="dash-ir" data-ir="holoscan">Ver HOLOSCAN ' +
+          '<span aria-hidden="true">&rarr;</span></button>'
+        : '<p class="dash-vazio">Nenhum exame registrado.</p>' +
+          '<button type="button" class="dash-ir" data-ir="aba:documentos">Registrar exames ' +
+          '<span aria-hidden="true">&rarr;</span></button>') +
+      "</div>";
+  }
+
+  function blocoDocumentosPlaceholder() {
+    return '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Documentos recentes</h3>' +
+      '<div id="fic-visao-docs"><p class="dash-vazio">Carregando…</p></div>' +
+      "</div>";
+  }
+
+  /* Os 3 mais recentes — mesmo ArquivoStore que a faixa e a aba Documentos ja
+     usam, nao e fonte de dado nova. Confere se #fic-visao-docs ainda existe
+     antes de escrever: a promise pode resolver depois de trocar de aba ou
+     de paciente. */
+  function preencherDocumentosRecentes(pid) {
+    if (!window.ArquivoStore) return;
+    window.ArquivoStore.listar(pid).then(function (itens) {
+      var alvo = document.getElementById("fic-visao-docs");
+      if (!alvo) return;
+      if (!itens.length) {
+        alvo.innerHTML = '<p class="dash-vazio">Nenhum documento.</p>' +
+          '<button type="button" class="dash-ir" data-ir="aba:documentos">Adicionar documento ' +
+          '<span aria-hidden="true">&rarr;</span></button>';
+        return;
+      }
+      var recentes = itens.slice()
+        .sort(function (a, b) { return (b.data || "").localeCompare(a.data || ""); })
+        .slice(0, 3);
+      alvo.innerHTML = '<ul class="dash-pendentes" id="fic-lista-docs">' +
+        recentes.map(function (a) {
+          // .dash-pendente e grade de 3 colunas (avatar/conteudo/botao); sem
+          // o avatar o botao caia na coluna do meio e esticava.
+          return '<li class="dash-pendente">' +
+            '<span class="pac-avatar">' + escapar((a.tipo || "Documento").charAt(0).toUpperCase()) + "</span>" +
+            '<span class="dash-quem"><b>' + escapar(a.nome) + "</b>" +
+              '<span class="dash-porque">' + escapar(a.tipo || "Documento") +
+                (a.data ? " &middot; " + escapar(dataBR(a.data)) : "") + "</span></span>" +
+            '<button type="button" class="dash-ir" data-ir="aba:documentos">Ver ' +
+              '<span aria-hidden="true">&rarr;</span></button>' +
+          "</li>";
+        }).join("") + "</ul>";
+    });
+  }
+
   function desenharVisao() {
     var alvo = document.getElementById("aba-visao");
     if (!alvo) return;
     var d = reunir();
+    var pid = paciente();
     var html = "";
 
     // --- alertas primeiro: e o que ela precisa ver ---
@@ -187,8 +246,10 @@
       html += '<div class="dash-vazio">Sem HOLOSCOPE aplicado. O mapa é o que ' +
         "transforma o que ela conta em leitura — e é dele que sai tudo o que " +
         "aparece nesta aba.</div>";
+      html += blocoDocumentosPlaceholder() + blocoExames(d);
       alvo.innerHTML = html;
       ligar(alvo);
+      preencherDocumentosRecentes(pid);
       return;
     }
 
@@ -244,8 +305,11 @@
         "<p class=\"fic-combinada\">" + escapar(interpretacao.texto).replace(/\n/g, "<br>") + "</p></div>";
     }
 
+    html += blocoDocumentosPlaceholder() + blocoExames(d);
+
     alvo.innerHTML = html;
     ligar(alvo);
+    preencherDocumentosRecentes(pid);
   }
 
   /* ================================================ ABA: LINHA DO TEMPO === */

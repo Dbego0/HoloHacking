@@ -710,6 +710,7 @@
               </div>
               <div class="fic-acoes-topo">
                 <button type="button" class="perf-botao" data-atalho="agenda">Nova consulta</button>
+                <button type="button" class="perf-botao" data-ir="aba:documentos">Registrar exames</button>
                 <button type="button" class="perf-botao" data-ir="aba:documentos">Novo documento</button>
                 <button type="button" class="btn-verde" data-atalho="holoscope">Aplicar HOLOSCOPE</button>
               </div>
@@ -727,9 +728,48 @@
                  abrir qualquer aba. Desenhada por ficha.js. -->
             <div class="fic-faixa" id="ficha-faixa"></div>
 
+            <!-- A jornada clinica, so o encadeamento visual: nao calcula nada,
+                 nao muda com o paciente. Mesmo vocabulario do dashboard
+                 (dash-jornada), reaproveitado — nao inventa um segundo visual
+                 so porque mudou de tela. data-ir="aba:x" fica dentro da ficha;
+                 data-atalho="x" vai para a secao do menu, como no cabecalho. -->
+            <div class="dash-bloco dash-bloco-compacto fic-jornada-bloco">
+              <h3 class="dash-titulo">Jornada clínica</h3>
+              <div class="dash-jornada fic-jornada">
+                <div class="dash-jornada-passo fic-jornada-atual">
+                  <span class="dash-quem"><b>Paciente</b>
+                    <span class="dash-porque">O ponto de partida: quem esta sendo atendida.</span></span>
+                </div>
+                <div class="dash-jornada-seta" aria-hidden="true">&darr;</div>
+                <div class="dash-jornada-passo">
+                  <span class="dash-quem"><b>Consulta</b>
+                    <span class="dash-porque">Marcar o proximo atendimento.</span></span>
+                  <button type="button" class="dash-ir" data-atalho="agenda">Abrir <span aria-hidden="true">&rarr;</span></button>
+                </div>
+                <div class="dash-jornada-seta" aria-hidden="true">&darr;</div>
+                <div class="dash-jornada-passo">
+                  <span class="dash-quem"><b>HOLOSCOPE</b>
+                    <span class="dash-porque">Mapear prioridades de investigação.</span></span>
+                  <button type="button" class="dash-ir" data-atalho="holoscope">Abrir <span aria-hidden="true">&rarr;</span></button>
+                </div>
+                <div class="dash-jornada-seta" aria-hidden="true">&darr;</div>
+                <div class="dash-jornada-passo">
+                  <span class="dash-quem"><b>HOLOSCAN</b>
+                    <span class="dash-porque">Confrontar o mapa com exames.</span></span>
+                  <button type="button" class="dash-ir" data-atalho="holoscan">Abrir <span aria-hidden="true">&rarr;</span></button>
+                </div>
+                <div class="dash-jornada-seta" aria-hidden="true">&darr;</div>
+                <div class="dash-jornada-passo">
+                  <span class="dash-quem"><b>Documentos</b>
+                    <span class="dash-porque">Consolidar registros e materiais.</span></span>
+                  <button type="button" class="dash-ir" data-ir="aba:documentos">Abrir <span aria-hidden="true">&rarr;</span></button>
+                </div>
+              </div>
+            </div>
+
             <div class="ficha-arquivos" id="ficha-arquivos">
               <div class="abas" role="tablist">
-                <button class="aba ativa" data-aba="visao" role="tab">Visão clínica</button>
+                <button class="aba ativa" data-aba="visao" role="tab">Visão geral</button>
                 <button class="aba" data-aba="linha" role="tab">Linha do tempo</button>
                 <button class="aba" data-aba="formularios" role="tab">Formulários</button>
                 <button class="aba" data-aba="documentos" role="tab">Documentos</button>

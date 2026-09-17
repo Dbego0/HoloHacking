@@ -249,7 +249,17 @@
     window.scrollTo({ top:0, behavior:"smooth" });
   }));
   $$(".nav-item").forEach(b => b.addEventListener("click", () => irPara(b.dataset.secao)));
-  $$("[data-ir]").forEach(c => c.addEventListener("click", () => irPara(c.dataset.ir)));
+  // "aba:x" abre uma aba da ficha aberta, nao uma secao do menu — irPara("aba:x")
+  // nao batia com secao nenhuma e zerava a tela (nenhuma .secao ficava ativa).
+  $$("[data-ir]").forEach(c => c.addEventListener("click", () => {
+    const destino = c.dataset.ir;
+    if(destino.indexOf("aba:") === 0){
+      const aba = document.querySelector('[data-aba="' + destino.slice(4) + '"]');
+      if(aba) aba.click();
+      return;
+    }
+    irPara(destino);
+  }));
 
   /* ============================================================
      CARREGAR OS DADOS  (de onde, ver dados.js)
@@ -693,6 +703,8 @@
     const contato = [];
     if(p.telefone) contato.push('<a href="tel:' + escapar(p.telefone) + '">' + escapar(p.telefone) + "</a>");
     if(p.email) contato.push('<a href="mailto:' + escapar(p.email) + '">' + escapar(p.email) + "</a>");
+    if(p.created_at) contato.push('<span class="fic-cadastro">Cadastrado em ' +
+      escapar(dataBR(p.created_at.slice(0, 10))) + "</span>");
     $("#ficha-contato").innerHTML = contato.join('<span class="fic-ponto">&middot;</span>')
       || '<span class="fic-sem">sem telefone nem e-mail</span>';
 

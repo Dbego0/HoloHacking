@@ -122,11 +122,38 @@ conferir(topo.nome === 'Marina Alves' && topo.status === 'Ativo',
   'o cabeçalho traz nome e situação: ' + topo.nome + ' / ' + topo.status);
 conferir(/href="tel:/.test(topo.contato) && /href="mailto:/.test(topo.contato),
   'telefone e e-mail viram link — a ficha é aberta para falar com a pessoa');
+conferir(/Cadastrado em \d\d\/\d\d\/\d{4}/.test(topo.contato),
+  'e a data de cadastro aparece no cabeçalho: ' + topo.contato);
 conferir(/42 anos/.test(topo.sobre) && /Feminino/.test(topo.sobre),
   'e a linha "sobre" resume quem é: ' + topo.sobre);
 conferir(topo.detalhesFechados, 'os detalhes do cadastro começam fechados');
-conferir(topo.acoes.join(',') === 'Nova consulta,Novo documento,Aplicar HOLOSCOPE',
+conferir(topo.acoes.join(',') === 'Nova consulta,Registrar exames,Novo documento,Aplicar HOLOSCOPE',
   'as ações ficam no topo, não no fim da página: ' + topo.acoes.join(' · '));
+
+// "Registrar exames" e "Novo documento" iam para "aba:documentos" — o clique
+// so ia parar la se a rota "aba:" fosse tratada tambem para botao estatico
+// do cabecalho (antes so ficha.js sabia disso; zerava a tela inteira).
+const abriuDocumentos = await p.evaluate(async () => {
+  document.querySelector('.fic-acoes-topo [data-ir="aba:documentos"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  const r = {
+    abaAtiva: document.querySelector('[data-aba="documentos"]').classList.contains('ativa'),
+    fichaVisivel: !document.getElementById('vista-ficha').classList.contains('hidden'),
+  };
+  document.querySelector('[data-aba="visao"]').click();
+  return r;
+});
+conferir(abriuDocumentos.abaAtiva && abriuDocumentos.fichaVisivel,
+  'e "Registrar exames"/"Novo documento" abrem a aba certa, sem zerar a tela');
+
+// ------------------------------------------------------ a jornada clinica --
+
+const jornada = await p.evaluate(() => ({
+  passos: [...document.querySelectorAll('.fic-jornada .dash-jornada-passo b')]
+    .map(b => b.textContent),
+}));
+conferir(jornada.passos.join(',') === 'Paciente,Consulta,HOLOSCOPE,HOLOSCAN,Documentos',
+  'a jornada clínica mostra o encadeamento: ' + jornada.passos.join(' · '));
 
 const detalhes = await p.evaluate(async () => {
   document.getElementById('ficha-ver-detalhes').click();
@@ -162,6 +189,23 @@ conferir(/pendência/.test(faixa.aberto.txt) && /alerta/.test(faixa.aberto.cls),
   'o que está em aberto acende: ' + faixa.aberto.txt);
 conferir(/1 preenchidos/.test(faixa.exames.txt), 'conta os exames: ' + faixa.exames.txt);
 conferir(/1 arquivo/.test(faixa.docs.txt), 'e os documentos: ' + faixa.docs.txt);
+
+/* ------------------------------------------- visão geral: exames e docs -- */
+
+await new Promise(r => setTimeout(r, 200)); // ArquivoStore.listar() e assincrono
+const visaoResumo = await p.evaluate(() => {
+  const blocos = [...document.querySelectorAll('#aba-visao .dash-bloco-compacto')];
+  const de = titulo => blocos.find(b => b.querySelector('.dash-titulo').textContent === titulo);
+  const exames = de('Exames');
+  const docs = de('Documentos recentes');
+  return {
+    exames: exames.textContent.replace(/\s+/g, ' ').trim(),
+    docItens: [...docs.querySelectorAll('.dash-pendente b')].map(b => b.textContent),
+  };
+});
+conferir(/1 valor registrado/.test(visaoResumo.exames), 'Visão geral resume os exames: ' + visaoResumo.exames);
+conferir(visaoResumo.docItens.includes('Hemograma completo'),
+  'e os documentos recentes: ' + visaoResumo.docItens.join(' · '));
 
 /* --------------------------------------------------- a linha do tempo ---- */
 

@@ -1231,8 +1231,17 @@ body.escuro .btn-tema .icone-lua{display:none}
 
 /* ---------- ARQUIVOS: exames, documentos e relatorio ---------- */
 
-.abas{display:flex;gap:6px;margin-bottom:26px;border-bottom:1px solid var(--linha,rgba(201,163,90,.18))}
+/* Cinco abas (a da ficha) nao cabem em 420px lado a lado. Em vez de
+   empurrar a pagina inteira para o lado (scroll horizontal ruim, o app
+   inteiro fica mais largo que a tela), a faixa das abas rola sozinha —
+   so ela, sem levar o resto da tela junto. */
+.abas{
+  display:flex;gap:6px;margin-bottom:26px;border-bottom:1px solid var(--linha,rgba(201,163,90,.18));
+  overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.abas::-webkit-scrollbar{display:none}
 .aba{
+  flex-shrink:0;
   padding:12px 22px;border:none;background:none;cursor:pointer;
   font-family:inherit;font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;
   color:var(--texto-suave);font-weight:500;border-bottom:2px solid transparent;
@@ -2022,6 +2031,7 @@ body.escuro .btn-tema .icone-lua{display:none}
 .fic-contato{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:.86rem}
 .fic-contato a{color:var(--texto-suave);text-decoration:none;font-weight:300}
 .fic-contato a:hover{color:var(--realce);text-decoration:underline;text-underline-offset:3px}
+.fic-cadastro{color:var(--texto-suave);font-weight:300}
 .fic-ponto{color:var(--texto-suave);opacity:.5;padding:0 6px}
 .fic-sem{font-size:.84rem;font-weight:300;color:var(--texto-suave);font-style:italic}
 .fic-acoes-topo{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
