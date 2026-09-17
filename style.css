@@ -3258,3 +3258,179 @@ a.pac-link:hover{color:var(--dourado);text-decoration:underline;text-underline-o
   body,.principal{background:#fff}
   .mapa{box-shadow:none}
 }
+
+/* ===========================================================================
+   TELA DE ENTRADA (login.js)
+
+   Sem cor, fonte, raio ou sombra proprios: tudo sai das variaveis que o resto
+   do app ja usa, para que a entrada pareca a mesma casa. O fundo e o
+   --verde-noite da marca nos dois temas — e a soleira, nao uma tela interna —
+   enquanto o cartao segue --sup-card e acompanha claro/escuro.
+   =========================================================================== */
+
+body.login-aberto{overflow:hidden}
+
+.tela-login{
+  position:fixed;inset:0;z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px max(16px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left));
+  overflow-y:auto;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(201,163,90,.16), transparent 62%),
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(20,80,59,.5), transparent 60%),
+    var(--verde-noite);
+}
+.tela-login[hidden]{display:none}
+
+.login-cartao{
+  width:100%;max-width:430px;
+  background:var(--sup-card);
+  border:1px solid var(--linha);
+  border-radius:var(--raio);
+  box-shadow:var(--sombra);
+  padding:40px 38px 30px;
+  /* margin:auto com align-items:center resolve o caso do cartao mais alto que
+     a viewport: sem isto o topo era cortado e ficava inalcancavel. */
+  margin:auto;
+}
+
+.login-marca{text-align:center;margin-bottom:30px}
+.login-marca svg{color:var(--dourado)}
+.login-marca h1{
+  font-family:var(--fonte-display);font-size:1.85rem;font-weight:600;
+  color:var(--titulo);line-height:1.1;margin-top:8px;
+}
+.login-marca p{
+  font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--texto-suave);font-weight:400;margin-top:7px;
+}
+
+.login-titulo{
+  font-family:var(--fonte-display);font-size:1.3rem;font-weight:500;
+  color:var(--texto);text-align:center;margin-bottom:26px;
+}
+
+.login-grupo{margin-bottom:18px}
+.login-grupo label{
+  display:block;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--realce);font-weight:600;margin-bottom:6px;
+}
+.login-grupo input[type="email"],
+.login-grupo input[type="password"],
+.login-grupo input[type="text"]{
+  width:100%;padding:12px 15px;
+  background:var(--input-fundo);border:1px solid var(--input-borda);
+  border-radius:10px;font-size:.9rem;color:var(--texto);
+  font-weight:300;line-height:1.6;
+  transition:border-color .2s, box-shadow .2s;
+}
+.login-grupo input:focus{
+  border-color:var(--dourado);box-shadow:0 0 0 3px rgba(201,163,90,.15);outline:none;
+}
+.login-grupo input[aria-invalid="true"]{border-color:var(--movimento-desce)}
+
+/* O campo reserva a largura do botao no proprio padding. Sem isto o olho
+   cobria o fim do texto e a senha "sumia" embaixo do icone. */
+.login-senha-caixa{position:relative}
+.login-senha-caixa input{padding-right:50px!important}
+.login-olho{
+  position:absolute;top:50%;right:6px;transform:translateY(-50%);
+  width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+  background:none;border:none;border-radius:8px;
+  color:var(--texto-suave);transition:color .18s,background .18s;
+}
+.login-olho:hover{color:var(--dourado)}
+.login-olho .olho-ocultar{display:none}
+.login-olho.revelada .olho-ver{display:none}
+.login-olho.revelada .olho-ocultar{display:block}
+.login-olho.revelada{color:var(--dourado)}
+
+.login-erro{
+  font-size:.76rem;color:var(--movimento-desce);font-weight:400;margin-top:6px;
+}
+.login-erro[hidden]{display:none}
+
+.login-linha{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;margin:20px 0 22px;
+}
+.login-manter{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  font-size:.8rem;color:var(--texto-suave);font-weight:300;
+}
+.login-manter input{
+  width:16px;height:16px;accent-color:var(--verde-medio);cursor:pointer;flex:none;
+}
+.login-link{
+  font-size:.8rem;color:var(--realce);font-weight:400;
+  text-decoration:none;border-bottom:1px solid transparent;transition:border-color .18s;
+}
+.login-link:hover{border-bottom-color:var(--dourado)}
+
+.login-botao{
+  width:100%;padding:14px 30px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--verde-medio),var(--verde-escuro));
+  color:var(--dourado-claro);font-weight:500;font-size:.74rem;
+  letter-spacing:.22em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:transform .2s, filter .2s, opacity .2s;
+}
+.login-botao:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.12)}
+.login-botao:disabled{opacity:.72;cursor:progress;transform:none}
+
+.login-girador{
+  width:15px;height:15px;flex:none;display:none;
+  border:2px solid rgba(226,201,138,.3);border-top-color:var(--dourado-claro);
+  border-radius:50%;animation:login-girar .7s linear infinite;
+}
+.tela-login.enviando .login-girador{display:block}
+@keyframes login-girar{to{transform:rotate(360deg)}}
+
+.login-mensagem{
+  margin-top:16px;padding:11px 14px;border-radius:10px;
+  font-size:.82rem;font-weight:300;line-height:1.55;text-align:center;
+}
+.login-mensagem[hidden]{display:none}
+.login-mensagem.aviso{
+  background:rgba(201,163,90,.1);border:1px solid var(--linha);color:var(--texto);
+}
+.login-mensagem.ok{
+  background:rgba(31,107,71,.12);border:1px solid rgba(31,107,71,.3);color:var(--texto);
+}
+
+.login-rodape{
+  margin-top:24px;text-align:center;
+  font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--texto-suave);font-weight:400;
+}
+
+/* A saida de desenvolvimento fica visivelmente separada do formulario: ela
+   nao e parte do login, e o contrario dele. */
+.login-dev{
+  margin-top:22px;padding-top:18px;border-top:1px dashed var(--borda-suave);
+  text-align:center;
+}
+.login-dev p{
+  font-size:.74rem;color:var(--texto-suave);font-weight:300;margin-bottom:9px;
+}
+.login-dev-botao{
+  background:none;border:1px solid var(--borda-suave);border-radius:999px;
+  padding:8px 16px;font-size:.68rem;color:var(--texto-suave);font-weight:400;
+  line-height:1.4;transition:border-color .18s,color .18s;
+}
+.login-dev-botao:hover{border-color:var(--dourado);color:var(--realce)}
+
+@media (max-width:480px){
+  .tela-login{padding:16px max(14px,env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left))}
+  .login-cartao{max-width:none;padding:30px 22px 24px;border-radius:14px}
+  .login-marca h1{font-size:1.6rem}
+  .login-titulo{font-size:1.15rem;margin-bottom:22px}
+  /* Empilhar evita que "Esqueci minha senha" e a caixa se apertem a ponto de
+     o alvo de toque ficar menor do que um dedo. */
+  .login-linha{flex-direction:column;align-items:flex-start;gap:12px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .login-girador{animation:none}
+  .login-botao:hover:not(:disabled){transform:none}
+}

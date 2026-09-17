@@ -112,6 +112,97 @@ ok(/Sem interpretação registrada/.test(resultado.interpretacaoPaciente),
 ok(resultado.indiceNoRelatorio === '61', 'Índice no relatório também é o do snapshot v1: ' + resultado.indiceNoRelatorio);
 ok(resultado.inalterado, 'o snapshot v1 continua byte a byte igual no disco depois de exibido');
 
+/* ====================================================================
+   SNAPSHOT AINDA MAIS ANTIGO: SEM `cobertura` NENHUMA
+
+   O v1 acima ainda trazia cobertura. Um snapshot guardado antes de o motor
+   ter esse campo nao traz — e desenharPontuacao() lia r.cobertura.respondidos
+   sem defesa, estourando um TypeError que levava junto a Triada, o Holoscan e
+   a evolucao, desenhados nas linhas anteriores da mesma funcao.
+
+   Restaurar um backup antigo torna isso alcancavel. Nao da para recalcular
+   cobertura: ela vem das respostas daquele dia, e o questionario guarda um
+   estado so. Entao a ausencia e DITA, nunca preenchida.
+   ==================================================================== */
+console.log('');
+
+const semCobertura = await p.evaluate(async () => {
+  const pid = window.pacienteAtivoId();
+  const antigo = {
+    quando: '2023-03-01',
+    indice: 55, indice_maximo: 100, avaliavel: true,
+    /* sem `cobertura`, sem `triada_com_dado`, sem `combinacoes` */
+    sistemas: [
+      { sistema: 'fungico', nome: 'Sistema Fúngico', nota: 5.5, carga: 4.5,
+        faixa: 'medio', obtido: 13, maximo: 30, avaliavel: true },
+      { sistema: 'acido_inflamatorio', nome: 'Sistema Ácido-Inflamatório', nota: 5.0,
+        carga: 5.0, faixa: 'medio', obtido: 15, maximo: 30, avaliavel: true },
+      { sistema: 'metabolico', nome: 'Sistema Metabólico', nota: 5.0, carga: 5.0,
+        faixa: 'medio', obtido: 15, maximo: 30, avaliavel: true },
+      { sistema: 'detox_linfatico', nome: 'Sistema Detox + Linfático', nota: 5.0,
+        carga: 5.0, faixa: 'medio', obtido: 15, maximo: 30, avaliavel: true },
+      { sistema: 'mental_emocional_espiritual', nome: 'Sistema Mental-Emocional-Espiritual',
+        nota: 5.0, carga: 5.0, faixa: 'medio', obtido: 15, maximo: 30, avaliavel: true }
+    ],
+    triada: { fisico: 5.2, mental: 5.0, espiritual: 5.0 }
+  };
+  const tudo = JSON.parse(localStorage.getItem('holohacking.pontuacao') || '{}');
+  tudo[pid] = [antigo];
+  localStorage.setItem('holohacking.pontuacao', JSON.stringify(tudo));
+  if (window.Concorrencia) window.Concorrencia.avancarRevisao('pontuacao');
+  const antesDoDisco = localStorage.getItem('holohacking.pontuacao');
+
+  /* A tela do HOLOSCOPE — onde o acesso inseguro vivia. */
+  document.querySelector('.nav-item[data-secao="holoscope"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  window.desenharPontuacao
+    ? window.desenharPontuacao(antigo)
+    : document.querySelector('[data-acao="calcular"]');
+  await new Promise(r => setTimeout(r, 400));
+
+  const origem = document.getElementById('holo-origem');
+  const score = document.getElementById('holo-score-total');
+  const triada = document.getElementById('holo-triada');
+
+  /* E o relatorio, que tinha o mesmo acesso em arquivos.js. */
+  document.querySelector('.nav-item[data-secao="pacientes"]').click();
+  document.getElementById('vista-lista-pacientes').classList.add('hidden');
+  document.getElementById('vista-ficha').classList.remove('hidden');
+  document.querySelector('[data-aba="relatorio"]').click();
+  await new Promise(r => setTimeout(r, 400));
+  const meta = document.querySelector('#relatorio .rel-meta');
+  const indiceRel = document.querySelector('#relatorio .rel-indice b');
+
+  return {
+    textoOrigem: origem ? origem.textContent : '',
+    score: score ? score.textContent : '',
+    triadaDesenhada: !!(triada && triada.innerHTML.trim().length),
+    temBotaoPontuar: !!document.getElementById('btn-repontuar'),
+    metaRelatorio: meta ? meta.textContent : '',
+    indiceRelatorio: indiceRel ? indiceRel.textContent : '',
+    inalterado: localStorage.getItem('holohacking.pontuacao') === antesDoDisco
+  };
+});
+
+ok(semCobertura.score === '55',
+   'snapshot SEM cobertura abre o HOLOSCOPE e mostra o Índice: ' + semCobertura.score);
+ok(semCobertura.triadaDesenhada,
+   'e a Tríada continua sendo desenhada — a função não morre antes de chegar nela');
+ok(/não registrou a cobertura/i.test(semCobertura.textoOrigem),
+   'a ausência é DITA, de forma neutra: "' + semCobertura.textoOrigem.trim().slice(0, 80) + '"');
+ok(!/\bNaN\b|undefined/.test(semCobertura.textoOrigem),
+   'sem NaN e sem undefined vazando para a tela');
+ok(!/de\s+respostas/.test(semCobertura.textoOrigem),
+   'e sem número inventado: não diz "de X respostas" quando não sabe');
+ok(semCobertura.temBotaoPontuar,
+   'o botão "pontuar à mão" continua lá — a linha inteira não foi perdida');
+ok(semCobertura.indiceRelatorio === '55',
+   'o relatório também abre: Índice ' + semCobertura.indiceRelatorio);
+ok(semCobertura.metaRelatorio && !/cobertura/.test(semCobertura.metaRelatorio),
+   'e omite o trecho de cobertura em vez de quebrar: "' + semCobertura.metaRelatorio.trim() + '"');
+ok(semCobertura.inalterado,
+   'e o snapshot antigo continua byte a byte igual: nada foi migrado nem recalculado');
+
 await nav.close();
 console.log(ruim.length ? '\n  ERRO: ' + ruim[0] : '\n  sem erro de JS');
 process.exit(falhou ? 1 : 0);

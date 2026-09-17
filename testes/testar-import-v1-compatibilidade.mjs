@@ -640,26 +640,37 @@ ok(intacto.exportaveis === 12 && intacto.noBackup === 12,
 ok(intacto.v1Oficial,
    'o importador legado DadosLocais.importar() continua existindo e intocado');
 
-/* Z */
-const semUI = await p.evaluate(async () => {
-  const arquivos = ['/perfil.js', '/app.js', '/ficha.js', '/arquivos.js', '/documentos.js'];
-  const citam = [];
-  for (const a of arquivos) {
+/* Z — a rodada de UI aconteceu: este bloco dizia que nenhuma tela chamava o
+   caminho novo, e avisava que a troca viria depois. Veio. Agora ele cobra que
+   a troca esteja feita, e feita num lugar so. */
+const comUI = await p.evaluate(async () => {
+  const outras = ['/app.js', '/ficha.js', '/arquivos.js', '/documentos.js'];
+  const vazou = [];
+  for (const a of outras) {
     const t = await (await fetch(a)).text();
     if (/aplicarBackupV1|planejarImportacaoV1|converterV1ParaV2Limpo|aplicarBackupV2/.test(t)) {
-      citam.push(a);
+      vazou.push(a);
     }
   }
   const perfil = await (await fetch('/perfil.js')).text();
-  return { citam, perfilUsaLegado: /DadosLocais\s*\.?\s*importar|banco\(\)\.importar/.test(perfil) ||
-                                   /importar\(/.test(perfil) };
+  return {
+    vazou,
+    perfilPlaneja: /planejarImportacaoV1/.test(perfil),
+    perfilAplicaV1: /aplicarBackupV1/.test(perfil),
+    perfilConfirmaParcial: /confirmarRestauracaoParcial/.test(perfil),
+    /* a chamada da fachada como importador: `banco().importar(pacote)` */
+    perfilAindaChamaLegado: /banco\(\)\s*\.\s*importar\s*\(/.test(perfil)
+  };
 });
-ok(semUI.citam.length === 0,
-   'Z — nenhuma tela chama o caminho novo: ' +
-   (semUI.citam.length ? semUI.citam.join(', ') : 'nenhuma'));
-ok(semUI.perfilUsaLegado,
-   'e perfil.js continua no importador legado — a troca e da rodada de UI, ' +
-   'nao desta');
+ok(comUI.perfilPlaneja && comUI.perfilAplicaV1,
+   'Z — perfil.js passou a planejar e aplicar o V1 pelo caminho novo');
+ok(comUI.perfilConfirmaParcial,
+   'Z — e passa confirmarRestauracaoParcial, que so se passa depois de avisar');
+ok(!comUI.perfilAindaChamaLegado,
+   'Z — e nao chama mais banco().importar(): o atalho legado saiu da tela');
+ok(comUI.vazou.length === 0,
+   'Z — nenhuma OUTRA tela chama o caminho novo: ' +
+   (comUI.vazou.length ? 'vazou para ' + comUI.vazou.join(', ') : 'nenhuma'));
 
 /* ------------------------------------------------------------------ fim - */
 console.log('');

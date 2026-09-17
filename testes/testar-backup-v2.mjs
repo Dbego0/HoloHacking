@@ -19,8 +19,9 @@
  *   GERAR NAO ESCREVE — localStorage byte a byte e IndexedDB conferidos antes
  *   e depois, e nenhuma chave nova criada.
  *
- * Nesta rodada o V2 e SO GERADOR: nao existe importador, e o botao de
- * Exportar da interface continua chamando o V1.
+ * Este arquivo cobra o GERADOR. O importador chegou depois (P0.4b,
+ * testar-import-v2-aplicacao) e a ligacao com a tela depois ainda
+ * (testar-backup-ui): o botao Exportar hoje chama este V2, nao mais o V1.
  */
 import puppeteer from 'puppeteer-core';
 
@@ -561,7 +562,7 @@ ok(semRastro.length === 0,
 
 /* ==================================================================== */
 console.log('');
-console.log('  7. O V1 CONTINUA SENDO O OFICIAL');
+console.log('  7. O V1 CONTINUA EXISTINDO — MAS NAO E MAIS O BACKUP');
 console.log('');
 /* ==================================================================== */
 
@@ -572,30 +573,34 @@ const v1 = await p.evaluate(() => {
     temFormato: 'formato' in pacote,
     tabelas: Object.keys(pacote.tabelas).length,
     temQuestionario: JSON.stringify(pacote).indexOf('holohacking.questionario') >= 0,
-    /* o gerador V2 existe e nao tem consumidor de interface */
     v2Existe: typeof window.Armazenamento.gerarBackupV2 === 'function',
     baixarExiste: typeof window.Armazenamento.baixarBackupV2 === 'function'
   };
 });
 ok(v1.versao === 1 && !v1.temFormato && v1.tabelas === 8,
-   'o export da interface continua sendo o V1, intocado: versao ' + v1.versao +
+   'DadosLocais.exportar() continua existindo e intocado: versao ' + v1.versao +
    ', ' + v1.tabelas + ' tabelas, sem campo `formato`');
 ok(!v1.temQuestionario,
    'e continua incompleto do mesmo jeito — o V2 nao o consertou por acidente');
-ok(v1.v2Existe && v1.baixarExiste,
-   'o V2 existe como API tecnica, e baixarBackupV2 esta SEM CONSUMIDOR DE UI: ' +
-   'backup que ninguem sabe restaurar e pior do que backup incompleto, e o ' +
-   'importador V2 ainda nao existe');
+ok(v1.v2Existe && v1.baixarExiste, 'e o V2 continua exposto como API');
 
-const semBotao = await p.evaluate(() => {
-  const html = document.documentElement.innerHTML;
+/* A tela mudou de motor. A fachada NAO foi apagada — dados.js e a camada de
+   persistencia do app inteiro, e outras coisas dependem dela. O que deixou de
+   existir e trata-la como backup. */
+const quemChama = await p.evaluate(async () => {
+  const perfil = await (await fetch('/perfil.js')).text();
   return {
-    citado: html.indexOf('gerarBackupV2') >= 0 || html.indexOf('baixarBackupV2') >= 0,
-    v1Ligado: typeof window.DadosLocais.exportar === 'function'
+    perfilChamaV2: /gerarBackupV2/.test(perfil),
+    perfilUsaV1ComoBackup: /banco\(\)\.exportar\(\)|b\.exportar\(\)/.test(perfil),
+    fachadaViva: typeof window.DadosLocais.exportar === 'function'
   };
 });
-ok(!semBotao.citado && semBotao.v1Ligado,
-   'nenhuma tela chama o V2; o V1 segue ligado onde sempre esteve');
+ok(quemChama.perfilChamaV2,
+   'o botao Exportar de perfil.js chama gerarBackupV2 — o V2 tem consumidor de UI');
+ok(!quemChama.perfilUsaV1ComoBackup,
+   'e NAO chama mais a fachada como backup: o V1 parou de ser o pacote oficial');
+ok(quemChama.fachadaViva,
+   'mas DadosLocais.exportar() segue vivo — deixou de ser backup, nao foi apagado');
 
 /* ------------------------------------------------------------------ fim - */
 console.log('');

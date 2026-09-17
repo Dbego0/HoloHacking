@@ -120,12 +120,14 @@
     texto: function (c) { return HOLOSCAN_TEXTO[holoscanEstado(c)]; }
   };
 
-  /* Leitura do Holoscan dentro da jornada do HOLOSCOPE (#secao-holoscope).
+  /* Leitura do Holoscan na sua propria secao (#secao-holoscan), logo abaixo
+     do HOLOSCOPE no menu — saiu de dentro de #secao-holoscope, onde era o
+     item 8 e sugeria que o mapa se corrigia com exame.
      O lancamento dos valores continua na aba Documentos da ficha (nao move
      #ex-corpo nem os listeners de ligarPainel()) — este bloco e so leitura,
      por sistema: exames disponiveis, valor lancado, unidade, faixa cadastrada,
-     estado do exame e o resultado do confronto (Holoscan). Chamado de
-     desenharPontuacao() em app.js. */
+     estado do exame e o resultado do confronto (Holoscan). Chamado por
+     irPara("holoscan") e por desenharPontuacao(), ambos em app.js. */
   window.desenharHoloscan = function (alvoId) {
     var alvo = document.getElementById(alvoId || "holo-holoscan");
     if (!alvo) return;
@@ -143,9 +145,12 @@
     var porSistema = {};
     lista.forEach(function (e) { (porSistema[e.sistema] = porSistema[e.sistema] || []).push(e); });
 
-    var html = '<div class="terr-cabeca"><span class="eyebrow">Holoscan</span>' +
-      "<p>O que os exames acrescentam a este mapa. O lançamento e a edição dos " +
-      "valores ficam na aba Documentos, na ficha do paciente.</p></div>";
+    /* Sem cabeca propria: quando este bloco era o item 8 do HOLOSCOPE ele
+       precisava se apresentar no meio da pagina. Agora #secao-holoscan ja
+       tem titulo e subtitulo, e repetir "o que os exames acrescentam" duas
+       vezes na mesma tela so empurrava o conteudo para baixo. O aviso de
+       onde se lancam os valores foi para o cabecalho da secao. */
+    var html = "";
 
     Object.keys(porSistema).forEach(function (sis) {
       var c = confrontoPorSistema[sis] || null;
@@ -277,7 +282,7 @@
     });
 
     desenharConfronto(r, n);
-    // #holo-holoscan (dentro de #secao-holoscope) le os MESMOS exames — sem
+    // #holo-holoscan (agora em #secao-holoscan) le os MESMOS exames — sem
     // isso, editar um exame aqui na aba Documentos deixava aquele bloco
     // parado na leitura de antes ate o proximo "Salvar HOLOSCOPE".
     if (window.desenharHoloscan) window.desenharHoloscan("holo-holoscan");
@@ -570,7 +575,12 @@
         "</span>" +
       "</div>" +
       "<h3>Mapa HOLOS" + (nome ? " &middot; " + escapar(nome) : "") + "</h3>" +
-      '<p class="rel-meta">' + hoje() + " &middot; cobertura " + p.cobertura.percentual + "%</p>" +
+      /* Mesma defesa de app.js: snapshot antigo pode nao ter `cobertura`, e o
+         relatorio nao pode quebrar por causa disso. Sem o dado, o segmento
+         simplesmente nao aparece — a data continua. */
+      '<p class="rel-meta">' + hoje() +
+        (p.cobertura && typeof p.cobertura.percentual === "number"
+          ? " &middot; cobertura " + p.cobertura.percentual + "%" : "") + "</p>" +
       '<p class="rel-fronteira">Avaliação nutricional integral construída a partir ' +
         "do que o paciente relata. Não é exame, não é diagnóstico médico e não " +
         "substitui avaliação clínica.</p>" +

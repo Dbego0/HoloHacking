@@ -5,6 +5,10 @@ const p = await nav.newPage();
 await p.setViewport({width:1500,height:1200});
 const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
+/* Estes testes fotografam um elemento, e a camada de entrada (login.js) o
+   cobriria. Dispensa-la aqui nao e autenticar: e descobrir a tela, o mesmo que
+   o botao visivel de desenvolvimento faz. */
+await p.evaluate(() => window.LoginView && window.LoginView.abrirApp());
 await p.addStyleTag({content:'*{transition:none!important;animation:none!important}'});
 let falhou = false;
 const ok = (c,t) => {

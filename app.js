@@ -122,7 +122,8 @@
   const nomesSecao = {
     dashboard:"Dashboard", pacientes:"Pacientes", consultas:"Consultas",
     agenda:"Agenda", documentos:"Documentos",
-    holoscope:"HOLOSCOPE", corpo:"Módulo Corpo", mente:"Módulo Mente",
+    holoscope:"HOLOSCOPE", holoscan:"HOLOSCAN",
+    corpo:"Módulo Corpo", mente:"Módulo Mente",
     espirito:"Módulo Espírito", perfil:"Perfil"
   };
   function irPara(secao){
@@ -144,6 +145,11 @@
       consultas: window.redesenharConsultas,
       agenda: window.redesenharAgenda,
       documentos: window.redesenharDocumentos,
+      /* O HOLOSCAN virou secao propria e precisa disto mais do que as outras:
+         os exames sao lancados na ficha, noutra tela. Sem redesenhar ao abrir,
+         lancar um exame e vir para ca mostrava o confronto de antes — e um
+         confronto desatualizado e pior do que confronto nenhum. */
+      holoscan: () => { if(window.desenharHoloscan) window.desenharHoloscan("holo-holoscan"); },
       /* Pacientes entrou aqui depois das outras, e era a que mais precisava:
          o cartao agora mostra "Último contato" e o proximo passo. Aplicar um
          HOLOSCOPE e voltar para a lista deixava o cartao dizendo "Sem consulta
@@ -2170,12 +2176,26 @@
     $("#holo-score-total").textContent = r.indice;
 
     const faltando = r.sistemas.filter(s => !s.avaliavel).map(s => s.nome);
+    /* `cobertura` pode faltar num snapshot guardado antes de o motor ter esse
+       campo — o mesmo motivo pelo qual s.respondidos ja era tratado com
+       cuidado logo abaixo, em desenharPrioridades(). Sem a defesa, abrir um
+       mapa antigo quebrava esta funcao inteira num TypeError, e com ela a
+       Triada, o Holoscan e a evolucao, que sao desenhados nas linhas acima.
+       Ausencia e dita, nao preenchida: nao ha como recalcular cobertura sem
+       as respostas daquele dia, e elas nao ficaram guardadas. */
+    const cob = r.cobertura;
+    const temContagem = cob && typeof cob.respondidos === "number"
+                            && typeof cob.total === "number";
+    const temPercentual = cob && typeof cob.percentual === "number";
     $("#holo-origem").innerHTML =
-      "Calculado a partir de <b>" + r.cobertura.respondidos + "</b> de "
-      + r.cobertura.total + " respostas"
-      + (r.cobertura.percentual < 100
+      (temContagem
+        ? "Calculado a partir de <b>" + cob.respondidos + "</b> de "
+          + cob.total + " respostas"
+        : '<span class="holo-sem-dado">Este mapa não registrou a cobertura do '
+          + "questionário.</span>")
+      + (temPercentual && cob.percentual < 100
           ? ' &middot; <b class="holo-parcial">questionário incompleto ('
-            + r.cobertura.percentual + '%)</b>'
+            + cob.percentual + '%)</b>'
           : "")
       + ' &middot; <button type="button" class="btn-relink" id="btn-repontuar">pontuar à mão</button>'
       + (faltando.length

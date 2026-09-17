@@ -619,19 +619,26 @@ ok(intacto.operacionaisConc.join(',') ===
    '. Sao tres conceitos diferentes e propositalmente separados — o relogio, ' +
    'o anuncio de quem esta operando agora, e o marcador do que ficou pela ' +
    'metade');
-ok(intacto.v1 === 1, 'e o V1 continua sendo o export oficial da interface');
+ok(intacto.v1 === 1,
+   'e DadosLocais.exportar() continua devolvendo versao 1 — vivo, mas ja nao e o backup');
 
-const semUI = await A.evaluate(async () => {
-  const arquivos = ['/perfil.js', '/app.js', '/ficha.js', '/arquivos.js', '/documentos.js'];
-  const citam = [];
-  for (const a of arquivos) {
+/* A UI foi ligada ao V2. O que importa AQUI, num teste de concorrencia, e que
+   quem chama a restauracao seja um arquivo so: duas telas chamando o mesmo
+   motor seriam duas portas para a mesma operacao exclusiva. */
+const comUI = await A.evaluate(async () => {
+  const outras = ['/app.js', '/ficha.js', '/arquivos.js', '/documentos.js'];
+  const vazou = [];
+  for (const a of outras) {
     const t = await (await fetch(a)).text();
-    if (/aplicarBackupV2|recuperarRestauracaoPendente/.test(t)) citam.push(a);
+    if (/aplicarBackupV2|recuperarRestauracaoPendente/.test(t)) vazou.push(a);
   }
-  return citam;
+  const perfil = await (await fetch('/perfil.js')).text();
+  return { vazou, perfilChama: /aplicarBackupV2/.test(perfil) };
 });
-ok(semUI.length === 0,
-   'nenhuma tela chama o V2: ligar a UI continua sendo etapa futura');
+ok(comUI.perfilChama, 'perfil.js chama aplicarBackupV2 — a UI esta ligada');
+ok(comUI.vazou.length === 0,
+   'e e a UNICA porta para a restauracao: nenhuma outra tela a chama' +
+   (comUI.vazou.length ? ' — vazou para ' + comUI.vazou.join(', ') : ''));
 
 /* ------------------------------------------------------------------ fim - */
 console.log('');

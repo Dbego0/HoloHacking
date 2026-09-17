@@ -626,9 +626,13 @@
       '<p class="perf-ajuda">Isso quer dizer duas coisas ao mesmo tempo: os dados dos ' +
       "seus pacientes não estão expostos em lugar nenhum, e ninguém faz cópia deles " +
       "por você. Limpar os dados do navegador apaga tudo. <b>Exporte de vez em quando.</b></p>" +
+      '<p class="perf-ajuda">O backup completo leva <b>tudo</b>: cadastro, mapas ' +
+      "HOLOSCOPE, respostas do questionário, valores de exame, consultas, ferramentas " +
+      "aplicadas, seu perfil — e os arquivos (laudos, fotos, sua assinatura). Fica de " +
+      "fora só a aparência clara/escura, que é preferência deste navegador.</p>" +
       '<div class="perf-foto-acoes">' +
-        '<button type="button" class="btn-verde" id="btn-exportar">Exportar uma cópia</button>' +
-        '<button type="button" class="perf-botao" id="btn-importar">Importar de um arquivo</button>' +
+        '<button type="button" class="btn-verde" id="btn-exportar">Exportar backup completo</button>' +
+        '<button type="button" class="perf-botao" id="btn-importar">Importar backup</button>' +
         '<input type="file" id="arq-importar" accept=".json,application/json" class="hidden">' +
       "</div>" +
       '<p class="perf-aviso" id="conta-aviso"></p>';
@@ -664,40 +668,208 @@
     }
   }
 
-  /* ---------- exportar e importar ----------------------------------------- */
+  /* ---------- exportar e importar -----------------------------------------
+
+     O BOTAO PASSOU A CHAMAR O BACKUP V2.
+
+     Ate aqui, "Exportar" chamava DadosLocais.exportar(), que empacota as OITO
+     tabelas da fachada e mais nada. Ficavam de fora quatro armazenamentos que
+     ninguem consegue regerar — as respostas do questionario, a serie historica
+     de mapas, os valores de exame — e TODOS os arquivos do IndexedDB: laudo em
+     PDF, foto de exame, a assinatura da nutricionista. Um backup que nao leva
+     isso nao e um backup incompleto: e um backup que mente, porque a pessoa
+     guarda o arquivo achando que guardou o prontuario.
+
+     O motor V2 ja existia inteiro em armazenamento.js, validar-backup.js,
+     restaurar-backup.js e importar-v1.js — com hash canonico, snapshot,
+     rollback, verificacao pos-escrita e recuperacao pos-crash. O que faltava
+     era so o fio ate o botao. Esta rodada e o fio. Nenhuma linha do motor
+     mudou.
+
+     DadosLocais.exportar() continua existindo: dados.js e a fachada, e outras
+     coisas dependem dela. O que deixou de existir e trata-la como backup. */
+
+  function armaz() { return window.Armazenamento || null; }
 
   function exportar() {
-    var b = banco();
-    if (!b) return;
-    var pacote = b.exportar();
-    var texto = JSON.stringify(pacote, null, 2);
-    var url = URL.createObjectURL(new Blob([texto], { type: "application/json" }));
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "holohacking-" + hojeISO() + ".json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
-    contaAviso("Cópia gerada. Guarde o arquivo fora deste computador.");
+    var A = armaz();
+    if (!A || !A.gerarBackupV2) {
+      contaAviso("O módulo de backup não carregou. Recarregue a página.", true);
+      return;
+    }
+    var botao = document.getElementById("btn-exportar");
+    if (botao) botao.disabled = true;
+    contaAviso("Gerando o backup completo — os arquivos entram junto, pode demorar.");
+
+    /* gerarBackupV2 le as 12 caixas exportaveis MAIS os documentos do
+       IndexedDB, calcula o sha256 do conteudo canonico e devolve o pacote. */
+    A.gerarBackupV2().then(function (pacote) {
+      var r = A.baixarBackupV2(pacote);
+      var docs = (pacote.conteudo.arquivos || []).length;
+      var mb = (r.bytes / 1048576).toFixed(1);
+      contaAviso("Backup completo gerado: " + pacote.armazenamentos.length +
+                 " armazenamentos e " + docs + (docs === 1 ? " documento" : " documentos") +
+                 " · " + mb + " MB. Guarde o arquivo fora deste computador.");
+    }).catch(function (e) {
+      /* O gerador e ESTRITO com o IndexedDB de proposito: se a leitura dos
+         documentos falhar, ele rejeita em vez de entregar um pacote que diz
+         "zero documentos" com alegria. Aqui isso vira recusa visivel — nunca
+         um download pela metade. */
+      contaAviso("O backup NÃO foi gerado: " + (e && e.message ? e.message : "falha ao ler os arquivos") +
+                 ". Nada foi salvo — tente de novo.", true);
+    }).then(function () {
+      if (botao) botao.disabled = false;
+    });
+  }
+
+  /* Os quatro grupos que um V1 nunca carregou, em portugues de gente. */
+  var NOME_CAIXA = {
+    questionario: "as respostas do questionário",
+    pontuacao: "o histórico de mapas HOLOSCOPE",
+    exames: "os valores de exame",
+    arquivos: "os arquivos (laudos, fotos, assinatura)"
+  };
+  function listarCaixas(ids) {
+    return (ids || []).map(function (id) { return NOME_CAIXA[id] || id; }).join(", ");
   }
 
   function importar(arquivo) {
+    var A = armaz();
+    if (!A || !A.reconhecerBackup) {
+      contaAviso("O módulo de backup não carregou. Recarregue a página.", true);
+      return;
+    }
     var leitor = new FileReader();
+    leitor.onerror = function () {
+      contaAviso("Não foi possível ler o arquivo do disco.", true);
+    };
     leitor.onload = function () {
       var pacote;
       try { pacote = JSON.parse(leitor.result); }
-      catch (e) { contaAviso("Esse arquivo não é uma cópia do HoloHacking.", true); return; }
-      /* Importar SUBSTITUI. Perguntar antes e obrigatorio: a pessoa pode estar
-         com dados de hoje na tela e um arquivo de tres meses atras na mao. */
-      if (!confirm("Importar substitui tudo o que está neste navegador pelo conteúdo " +
-                   "do arquivo. Continuar?")) return;
-      try { banco().importar(pacote); }
-      catch (e) { contaAviso("Não foi possível importar: " + e.message, true); return; }
-      contaAviso("Importado. Recarregando...");
-      setTimeout(function () { location.reload(); }, 900);
+      catch (e) { contaAviso("Esse arquivo não é um backup do HoloHacking.", true); return; }
+
+      var qual = A.reconhecerBackup(pacote);
+      if (qual.tipo === "v2") return importarV2(pacote);
+      if (qual.tipo === "v1_legado") return importarV1(pacote);
+      contaAviso("Esse arquivo não é um backup do HoloHacking: " + qual.porque, true);
     };
     leitor.readAsText(arquivo);
+  }
+
+  /** V2: valida, simula, mostra o que vai ser substituido, e so entao aplica. */
+  function importarV2(pacote) {
+    var A = armaz();
+    contaAviso("Conferindo o arquivo...");
+    /* O DRY-RUN e obrigatorio, nao cortesia: e a unica chance de a pessoa ver
+       o tamanho do que vai ser substituido ANTES de perder o que tem. Ele nao
+       escreve nada — simularImportacaoV2 devolve escreveu:false sempre. */
+    A.simularImportacaoV2(pacote).then(function (sim) {
+      if (!sim.valido) {
+        contaAviso("Backup inválido — NADA foi alterado. " +
+                   primeiroErro(sim) , true);
+        return;
+      }
+      var linhas = sim.substituidos.map(function (s) {
+        return "  · " + (NOME_CAIXA[s.id] || s.id) + ": " + s.registros;
+      }).join("\n");
+      var alerta = sim.orfaos > 0
+        ? "\n\nAVISO: o pacote traz " + sim.registros_orfaos + " registro(s) de " +
+          "paciente que não existe mais no cadastro. Eles serão restaurados assim mesmo."
+        : "";
+      if (!confirm("Restaurar SUBSTITUI tudo o que está neste navegador.\n\n" +
+                   "O backup traz:\n" + linhas + "\n  · " + sim.documentos + " documento(s)" +
+                   alerta + "\n\nSe algo falhar no meio, o estado anterior é restaurado " +
+                   "automaticamente.\n\nContinuar?")) {
+        contaAviso("Importação cancelada. Nada foi alterado.");
+        return;
+      }
+      aplicar(A.aplicarBackupV2(pacote));
+    }).catch(function (e) {
+      contaAviso("Não foi possível conferir o arquivo: " + descrever(e) +
+                 ". Nada foi alterado.", true);
+    });
+  }
+
+  /** V1 legado: restauracao PARCIAL, e o motor exige confirmacao explicita. */
+  function importarV1(pacote) {
+    var A = armaz();
+    contaAviso("Conferindo o arquivo...");
+    var plano;
+    try { plano = A.planejarImportacaoV1(pacote); }
+    catch (e) { contaAviso("Não foi possível ler esse backup antigo: " + descrever(e), true); return; }
+
+    if (!plano.valido) {
+      contaAviso("Backup antigo inválido — NADA foi alterado.", true);
+      return;
+    }
+    /* A API recusa sem confirmarRestauracaoParcial:true justamente para que
+       esta frase exista. Nao e burocracia: o V1 nunca guardou estes quatro
+       grupos, e restaurar um V1 ESVAZIA o que houver deles aqui. */
+    if (!confirm("Este é um BACKUP PARCIAL LEGADO (formato antigo).\n\n" +
+                 "Ele traz: " + plano.pacientes + " paciente(s), " +
+                 plano.consultas + " consulta(s), " + plano.aplicacoes + " aplicação(ões).\n\n" +
+                 "Ele NÃO contém " + listarCaixas(plano.limpa_por_ausencia_no_formato) +
+                 ".\nRestaurar APAGA esses grupos deste navegador — não porque o backup " +
+                 "disse que estão vazios, mas porque o formato antigo nunca os guardou.\n\n" +
+                 "Continuar mesmo assim?")) {
+      contaAviso("Importação cancelada. Nada foi alterado.");
+      return;
+    }
+    aplicar(A.aplicarBackupV1(pacote, { confirmarRestauracaoParcial: true }));
+  }
+
+  /** O desfecho, igual para os dois formatos: o V1 passa pelo motor do V2. */
+  function aplicar(promessa) {
+    contaAviso("Restaurando — não feche esta aba.");
+    promessa.then(function (r) {
+      if (r.aplicado) {
+        contaAviso("Restaurado: " + (r.armazenamentos || []).length + " armazenamentos e " +
+                   (r.documentos || 0) + " documento(s). Recarregando...");
+        /* O motor diz precisa_recarregar: as telas em memoria nao sabem que o
+           disco inteiro mudou embaixo delas. */
+        if (r.precisa_recarregar) setTimeout(function () { location.reload(); }, 1200);
+        return;
+      }
+      if (r.revertido) {
+        contaAviso("A restauração falhou no meio e o estado anterior foi DEVOLVIDO por " +
+                   "completo. Seus dados continuam como estavam.", true);
+        return;
+      }
+      contaAviso(explicarRecusa(r), true);
+    }).catch(function (e) {
+      contaAviso("A restauração não pôde ser concluída: " + descrever(e), true);
+    });
+  }
+
+  /** Por que o motor recusou — em vez de "erro". Cada motivo tem uma saida. */
+  function explicarRecusa(r) {
+    var nada = " NADA foi alterado.";
+    switch (r.motivo) {
+      case "RECUPERACAO_PENDENTE":
+        return "Há uma restauração anterior que não terminou neste navegador. " +
+               "Recupere-a antes de restaurar outra coisa." + nada;
+      case "ESTADO_DESATUALIZADO":
+        return "Outra aba do HoloHacking escreveu enquanto esta esperava. " +
+               "Feche as outras abas e tente de novo." + nada;
+      case "PACOTE_INVALIDO":
+        return "O arquivo não passou na verificação de integridade." + nada;
+      case "FALHA_ANTES_DO_SNAPSHOT":
+        return "A restauração parou antes de começar a escrever." + nada;
+      case "RECUPERACAO_MANUAL_NECESSARIA":
+        return "A restauração falhou E a volta automática também falhou. " +
+               "NÃO feche esta aba: use a recuperação pendente.";
+      default:
+        return "A restauração não foi aplicada" +
+               (r.motivo ? " (" + r.motivo + ")" : "") + "." + nada;
+    }
+  }
+
+  function primeiroErro(sim) {
+    var e = (sim.erros || [])[0];
+    return e ? (e.codigo + (e.onde ? " em " + e.onde : "")) : "";
+  }
+  function descrever(e) {
+    return (e && e.message) ? e.message : String(e);
   }
 
   function apagarTudo() {

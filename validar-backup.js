@@ -7,7 +7,9 @@
 
    Ele nao escreve em localStorage, nao escreve no IndexedDB, nao toca no DOM,
    nao muda estado global e nao importa nada. Validacao e APLICACAO sao coisas
-   separadas, e a aplicacao (P0.4b em diante) ainda nao existe.
+   separadas: a aplicacao vive em restaurar-backup.js e chama ESTE validador
+   antes de escrever o primeiro byte. "Nao importa nada" e sobre esta funcao,
+   nunca sobre o app.
 
    POR QUE SEPARAR
      Um importador que valida enquanto escreve ja escreveu metade quando
@@ -893,7 +895,12 @@
              "", quem.porque);
       return Promise.resolve({
         valido: false, tipo: quem.tipo, porque: quem.porque,
-        importavel_nesta_versao: false,
+        /* validar NAO escreve. Antes isto se dizia com
+           `importavel_nesta_versao:false`, que passou a ser mentira quando o
+           importador nasceu: a frase misturava "esta funcao nao importa" com
+           "o app nao sabe importar". Sao coisas diferentes, e so a primeira
+           era verdade. O vocabulario agora e o mesmo do restaurador. */
+        aplicado: false, escreveu: false,
         erros: c.erros, avisos: c.avisos, resumo: resumo
       });
     }
@@ -919,7 +926,7 @@
         valido: c.erros.length === 0,
         tipo: "v2",
         porque: quem.porque,
-        importavel_nesta_versao: false,   /* nao existe importador ainda */
+        aplicado: false, escreveu: false,   /* validar nao escreve */
         erros: c.erros,
         avisos: c.avisos,
         resumo: resumo
@@ -998,8 +1005,6 @@
         /* dito em voz alta: isto NAO importou nada */
         aplicado: false,
         escreveu: false,
-        importavel_nesta_versao: false,
-        motivo_nao_importavel: "o importador V2 ainda nao existe (P0.4b)",
 
         pacientes: Array.isArray(dados.pacientes) ? dados.pacientes.length : 0,
         aplicacoes: Array.isArray(dados.aplicacoes) ? dados.aplicacoes.length : 0,

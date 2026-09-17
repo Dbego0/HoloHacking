@@ -665,39 +665,47 @@ ok(fonteperfil,
 
 /* ==================================================================== */
 console.log('');
-console.log('  7. NADA DISTO ESTA LIGADO A INTERFACE');
+console.log('  7. ISTO AGORA ESTA LIGADO A INTERFACE — E SO NUM LUGAR');
 console.log('');
 /* ==================================================================== */
 
-const semUI = await p.evaluate(async () => {
-  const arquivos = ['/perfil.js', '/app.js', '/ficha.js', '/arquivos.js',
-                    '/documentos.js', '/dashboard.js'];
-  const citam = [];
-  for (const a of arquivos) {
+/* Este bloco dizia o contrario: que a API existia e nao tinha consumidor. Era
+   verdade e deixou de ser. O que ele cobra agora e que a ligacao exista, que
+   esteja num arquivo so, e que o motivo pelo qual ela pode existir — a trava
+   entre abas — esteja de pe. */
+const comUI = await p.evaluate(async () => {
+  const telas = ['/app.js', '/ficha.js', '/arquivos.js', '/documentos.js', '/dashboard.js'];
+  const outrasQueCitam = [];
+  for (const a of telas) {
     const t = await (await fetch(a)).text();
-    if (/aplicarBackupV2|recuperarRestauracaoPendente|detectarRestauracaoPendente/.test(t)) {
-      citam.push(a);
-    }
+    if (/aplicarBackupV2|recuperarRestauracaoPendente/.test(t)) outrasQueCitam.push(a);
   }
-  const html = document.documentElement.innerHTML;
+  const perfil = await (await fetch('/perfil.js')).text();
   return {
-    citam,
-    noHtml: /aplicarBackupV2|restauracaoPendente/.test(html),
-    perfilUsaV1: (await (await fetch('/perfil.js')).text()).indexOf('importar(') >= 0,
+    perfilAplica: /aplicarBackupV2/.test(perfil),
+    perfilSimula: /simularImportacaoV2/.test(perfil),
+    perfilReconhece: /reconhecerBackup/.test(perfil),
+    perfilV1: /aplicarBackupV1/.test(perfil),
+    outrasQueCitam,
+    temWebLocks: !!(window.Concorrencia && window.Concorrencia.temWebLocks &&
+                    window.Concorrencia.temWebLocks()),
     v1Vivo: typeof window.DadosLocais.importar === 'function' &&
             window.DadosLocais.exportar().versao === 1
   };
 });
-ok(semUI.citam.length === 0 && !semUI.noHtml,
-   'nenhum arquivo de tela chama aplicarBackupV2 nem a recuperacao, e o HTML ' +
-   'nao os cita: a API existe e nao tem consumidor');
-ok(semUI.perfilUsaV1 && semUI.v1Vivo,
-   'perfil.js continua no V1, e o V1 continua sendo o unico fluxo oficial: ' +
-   'exportar() devolve versao 1');
-ok(aplicou.r.requer_exclusividade === true,
-   'e o retorno diz requer_exclusividade:true — sem o P0.7 nao ha trava entre ' +
-   'abas, e duas abas restaurando ao mesmo tempo se atropelariam. E por isso ' +
-   'que isto ainda nao pode virar botao');
+ok(comUI.perfilAplica && comUI.perfilReconhece,
+   'perfil.js reconhece o formato e chama aplicarBackupV2: a API tem consumidor');
+ok(comUI.perfilSimula,
+   'e chama simularImportacaoV2 ANTES — o dry-run nao e opcional na tela');
+ok(comUI.perfilV1, 'e trata o V1 legado pela porta propria, aplicarBackupV1');
+ok(comUI.outrasQueCitam.length === 0,
+   'e NENHUMA outra tela chama a restauracao: o fio esta num arquivo so' +
+   (comUI.outrasQueCitam.length ? ' — vazou para ' + comUI.outrasQueCitam.join(', ') : ''));
+ok(comUI.v1Vivo,
+   'a fachada V1 segue viva: deixou de ser o backup, nao foi apagada');
+ok(aplicou.r.requer_exclusividade === true && comUI.temWebLocks,
+   'o retorno continua exigindo exclusividade — e agora ela EXISTE (Web Locks), ' +
+   'que e justamente o que permitiu isto virar botao');
 ok(aplicou.r.precisa_recarregar === true,
    'e precisa_recarregar:true — as telas em memoria nao sabem que o disco ' +
    'mudou. Esta rodada NAO chama location.reload()');

@@ -746,7 +746,28 @@
             },
             /* Numeros para decidirmos DEPOIS se precisa de aviso, limite, zip
                ou export em varios arquivos. Nenhum limiar e imposto aqui:
-               inventar um MB de corte seria inventar regra. */
+               inventar um MB de corte seria inventar regra.
+
+               PENDENCIA CONHECIDA — TAMANHO DO PACOTE (R3)
+               Desde que o botao Exportar passou a chamar este V2, o que antes
+               era medida tecnica virou o backup real, e vale registrar o que
+               ja se sabe:
+
+                 · cada documento viaja em base64 dentro do JSON, o que infla
+                   o binario em ~33% (4 bytes de texto para cada 3 de dado);
+                 · o pacote e montado INTEIRO em memoria — o objeto, depois o
+                   texto canonico para o sha256, depois o JSON.stringify final.
+                   Chegam a coexistir mais de uma copia do mesmo conteudo;
+                 · nao ha limite oficial, nem aqui nem no validador
+                   (LIMITE_TECNICO_BYTES e null de proposito, e diz por que);
+                 · o app tambem nao impoe limite no upload, entao nao ha teto
+                   natural a montante.
+
+               Quem tiver muitos laudos pode chegar a um pacote grande o
+               bastante para pesar no navegador. NAO ha numero aqui porque
+               nenhum foi medido: o teto entra quando houver uma falha real de
+               plataforma para calibra-lo, e nao antes. Ate la, os tres campos
+               abaixo sao o que permite medir. */
             tamanho: {
               bytes_documentos_originais: docs.bytes,
               bytes_documentos_base64: docs.bytesBase64,

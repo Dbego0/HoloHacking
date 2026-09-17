@@ -92,7 +92,7 @@ const cenario = (mexer) => p.evaluate(async (fonte) => {
     avisos: r.avisos.map(a => ({ codigo: a.codigo, caminho: a.caminho,
                                  paciente_id: a.paciente_id, quantidade: a.quantidade })),
     resumo: r.resumo,
-    importavel: r.importavel_nesta_versao
+    aplicado: r.aplicado, escreveu: r.escreveu
   };
 }, mexer);
 
@@ -129,9 +129,10 @@ console.log('');
 const bom = await cenario('return pacote;');
 ok(bom.valido === true && bom.tipo === 'v2',
    'A — um V2 recem-gerado e VALIDO: erros=' + bom.erros.length);
-ok(bom.importavel === false,
-   'e mesmo valido ele diz importavel_nesta_versao:false — validar nao e ' +
-   'importar, e o importador V2 nao existe');
+ok(bom.aplicado === false && bom.escreveu === false,
+   'e mesmo valido ele diz aplicado:false e escreveu:false — validar nao e ' +
+   'importar. O importador existe (restaurar-backup.js); quem NAO escreve e ' +
+   'esta funcao');
 
 /* B — V1 reconhecido, nao confundido com lixo */
 const v1 = await p.evaluate(async () => {
@@ -577,9 +578,10 @@ const dry = await p.evaluate(async () => {
 ok(dry.valido === true && dry.aplicado === false && dry.escreveu === false,
    'V — o dry-run diz valido:true e, em voz alta, aplicado:false e ' +
    'escreveu:false');
-ok(dry.importavel_nesta_versao === false &&
-   /importador V2 ainda nao existe/.test(dry.motivo_nao_importavel),
-   'e diz por que nao da para importar: ' + dry.motivo_nao_importavel);
+ok(dry.importavel_nesta_versao === undefined &&
+   dry.motivo_nao_importavel === undefined,
+   'e NAO carrega mais o par obsoleto que dizia que o importador nao existia: ' +
+   'ele existe, e o dry-run nao pode afirmar o contrario');
 ok(dry.pacientes === 2 && dry.aplicacoes === 2 && dry.documentos === 3,
    'quantos: ' + dry.pacientes + ' pacientes, ' + dry.aplicacoes +
    ' aplicacoes, ' + dry.documentos + ' documentos');

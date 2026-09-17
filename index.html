@@ -41,6 +41,95 @@
 </svg>
 
 <!-- ============================================================
+     TELA DE ENTRADA
+
+     Camada preparada para autenticacao. NAO protege o que esta atras dela:
+     nao ha servidor, nao ha sessao, nao ha verificacao. Ver login.js.
+     Fica fora de #app de proposito — nao e uma secao da aplicacao, nao entra
+     no menu e nao passa por irPara().
+============================================================ -->
+<div id="tela-login" class="tela-login">
+  <div class="login-cartao">
+
+    <div class="login-marca">
+      <svg width="52" height="49" viewBox="0 0 64 60" aria-hidden="true"><use href="#logo-simbolo"/></svg>
+      <h1>HoloHacking</h1>
+      <p>Plataforma clínica da Nutrição Holística</p>
+    </div>
+
+    <h2 class="login-titulo">Entrar na plataforma</h2>
+
+    <!-- novalidate: a validacao do navegador mostra balao nativo que some
+         sozinho e nao e lido de forma confiavel por leitor de tela. A nossa
+         escreve num elemento que continua na pagina, ligado por
+         aria-describedby. -->
+    <form id="form-login" novalidate autocomplete="on">
+
+      <div class="login-grupo">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" name="email"
+               autocomplete="username" inputmode="email"
+               spellcheck="false" autocapitalize="none"
+               aria-describedby="erro-email" required>
+        <p class="login-erro" id="erro-email" hidden></p>
+      </div>
+
+      <div class="login-grupo">
+        <label for="login-senha">Senha</label>
+        <div class="login-senha-caixa">
+          <input type="password" id="login-senha" name="senha"
+                 autocomplete="current-password"
+                 aria-describedby="erro-senha" required>
+          <!-- aria-pressed diz o ESTADO; aria-label diz a ACAO. Os dois mudam
+               juntos em login.js. -->
+          <button type="button" id="btn-olho" class="login-olho"
+                  aria-pressed="false" aria-label="Mostrar senha"
+                  aria-controls="login-senha">
+            <svg class="olho-ver" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="olho-ocultar" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4"/><path d="M6.6 6.9A17 17 0 0 0 2 13s3.6 7 10 7a9.6 9.6 0 0 0 4.5-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+          </button>
+        </div>
+        <p class="login-erro" id="erro-senha" hidden></p>
+      </div>
+
+      <div class="login-linha">
+        <label class="login-manter">
+          <input type="checkbox" id="login-manter" name="manter">
+          <span>Manter conectado</span>
+        </label>
+        <a href="#" id="link-esqueci" class="login-link">Esqueci minha senha</a>
+      </div>
+
+      <button type="submit" id="btn-entrar" class="login-botao">
+        <span class="login-girador" aria-hidden="true"></span>
+        <span class="login-botao-texto">Entrar</span>
+      </button>
+
+      <!-- role=status + aria-live=polite: a mensagem e anunciada sem
+           interromper quem estiver navegando pelos campos. -->
+      <p class="login-mensagem" id="login-mensagem"
+         role="status" aria-live="polite" hidden></p>
+    </form>
+
+    <p class="login-rodape">Área de acesso profissional</p>
+
+    <!-- A SAIDA DE DESENVOLVIMENTO.
+         Enquanto nao ha autenticacao, esta e a unica forma de alcancar o app —
+         e ela se anuncia pelo que e. Nao verifica nada, nao guarda nada, nao
+         cria sessao. Sai daqui no dia em que POST /api/auth/login existir. -->
+    <div class="login-dev">
+      <!-- Nao repetir aqui a frase que o submit ja devolve: dita duas vezes na
+           mesma tela, ela vira decoracao e para de ser lida. -->
+      <p>Enquanto o servidor de autenticação não existe:</p>
+      <button type="button" id="saida-dev" class="login-dev-botao">
+        Entrar sem autenticação &mdash; ambiente de desenvolvimento
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
      APLICACAO
 ============================================================ -->
 <div id="app">
@@ -82,6 +171,13 @@
         <button class="nav-item" data-secao="holoscope">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><circle cx="12" cy="12" r="3"/></svg>
           HOLOSCOPE<span style="font-size:.5em;vertical-align:super;margin-left:1px">&#174;</span>
+        </button>
+        <!-- HOLOSCAN vem logo abaixo do HOLOSCOPE de proposito: e a etapa
+             seguinte do fluxo clinico (Historia > HOLOSCOPE > Holoscan), e
+             uma camada separada — le o mapa e os exames, nunca os altera. -->
+        <button class="nav-item" data-secao="holoscan">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M3 12h18"/></svg>
+          HOLOSCAN <span class="nav-tag">Exames</span>
         </button>
         <button class="nav-item" data-secao="corpo">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.5" r="2.6"/><path d="M12 8.5v6M12 14.5l-3.5 5M12 14.5l3.5 5M7 10.5h10"/></svg>
@@ -392,14 +488,12 @@
           <span class="eyebrow">7 &middot; Aprofundamento</span>
           <div class="holo-leitura" id="holo-leitura"></div>
 
-          <!-- ===== 8. HOLOSCAN — o que os exames acrescentam a este mapa =====
-               Camada complementar e separada do HOLOSCOPE: le os exames ja
-               lancados na aba Documentos e confronta com o mapa. Nunca altera
-               nota, indice, triade ou respostas — ver window.Holoscan em
-               arquivos.js. Renderizado por desenharHoloscan(). -->
-          <span class="eyebrow">8 &middot; Holoscan</span>
-          <h3>O que os exames acrescentam a este mapa</h3>
-          <div class="holo-caixa-mapa" id="holo-holoscan"></div>
+          <!-- O HOLOSCAN era o item 8 daqui. Saiu para a secao propria
+               (#secao-holoscan, logo abaixo no menu): ele nao e uma parte do
+               HOLOSCOPE, e a etapa seguinte — le este mapa e os exames e
+               confronta os dois, sem mexer em nota, indice, triade ou
+               respostas. Manter dentro sugeria que o mapa se corrigia com
+               exame, e ele nao se corrige. -->
 
           <!-- A fronteira. Ficava so no rodape do relatorio impresso; a tela
                onde a nutricionista abre o mapa junto com a paciente nao dizia
@@ -443,6 +537,46 @@
 
           <div class="citacao clara" style="margin-top:34px">
           <p>"Seu corpo esta contando uma história que você ainda não ouviu. Quando você enxerga o que esta por trás, tudo muda."</p>
+        </div>
+      </section>
+
+      <!-- ============ HOLOSCAN ============
+           Saiu de dentro do HOLOSCOPE (era o item 8 de la) para ficar no
+           nivel que lhe cabe: a etapa seguinte do fluxo, nao um pedaco do
+           mapa. Le os exames lancados na aba Documentos da ficha e confronta
+           com as notas do HOLOSCOPE, sistema a sistema. NUNCA escreve: nao
+           altera nota, Indice, Triade nem resposta nenhuma.
+           O lancamento dos valores continua so na ficha — aqui e leitura.
+           Desenhado por desenharHoloscan() (arquivos.js), chamado tanto por
+           irPara("holoscan") quanto por desenharPontuacao() em app.js. -->
+      <section class="secao" id="secao-holoscan">
+        <div class="secao-cabeca">
+          <span class="eyebrow">HOLOSCAN &mdash; Relato e Laboratório</span>
+          <h2>O que os exames <em>acrescentam</em> ao mapa</h2>
+          <p>O HOLOSCAN confronta, sistema a sistema, o que o paciente relata no HOLOSCOPE com o que os exames mostram. Ele não corrige o mapa nem o exame: mostra onde os dois caminham juntos, onde divergem — e onde ainda não há dado para comparar.</p>
+          <p class="fluxo-clinico">História &rarr; HOLOSCOPE &rarr; <b>Holoscan</b> &rarr; Aprofundamento &rarr; Interpretação &rarr; Conduta &rarr; Evolução</p>
+        </div>
+
+        <div class="barra-paciente">
+          <span class="rotulo">Paciente</span>
+          <select class="seletor-paciente" id="sel-holoscan" aria-label="Selecionar paciente"></select>
+          <span class="aviso">O confronto usa o HOLOSCOPE já aplicado a este paciente.</span>
+        </div>
+
+        <div class="painel-escuro">
+          <!-- Esta linha vinha de dentro de desenharHoloscan(). Fica aqui
+               porque e verdade da tela inteira, nao de um bloco dela: aqui
+               nao se lanca exame nenhum. -->
+          <p class="arq-nota">O lançamento e a edição dos valores ficam na aba
+            <b>Documentos</b>, na ficha do paciente. Esta tela apenas lê.</p>
+
+          <div class="holo-caixa-mapa" id="holo-holoscan"></div>
+
+          <p class="holo-fronteira">
+            O HOLOSCAN organiza informações laboratoriais para apoiar a
+            <b>interpretação profissional</b>. Não realiza diagnóstico, não altera o
+            HOLOSCOPE e não substitui avaliação médica.
+          </p>
         </div>
       </section>
 
@@ -968,5 +1102,9 @@
 <script src="/perfil.js"></script>
 <script src="/caso-marina.js"></script>
 <script src="/demo.js"></script>
+<!-- Por ultimo: a tela de entrada nao depende de nada do app, e o app nao
+     depende dela. O dia em que a autenticacao real chegar, e este arquivo que
+     muda — nao os de cima. -->
+<script src="/login.js"></script>
 </body>
 </html>
