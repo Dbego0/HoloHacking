@@ -1594,6 +1594,10 @@ body.escuro .btn-tema .icone-lua{display:none}
 .dash-acoes-rapidas{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:34px}
 
 .dash-bloco{margin-bottom:34px}
+/* Etapa 2: proximos atendimentos, pacientes recentes e jornada clinica sao
+   compactos por natureza — cabem tres num espaco que antes levava um bloco
+   so, entao a margem entre eles encolhe. */
+.dash-bloco.dash-bloco-compacto{margin-bottom:22px}
 .dash-titulo{
   font-family:var(--fonte-display);font-size:1.32rem;font-weight:500;
   color:var(--titulo);margin:0 0 4px;display:flex;align-items:baseline;gap:10px;
@@ -1665,18 +1669,26 @@ body.escuro .btn-tema .icone-lua{display:none}
   font-variant-numeric:tabular-nums;
 }
 
-/* ---------- ainda sem paciente ---------- */
-.dash-primeiro{
-  display:flex;flex-wrap:wrap;align-items:center;gap:16px 22px;
-  border:1px solid var(--dourado-suave);padding:20px 24px;margin-bottom:34px;
+/* ---------- jornada clinica ----------
+   HOLOSCOPE -> HOLOSCAN -> Documentos: o mesmo cartao de linha que "Precisa
+   de voce" usa (dash-quem/dash-ir), so sem avatar e com uma seta entre eles. */
+.dash-jornada{display:flex;flex-direction:column;gap:2px;margin-top:14px}
+.dash-jornada-passo{
+  display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;
+  background:var(--sup-card);border:1px solid var(--borda-suave);
+  border-left:2px solid var(--dourado-suave);padding:14px 18px;
 }
-.dash-primeiro p{margin:0;font-size:.95rem;font-weight:300;color:var(--texto-suave);flex:1 1 18rem}
+.dash-jornada-seta{
+  text-align:center;color:var(--dourado-suave);font-size:.85rem;line-height:1;
+}
 
 @media (max-width:640px){
   .dash-pendente{grid-template-columns:auto 1fr;row-gap:12px}
   .dash-ir{grid-column:2;justify-self:start}
   .dash-barra{grid-template-columns:1fr 2.2rem;row-gap:6px}
   .dash-barra-nome{grid-column:1/-1}
+  .dash-jornada-passo{grid-template-columns:1fr;row-gap:12px}
+  .dash-jornada-passo .dash-ir{justify-self:start}
 }
 
 /* =========================================================================

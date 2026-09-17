@@ -45,6 +45,10 @@
     return (nome || "").split(" ")[0];
   }
 
+  function dataBR(iso) {
+    return iso ? String(iso).split("-").reverse().join("/") : "";
+  }
+
   /* ---------- os blocos --------------------------------------------------- */
 
   /* O cabecalho operacional e os atalhos do dia. Os quatro numeros do resumo
@@ -73,6 +77,89 @@
       "</div>";
   }
 
+  /* So consulta MARCADA de verdade (Agenda) entra aqui — a data derivada da
+     reavaliacao de 4 semanas e uma sugestao, nao um compromisso na agenda, e
+     "Proximos atendimentos" promete o que ja esta marcado. */
+  function blocoProximosAtendimentos(agenda) {
+    var proximas = ((agenda && agenda.linhas) || []).filter(function (l) {
+      return l.marcada && l.faltam !== null && l.faltam >= 0;
+    }).slice(0, 3);
+
+    var corpo;
+    if (proximas.length === 0) {
+      corpo = '<p class="dash-vazio">Nenhuma consulta agendada.</p>' +
+        '<button type="button" class="perf-botao" data-destino="nova-consulta">Agendar consulta</button>';
+    } else {
+      corpo = '<ul class="dash-pendentes" id="dash-lista-atendimentos">' + proximas.map(function (l) {
+        var quando = dataBR(l.marcada) + (l.hora ? " às " + l.hora : "");
+        return '<li class="dash-pendente">' +
+          '<span class="pac-avatar">' + escapar(inicial(l.paciente.nome)) + "</span>" +
+          '<span class="dash-quem">' +
+            "<b>" + escapar(l.paciente.nome) + "</b>" +
+            '<span class="dash-porque">' + escapar(quando) + "</span>" +
+          "</span>" +
+          '<button type="button" class="dash-ir" data-paciente="' + escapar(l.paciente.id) +
+            '" data-destino="ficha">Ver <span aria-hidden="true">&rarr;</span></button>' +
+          "</li>";
+      }).join("") + "</ul>";
+    }
+
+    return '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Próximos atendimentos</h3>' + corpo + "</div>";
+  }
+
+  /* Os 3 cadastros mais novos — mesmo criterio (created_at) que a lista de
+     pacientes ja usa para "mais recente primeiro". Nao e fonte de dado nova,
+     e o mesmo pacientesTodos() de sempre, so cortado e ordenado aqui. */
+  function blocoPacientesRecentes() {
+    var recentes = ((window.pacientesTodos && window.pacientesTodos()) || [])
+      .slice()
+      .sort(function (a, b) { return (b.created_at || "").localeCompare(a.created_at || ""); })
+      .slice(0, 3);
+
+    var corpo;
+    if (recentes.length === 0) {
+      corpo = '<p class="dash-vazio">Nenhum paciente cadastrado ainda.</p>' +
+        '<button type="button" class="btn-verde" data-destino="novo">Cadastrar paciente</button>';
+    } else {
+      corpo = '<ul class="dash-pendentes" id="dash-lista-recentes">' + recentes.map(function (p) {
+        return '<li class="dash-pendente">' +
+          '<span class="pac-avatar">' + escapar(inicial(p.nome)) + "</span>" +
+          '<span class="dash-quem"><b>' + escapar(p.nome) + "</b></span>" +
+          '<button type="button" class="dash-ir" data-paciente="' + escapar(p.id) +
+            '" data-destino="ficha">Abrir <span aria-hidden="true">&rarr;</span></button>' +
+          "</li>";
+      }).join("") + "</ul>";
+    }
+
+    return '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Pacientes recentes</h3>' + corpo + "</div>";
+  }
+
+  /* HOLOSCOPE mapeia, HOLOSCAN confronta sem corrigir, Documentos consolida —
+     so o encadeamento visual do metodo que ja existe. Nenhum texto aqui
+     chama HOLOSCOPE de diagnostico nem diz que o HOLOSCAN muda nota. */
+  function blocoJornadaClinica() {
+    var etapas = [
+      { nome: "HOLOSCOPE", texto: "Mapear prioridades de investigação.", destino: "holoscope" },
+      { nome: "HOLOSCAN", texto: "Confrontar o mapa com exames.", destino: "holoscan" },
+      { nome: "Documentos", texto: "Consolidar registros e materiais da jornada.", destino: "documentos" }
+    ];
+
+    var passos = etapas.map(function (e, i) {
+      var seta = i > 0 ? '<div class="dash-jornada-seta" aria-hidden="true">&darr;</div>' : "";
+      return seta + '<div class="dash-jornada-passo">' +
+        '<span class="dash-quem"><b>' + escapar(e.nome) + "</b>" +
+          '<span class="dash-porque">' + escapar(e.texto) + "</span></span>" +
+        '<button type="button" class="dash-ir" data-destino="' + e.destino + '">Abrir <span aria-hidden="true">&rarr;</span></button>' +
+      "</div>";
+    }).join("");
+
+    return '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Jornada clínica</h3>' +
+      '<div class="dash-jornada">' + passos + "</div></div>";
+  }
+
   function blocoPendencias(c) {
     if (c.pendentes.length === 0) {
       return '<div class="dash-bloco">' +
@@ -83,7 +170,7 @@
 
     var html = '<div class="dash-bloco">' +
       '<h3 class="dash-titulo">Precisa de você <em>' + c.pendentes.length + "</em></h3>" +
-      '<ul class="dash-pendentes">';
+      '<ul class="dash-pendentes" id="dash-lista-pendentes">';
 
     c.pendentes.forEach(function (l) {
       var primeiro = l.alertas[0];
@@ -170,29 +257,32 @@
     try { c = window.Panorama.carteira(); }
     catch (e) { alvo.innerHTML = ""; return; }
 
+    var agenda = null;
+    try { if (window.Panorama.agenda) agenda = window.Panorama.agenda(); }
+    catch (e) { agenda = null; }
+
     var metodo = document.getElementById("dash-metodo");
 
+    // Bloco operacional: sempre a mesma primeira dobra, com ou sem carteira —
+    // "Proximos atendimentos" e "Pacientes recentes" ja tem seu proprio
+    // estado vazio, entao nao precisam do convite grande que existia aqui.
+    var operacional =
+      blocoCabecalho(c.total === 0 ? null : (window.pacienteAtivoNome ? window.pacienteAtivoNome() : null)) +
+      blocoProximosAtendimentos(agenda) +
+      blocoPacientesRecentes() +
+      blocoJornadaClinica();
+
     if (c.total === 0) {
-      // Primeira visita: o metodo e a resposta certa, e o convite vem junto.
+      // Primeira visita: o metodo e a resposta certa, e continua a vista.
       if (metodo) metodo.classList.remove("hidden");
-      alvo.innerHTML = blocoCabecalho(null) +
-        '<div class="dash-primeiro">' +
-        '<p>Nenhum paciente cadastrado ainda. A jornada começa por aqui.</p>' +
-        '<button type="button" class="btn-verde" data-destino="novo">Cadastrar o primeiro paciente</button>' +
-        "</div>";
+      alvo.innerHTML = operacional;
       ligar();
       return;
     }
 
     if (metodo) metodo.classList.add("hidden");
 
-    var ativo = window.pacienteAtivoNome ? window.pacienteAtivoNome() : null;
-
-    alvo.innerHTML =
-      blocoCabecalho(ativo) +
-      blocoPendencias(c) +
-      blocoNumeros(c) +
-      blocoTerreno(c);
+    alvo.innerHTML = operacional + blocoPendencias(c) + blocoNumeros(c) + blocoTerreno(c);
 
     ligar();
   }
@@ -216,6 +306,15 @@
           if (window.irParaSecao) window.irParaSecao("agenda");
           var novaConsulta = document.querySelector('[data-novo="consulta"]');
           if (novaConsulta) novaConsulta.click();
+          return;
+        }
+
+        // A ficha (#vista-ficha) mora dentro de secao-pacientes: sem ir para
+        // la primeiro, abrirFichaDe() ate desenha, mas fica escondida atras
+        // da secao que estava aberta.
+        if (destino === "ficha") {
+          if (window.irParaSecao) window.irParaSecao("pacientes");
+          if (pid && window.abrirFichaDe) window.abrirFichaDe(pid);
           return;
         }
 

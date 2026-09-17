@@ -30,11 +30,14 @@ const ok = (c, t) => {
 const vazio = await p.evaluate(() => ({
   texto: document.getElementById('dash-trabalho').innerText.replace(/\s+/g, ' ').trim(),
   metodo: !document.getElementById('dash-metodo').classList.contains('hidden'),
-  pendentes: document.querySelectorAll('.dash-pendente').length,
+  pendentes: document.querySelectorAll('#dash-lista-pendentes .dash-pendente').length,
+  jornada: document.querySelectorAll('.dash-jornada-passo').length,
 }));
-ok(/primeiro paciente/i.test(vazio.texto), 'sem paciente, convida a cadastrar o primeiro');
+ok(/nenhum paciente cadastrado/i.test(vazio.texto), 'sem paciente, convida a cadastrar');
+ok(/nenhuma consulta agendada/i.test(vazio.texto), 'sem consulta marcada, estado vazio elegante');
 ok(vazio.metodo, 'e o método continua à vista — ali ele serve');
 ok(vazio.pendentes === 0, 'nenhuma pendência inventada do nada');
+ok(vazio.jornada === 3, 'a jornada clínica (HOLOSCOPE → HOLOSCAN → Documentos) sempre aparece');
 
 // --- uma carteira de verdade ---------------------------------------------
 await p.evaluate(async (respostas) => {
@@ -79,10 +82,9 @@ await p.evaluate(async (respostas) => {
 const cheio = await p.evaluate(() => {
   document.querySelector('.nav-item[data-secao="dashboard"]').click();
   window.redesenharDashboard();
-  const linha = n => document.querySelectorAll('.dash-pendente')[n];
   return {
     metodo: !document.getElementById('dash-metodo').classList.contains('hidden'),
-    pendentes: [...document.querySelectorAll('.dash-pendente')].map(l => ({
+    pendentes: [...document.querySelectorAll('#dash-lista-pendentes .dash-pendente')].map(l => ({
       nome: l.querySelector('b').textContent,
       porque: l.querySelector('.dash-porque').textContent,
       botao: l.querySelector('.dash-ir').textContent.replace(/\s*→\s*$/, '').trim(),
@@ -91,13 +93,15 @@ const cheio = await p.evaluate(() => {
       t.querySelector('b').textContent + ' ' + t.querySelector('span').textContent),
     barras: [...document.querySelectorAll('.dash-barra')].map(b =>
       b.querySelector('.dash-barra-nome').textContent + '=' + b.querySelector('.dash-barra-n').textContent),
-    primeiro: linha(0)?.querySelector('b').textContent,
+    recentes: [...document.querySelectorAll('#dash-lista-recentes .dash-pendente b')].map(b => b.textContent),
   };
 });
 
 ok(!cheio.metodo, 'com paciente cadastrado, a apresentação do método sai da frente');
 ok(cheio.pendentes.length === 5, cheio.pendentes.length + ' pacientes precisando de atenção');
 console.log(cheio.pendentes.map(x => '          ' + x.nome + ' — ' + x.porque).join('\n'));
+ok(cheio.recentes.length === 3, 'pacientes recentes mostra no máximo 3: ' + cheio.recentes.join(' · '));
+ok(cheio.recentes[0] === 'Sofia Martins', 'e o mais novo cadastro vem primeiro: ' + cheio.recentes[0]);
 
 const carla = cheio.pendentes.find(x => /Carla/.test(x.nome));
 ok(/reavalia/.test(carla.porque), 'a reavaliação vencida da Carla aparece: ' + carla.porque);
@@ -113,7 +117,7 @@ ok(cheio.barras.length > 0, 'o terreno da carteira: ' + cheio.barras.join(' · '
 
 // --- o botao leva mesmo ao paciente certo --------------------------------
 const ida = await p.evaluate(async () => {
-  const b = document.querySelector('.dash-pendente .dash-ir');
+  const b = document.querySelector('#dash-lista-pendentes .dash-pendente .dash-ir');
   const nome = b.closest('.dash-pendente').querySelector('b').textContent;
   b.click();
   await new Promise(r => setTimeout(r, 400));
