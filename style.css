@@ -1595,6 +1595,17 @@ body.escuro .btn-tema .icone-lua{display:none}
 }
 .fic-chip:hover{border-color:var(--dourado);color:var(--dourado)}
 
+/* ---------- aba Consultas ---------- */
+.fic-consultas-topo{display:flex;justify-content:flex-end;margin-bottom:20px}
+/* A continuidade clinica, discreta — o bloco cheio (Jornada clinica) ja
+   fica visivel acima das abas; aqui e so um lembrete de uma linha. */
+.fic-continuidade{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  margin-top:6px;padding-top:18px;border-top:1px solid var(--borda-suave);
+}
+.fic-continuidade .fic-rot{margin-right:2px}
+.fic-continuidade-seta{color:var(--texto-suave);opacity:.6;font-size:.8rem}
+
 @media (max-width:760px){
   .fic-mapa{gap:20px}
   .fic-alerta{flex-direction:column;align-items:flex-start;gap:10px}

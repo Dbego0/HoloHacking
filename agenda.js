@@ -731,8 +731,12 @@
 
       var novo = ev.target.closest("[data-novo]");
       if (novo) {
-        if (novo.dataset.novo === "consulta") novaConsulta();
-        else novoBloqueio();
+        // Quem chega aqui do cabecalho da ficha ou da aba Consultas ja tem
+        // um paciente ativo — o formulario nasce com ele, em vez de cair no
+        // primeiro nome da lista e pedir para escolher de novo.
+        if (novo.dataset.novo === "consulta") {
+          novaConsulta(null, null, window.pacienteAtivoId ? window.pacienteAtivoId() : null);
+        } else novoBloqueio();
         return;
       }
 

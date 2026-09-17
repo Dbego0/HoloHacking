@@ -312,6 +312,86 @@
     preencherDocumentosRecentes(pid);
   }
 
+  /* ==================================================== ABA: CONSULTAS === */
+
+  /* Continuidade discreta: o mesmo encadeamento do bloco Jornada clinica (ja
+     visivel acima das abas), so que como uma linha fina — nao repete o
+     bloco inteiro, so lembra o proximo passo depois da consulta. */
+  function blocoContinuidade() {
+    return '<div class="fic-continuidade">' +
+      '<span class="fic-rot">Depois da consulta</span>' +
+      '<button type="button" class="fic-chip" data-ir="holoscope">HOLOSCOPE</button>' +
+      '<span class="fic-continuidade-seta" aria-hidden="true">&rarr;</span>' +
+      '<button type="button" class="fic-chip" data-ir="holoscan">HOLOSCAN</button>' +
+      '<span class="fic-continuidade-seta" aria-hidden="true">&rarr;</span>' +
+      '<button type="button" class="fic-chip" data-ir="aba:documentos">Documentos</button>' +
+    "</div>";
+  }
+
+  function linhaConsulta(c, destaque) {
+    // .dash-pendente e grade de 3 colunas (avatar/conteudo/botao); sem o
+    // avatar o botao caia na coluna do meio e esticava. Aqui o "avatar" e
+    // o dia do mes — a mesma ideia de uma folhinha de calendario.
+    return '<li class="dash-pendente' + (destaque ? " abrir" : "") + '">' +
+      '<span class="pac-avatar">' + escapar((c.data || "").slice(8, 10) || "?") + "</span>" +
+      '<span class="dash-quem"><b>' + escapar(dataBR(c.data)) + " às " + escapar(c.hora) + "</b>" +
+        '<span class="dash-porque">' + escapar(c.tipo || "Consulta") +
+          (c.nota ? " &middot; " + escapar(c.nota) : "") + "</span></span>" +
+      '<button type="button" class="dash-ir" data-ir="agenda">Ver na agenda ' +
+        '<span aria-hidden="true">&rarr;</span></button>' +
+    "</li>";
+  }
+
+  /* So consulta MARCADA de verdade (window.Agenda) entra aqui — a data
+     derivada da reavaliacao de 4 semanas e uma sugestao, nao um compromisso,
+     e nao pode aparecer como se fosse uma consulta. */
+  function desenharConsultas() {
+    var alvo = document.getElementById("aba-consultas");
+    if (!alvo) return;
+    var pid = paciente();
+
+    var proxima = window.Agenda && window.Agenda.proxima ? window.Agenda.proxima(pid) : null;
+    var todas = window.Agenda && window.Agenda.todas ? window.Agenda.todas(pid) : [];
+    // "anterior" e o que ja passou — nao so "o que nao e a proxima", porque
+    // pode haver mais de uma consulta futura marcada.
+    var anteriores = todas.filter(function (c) { return diasDesde(c.data) > 0; });
+
+    var topo = '<div class="fic-consultas-topo">' +
+      '<button type="button" class="btn-verde" data-ir="nova-consulta">Nova consulta</button>' +
+    "</div>";
+
+    if (!todas.length) {
+      alvo.innerHTML = topo +
+        '<div class="lista-vazia"><strong>Nenhuma consulta registrada</strong>' +
+        "<span>Registre uma consulta para iniciar o acompanhamento deste paciente.</span></div>" +
+        blocoContinuidade();
+      ligar(alvo);
+      return;
+    }
+
+    var html = topo;
+
+    if (proxima) {
+      html += '<div class="dash-bloco dash-bloco-compacto">' +
+        '<h3 class="dash-titulo">Próxima consulta</h3>' +
+        '<ul class="dash-pendentes">' + linhaConsulta(proxima, true) + "</ul></div>";
+    }
+
+    html += '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Consultas anteriores</h3>' +
+      (anteriores.length === 0
+        ? '<p class="dash-vazio">Nenhuma consulta anterior.</p>'
+        : '<ul class="dash-pendentes">' + anteriores.map(function (c) {
+            return linhaConsulta(c, false);
+          }).join("") + "</ul>") +
+      "</div>";
+
+    html += blocoContinuidade();
+
+    alvo.innerHTML = html;
+    ligar(alvo);
+  }
+
   /* ================================================ ABA: LINHA DO TEMPO === */
 
   /* O que aconteceu com esta pessoa, em ordem. O app guardava os pedaços com
@@ -684,6 +764,15 @@
           if (aba) { aba.click(); aba.scrollIntoView({ block: "center" }); }
           return;
         }
+        // Mesmo atalho do cabecalho (data-atalho="agenda"): ir para a agenda
+        // e abrir o formulario, ja com esta pessoa (agenda.js le pacienteAtivoId()).
+        if (ir.dataset.ir === "nova-consulta") {
+          var secaoAgenda = document.querySelector('.nav-item[data-secao="agenda"]');
+          if (secaoAgenda) secaoAgenda.click();
+          var novo = document.querySelector('[data-novo="consulta"]');
+          if (novo) novo.click();
+          return;
+        }
         var b = document.querySelector('.nav-item[data-secao="' + ir.dataset.ir + '"]');
         if (b) b.click();
         return;
@@ -698,6 +787,7 @@
 
   var DESENHOS = {
     visao: desenharVisao,
+    consultas: desenharConsultas,
     linha: desenharLinha,
     formularios: desenharFormularios
   };

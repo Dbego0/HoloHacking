@@ -748,7 +748,7 @@
     });
     // "exames" virou parte de "documentos"; quem ainda pedir aquilo cai aqui
     if (nome === "exames") nome = "documentos";
-    ["visao", "linha", "formularios", "documentos", "relatorio"]
+    ["visao", "consultas", "linha", "formularios", "documentos", "relatorio"]
       .forEach(function (n) {
         var painel = document.getElementById("aba-" + n);
         if (painel) painel.classList.toggle("hidden", n !== nome);
