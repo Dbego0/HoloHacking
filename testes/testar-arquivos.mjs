@@ -38,8 +38,8 @@ const base = await p.evaluate(() => {
   };
 });
 ok(base.visivel, 'a secao Arquivos abre');
-ok(base.abas.join(',') === 'Visão geral,Consultas,Linha do tempo,Formulários,Documentos,Relatório',
-   'as seis abas: ' + base.abas.join(' · '));
+ok(base.abas.join(',') === 'Visão geral,Consultas,HOLOSCOPE,Linha do tempo,Formulários,Documentos,Relatório',
+   'as sete abas: ' + base.abas.join(' · '));
 /* Exames e documentos eram duas abas, e a separacao estava errada: os valores
    saem do PDF. Agora e um lugar so, em dois passos. */
 ok(base.cartoes.join(' / ') === 'O que o paciente trouxe / Os valores do exame',

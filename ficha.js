@@ -392,6 +392,88 @@
     ligar(alvo);
   }
 
+  /* ==================================================== ABA: HOLOSCOPE === */
+
+  /* HOLOSCOPE e mapa de investigacao e prioridade, nao diagnostico — o
+     mesmo texto que ja existe no rodape da aba Visao Geral (holo-fronteira,
+     index.html). Nada aqui calcula, reordena sistema ou toca na Triade:
+     so le d.pontuacao/d.historico, que Panorama.doPaciente() ja monta a
+     partir do que o motor e a tela do HOLOSCOPE ja gravaram. */
+  function blocoContinuidadeHoloscan() {
+    return '<div class="fic-continuidade">' +
+      '<span class="fic-rot">Depois do mapa</span>' +
+      '<button type="button" class="fic-chip" data-ir="holoscan">Confrontar no HOLOSCAN</button>' +
+    "</div>";
+  }
+
+  function linhaHoloscope(p, destaque, acaoExtra) {
+    return '<li class="dash-pendente' + (destaque ? " abrir" : "") + '">' +
+      '<span class="pac-avatar">' + escapar((p.quando || "").slice(8, 10) || "?") + "</span>" +
+      '<span class="dash-quem"><b>' + escapar(dataBR(p.quando)) + "</b>" +
+        '<span class="dash-porque">Índice ' + escapar(p.indice) + " de " + escapar(p.indice_maximo) +
+          (acaoExtra ? " &middot; " + escapar(acaoExtra) : "") + "</span></span>" +
+      (destaque
+        // so a ultima tem detalhe guardado (respostas) para reabrir de verdade
+        ? '<button type="button" class="dash-ir" data-ver="holoscope">Abrir resultado ' +
+          '<span aria-hidden="true">&rarr;</span></button>'
+        : '<button type="button" class="dash-ir" data-ir="holoscope">Ver HOLOSCOPE ' +
+          '<span aria-hidden="true">&rarr;</span></button>') +
+    "</li>";
+  }
+
+  function desenharHolo() {
+    var alvo = document.getElementById("aba-holoscope");
+    if (!alvo) return;
+    var d = reunir(); // d.pontuacao = mais recente; d.historico = tudo, do mais antigo ao mais novo
+
+    var topo = '<div class="fic-consultas-topo">' +
+      '<button type="button" class="btn-verde" data-ir="holoscope">' +
+        (d.pontuacao ? "Nova aplicação" : "Iniciar HOLOSCOPE") +
+      "</button></div>";
+
+    if (!d.historico.length) {
+      alvo.innerHTML = topo +
+        '<div class="lista-vazia"><strong>Nenhuma aplicação HOLOSCOPE</strong>' +
+        "<span>Faça a primeira aplicação para mapear prioridades de investigação.</span></div>" +
+        blocoContinuidadeHoloscan();
+      ligar(alvo);
+      return;
+    }
+
+    var html = topo;
+
+    if (d.pontuacao) {
+      // "de preenchimento" e o mesmo estado que o cartao HOLOSCOPE da aba
+      // Formularios ja mostra (d.respondidas/d.totalPerguntas) — nao recalcula.
+      var estado = d.respondidas === 0 ? "não iniciado"
+        : d.respondidas + " de " + d.totalPerguntas + " respondidas";
+      var sistemas = d.pontuacao.sistemas.map(function (s) {
+        return '<span class="fic-sis">' + escapar(s.nome) + " <b>" + s.nota.toFixed(1) + "</b></span>";
+      }).join("");
+      html += '<div class="dash-bloco dash-bloco-compacto">' +
+        '<h3 class="dash-titulo">Última aplicação</h3>' +
+        '<ul class="dash-pendentes">' + linhaHoloscope(d.pontuacao, true, estado) + "</ul>" +
+        '<div class="fic-piores-caixa"><div class="fic-piores">' + sistemas + "</div></div>" +
+      "</div>";
+    }
+
+    // historico e ascendente; tira a ultima (ja mostrada acima) e inverte
+    var anteriores = d.historico.slice(0, -1).reverse();
+    html += '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Histórico de aplicações</h3>' +
+      (anteriores.length === 0
+        ? '<p class="dash-vazio">Nenhuma aplicação anterior.</p>'
+        : '<ul class="dash-pendentes">' + anteriores.map(function (p) {
+            return linhaHoloscope(p, false, null);
+          }).join("") + "</ul>") +
+    "</div>";
+
+    html += blocoContinuidadeHoloscan();
+
+    alvo.innerHTML = html;
+    ligar(alvo);
+  }
+
   /* ================================================ ABA: LINHA DO TEMPO === */
 
   /* O que aconteceu com esta pessoa, em ordem. O app guardava os pedaços com
@@ -788,6 +870,7 @@
   var DESENHOS = {
     visao: desenharVisao,
     consultas: desenharConsultas,
+    holoscope: desenharHolo,
     linha: desenharLinha,
     formularios: desenharFormularios
   };

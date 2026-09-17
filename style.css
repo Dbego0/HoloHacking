@@ -1606,6 +1606,16 @@ body.escuro .btn-tema .icone-lua{display:none}
 .fic-continuidade .fic-rot{margin-right:2px}
 .fic-continuidade-seta{color:var(--texto-suave);opacity:.6;font-size:.8rem}
 
+/* ---------- aba HOLOSCOPE ---------- */
+/* Os cinco sistemas da ultima aplicacao, fora do .fic-mapa original (que e
+   flex-row para indice+triade+piores lado a lado) — aqui e so a lista,
+   mas com a mesma caixa sutil, senao fica sem moldura, solta na tela. */
+.fic-piores-caixa{
+  padding:16px 20px;margin-top:2px;
+  border:1px solid rgba(201,163,90,.2);border-radius:var(--raio,12px);
+  background:rgba(201,163,90,.04);
+}
+
 @media (max-width:760px){
   .fic-mapa{gap:20px}
   .fic-alerta{flex-direction:column;align-items:flex-start;gap:10px}
