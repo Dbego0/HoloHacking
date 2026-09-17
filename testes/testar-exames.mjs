@@ -4,7 +4,11 @@ const nav = await puppeteer.launch({ executablePath:'C:/Program Files/Google/Chr
 const p = await nav.newPage();
 await p.setContent('<!doctype html><meta charset="utf-8">');
 await p.addScriptTag({ url:'http://127.0.0.1:5500/holoscope.js' });
-const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
+let falhou = false;
+const ok = (c,t) => {
+  if (!c) falhou = true;
+  console.log((c?'  ok    ':'  FALHA ')+t);
+};
 
 const r = await p.evaluate(() => {
   const g = window.HOLOSCOPE;
@@ -53,3 +57,4 @@ const indice = await p.evaluate(() => {
 });
 ok(indice.antes === indice.depois, 'o Indice nao muda com exame: ' + indice.antes + ' -> ' + indice.depois);
 await nav.close();
+process.exit(falhou ? 1 : 0);

@@ -28,7 +28,11 @@ const ruim = []; p.on('pageerror', e => ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
-const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
+let falhou = false;
+const ok = (c, t) => {
+  if (!c) falhou = true;
+  console.log((c ? '  ok    ' : '  FALHA ') + t);
+};
 
 // --- a gramatica esta viva no pacote do navegador ------------------------
 const gramatica = await p.evaluate((respostas) => {
@@ -50,7 +54,7 @@ ok(gramatica.indiceIgual && gramatica.notasIguais,
    'e o exame continua FORA da conta: Índice ' + gramatica.indice + ' com e sem contexto');
 
 // --- os eixos terapeuticos vieram do banco, nao do codigo ---------------
-const eixos = await p.evaluate(() => {
+const eixos = await p.evaluate(async () => {
   const todos = HOLOSCOPE.eixos();
   return {
     total: todos.length,
@@ -95,21 +99,37 @@ ok(daTela.quantosExames > 0,
 ok(Object.values(daTela.exames).every(v => typeof v === 'number'),
    'e chega como número, não como texto');
 
-// --- ferramenta: so o que e numero entra --------------------------------
+/* --- ferramenta: so o que e numero entra --------------------------------
+
+   As respostas viraram aplicacoes datadas. O contexto sai da aplicacao
+   CONCLUIDA mais recente — rascunho nao entra, porque o que esta pela metade
+   nao pode disparar leitura. */
 const daFerramenta = await p.evaluate(async () => {
-  const pid = window.pacienteAtivoId();
-  const tudo = JSON.parse(localStorage.getItem('holohacking.ferramentas') || '{}');
-  tudo[pid] = tudo[pid] || {};
-  // a Escala de Energia Vital tem 5 notas e 1 campo de texto
-  tudo[pid].energia_vital = { ao_acordar: '2', meio_manha: '4',
-                              o_que_derruba: 'a noite mal dormida' };
-  localStorage.setItem('holohacking.ferramentas', JSON.stringify(tudo));
+  const f = window.CATALOGO_FERRAMENTAS.find(x => x.id === 'energia_vital');
+  const app = await window.Aplicacoes.nova(f);
+  await window.Aplicacoes.concluir(app, {
+    qualidade_geral: '7',
+    derruba: 'a noite mal dormida',
+    dias: [{ acordar: '2', meio_manha: '4' }]
+  }, null);
   return window.Panorama.contexto().ferramentas.energia_vital;
 });
-ok(daFerramenta.ao_acordar === 2 && daFerramenta.meio_manha === 4,
-   'as notas da ferramenta entram como número: ' + JSON.stringify(daFerramenta));
-ok(!('o_que_derruba' in daFerramenta),
+ok(daFerramenta && daFerramenta.qualidade_geral === 7,
+   'a nota da ferramenta entra como número: ' + JSON.stringify(daFerramenta));
+ok(!('derruba' in daFerramenta),
    'e o campo de texto fica de fora — não há como cruzar frase');
+ok(!('dias' in daFerramenta),
+   'e a lista de itens também: uma condição lê um valor, não um array');
+
+/* Rascunho nao chega ao motor. */
+const soConcluida = await p.evaluate(async () => {
+  const f = window.CATALOGO_FERRAMENTAS.find(x => x.id === 'hidratacao_movimento');
+  const app = await window.Aplicacoes.nova(f);
+  await window.Aplicacoes.salvarRespostas(app, { copos: '8' }, null);
+  return window.Panorama.contexto().ferramentas.hidratacao_movimento || null;
+});
+ok(soConcluida === null, 'rascunho não chega ao motor');
 
 await nav.close();
 console.log(ruim.length ? '\n  ERRO: ' + ruim[0] : '\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

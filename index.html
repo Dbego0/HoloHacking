@@ -41,6 +41,95 @@
 </svg>
 
 <!-- ============================================================
+     TELA DE ENTRADA
+
+     Camada preparada para autenticacao. NAO protege o que esta atras dela:
+     nao ha servidor, nao ha sessao, nao ha verificacao. Ver login.js.
+     Fica fora de #app de proposito — nao e uma secao da aplicacao, nao entra
+     no menu e nao passa por irPara().
+============================================================ -->
+<div id="tela-login" class="tela-login">
+  <div class="login-cartao">
+
+    <div class="login-marca">
+      <svg width="52" height="49" viewBox="0 0 64 60" aria-hidden="true"><use href="#logo-simbolo"/></svg>
+      <h1>HoloHacking</h1>
+      <p>Plataforma clínica da Nutrição Holística</p>
+    </div>
+
+    <h2 class="login-titulo">Entrar na plataforma</h2>
+
+    <!-- novalidate: a validacao do navegador mostra balao nativo que some
+         sozinho e nao e lido de forma confiavel por leitor de tela. A nossa
+         escreve num elemento que continua na pagina, ligado por
+         aria-describedby. -->
+    <form id="form-login" novalidate autocomplete="on">
+
+      <div class="login-grupo">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" name="email"
+               autocomplete="username" inputmode="email"
+               spellcheck="false" autocapitalize="none"
+               aria-describedby="erro-email" required>
+        <p class="login-erro" id="erro-email" hidden></p>
+      </div>
+
+      <div class="login-grupo">
+        <label for="login-senha">Senha</label>
+        <div class="login-senha-caixa">
+          <input type="password" id="login-senha" name="senha"
+                 autocomplete="current-password"
+                 aria-describedby="erro-senha" required>
+          <!-- aria-pressed diz o ESTADO; aria-label diz a ACAO. Os dois mudam
+               juntos em login.js. -->
+          <button type="button" id="btn-olho" class="login-olho"
+                  aria-pressed="false" aria-label="Mostrar senha"
+                  aria-controls="login-senha">
+            <svg class="olho-ver" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="olho-ocultar" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4"/><path d="M6.6 6.9A17 17 0 0 0 2 13s3.6 7 10 7a9.6 9.6 0 0 0 4.5-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+          </button>
+        </div>
+        <p class="login-erro" id="erro-senha" hidden></p>
+      </div>
+
+      <div class="login-linha">
+        <label class="login-manter">
+          <input type="checkbox" id="login-manter" name="manter">
+          <span>Manter conectado</span>
+        </label>
+        <a href="#" id="link-esqueci" class="login-link">Esqueci minha senha</a>
+      </div>
+
+      <button type="submit" id="btn-entrar" class="login-botao">
+        <span class="login-girador" aria-hidden="true"></span>
+        <span class="login-botao-texto">Entrar</span>
+      </button>
+
+      <!-- role=status + aria-live=polite: a mensagem e anunciada sem
+           interromper quem estiver navegando pelos campos. -->
+      <p class="login-mensagem" id="login-mensagem"
+         role="status" aria-live="polite" hidden></p>
+    </form>
+
+    <p class="login-rodape">Área de acesso profissional</p>
+
+    <!-- A SAIDA DE DESENVOLVIMENTO.
+         Enquanto nao ha autenticacao, esta e a unica forma de alcancar o app —
+         e ela se anuncia pelo que e. Nao verifica nada, nao guarda nada, nao
+         cria sessao. Sai daqui no dia em que POST /api/auth/login existir. -->
+    <div class="login-dev">
+      <!-- Nao repetir aqui a frase que o submit ja devolve: dita duas vezes na
+           mesma tela, ela vira decoracao e para de ser lida. -->
+      <p>Enquanto o servidor de autenticação não existe:</p>
+      <button type="button" id="saida-dev" class="login-dev-botao">
+        Entrar sem autenticação &mdash; ambiente de desenvolvimento
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
      APLICACAO
 ============================================================ -->
 <div id="app">
@@ -82,6 +171,13 @@
         <button class="nav-item" data-secao="holoscope">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><circle cx="12" cy="12" r="3"/></svg>
           HOLOSCOPE<span style="font-size:.5em;vertical-align:super;margin-left:1px">&#174;</span>
+        </button>
+        <!-- HOLOSCAN vem logo abaixo do HOLOSCOPE de proposito: e a etapa
+             seguinte do fluxo clinico (Historia > HOLOSCOPE > Holoscan), e
+             uma camada separada — le o mapa e os exames, nunca os altera. -->
+        <button class="nav-item" data-secao="holoscan">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M3 12h18"/></svg>
+          HOLOSCAN <span class="nav-tag">Exames</span>
         </button>
         <button class="nav-item" data-secao="corpo">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5.5" r="2.6"/><path d="M12 8.5v6M12 14.5l-3.5 5M12 14.5l3.5 5M7 10.5h10"/></svg>
@@ -208,7 +304,7 @@
             <span class="icone">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e2c98a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5.5" r="2.6"/><path d="M12 8.5v6M12 14.5l-3.5 5M12 14.5l3.5 5M7 10.5h10"/></svg>
             </span>
-            <span class="ferramenta">Módulo - 10 ferramentas</span>
+            <span class="ferramenta">Módulo - 2 ferramentas</span>
             <h4>Corpo</h4>
             <p>Rotina, hábitos, sinais do corpo e capacidade prática. Inclui o OQ3 - clareza clínica sobre a realidade do paciente.</p>
             <span class="abrir">Ver ferramentas <span aria-hidden="true">&rarr;</span></span>
@@ -218,7 +314,7 @@
             <span class="icone">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e2c98a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5a6 6 0 0 1 8.4 6.6c-.2 1.1.1 1.7.9 2.7l.7.9-1.8.6v2.2c0 .9-.7 1.6-1.6 1.6h-1.6v2.4H8.3v-3.2A6.9 6.9 0 0 1 9.5 3.5Z"/></svg>
             </span>
-            <span class="ferramenta">Módulo - 10 ferramentas</span>
+            <span class="ferramenta">Módulo - 2 ferramentas</span>
             <h4>Mente</h4>
             <p>Crenças, emoções e comportamentos. Inclui o PQQ - a chave dos porquês profundos por trás dos objetivos.</p>
             <span class="abrir">Ver ferramentas <span aria-hidden="true">&rarr;</span></span>
@@ -232,6 +328,9 @@
           <span class="eyebrow">HOLOSCOPE&reg; &mdash; Scanner Integral</span>
           <h2>O mapa <em>invisível</em> da saúde humana</h2>
           <p>O HOLOSCOPE organiza, numa leitura só, o que o paciente relata sobre corpo, emoção e propósito — e mostra por onde a conduta começa: quais sistemas pesam mais, o que aparece junto e qual ferramenta responde a isso.</p>
+          <!-- Fluxo clinico do metodo, so como referencia visual — nao e um
+               wizard, nenhuma etapa bloqueia a seguinte. -->
+          <p class="fluxo-clinico">História &rarr; <b>HOLOSCOPE</b> &rarr; Holoscan &rarr; Aprofundamento &rarr; Interpretação &rarr; Conduta &rarr; Evolução</p>
         </div>
 
         <div class="barra-paciente">
@@ -257,9 +356,26 @@
 
           <div id="holoscope-manual">
           <div class="painel-escuro">
-          <span class="eyebrow">Os 5 Sistemas Centrais</span>
+
+          <!-- ===== 1. MAPA DE PRIORIDADES =====
+               Revisao clinica do HOLOSCOPE: a tela deixou de dar protagonismo
+               ao Indice (bloco 6, la embaixo, rebaixado) e passa a abrir pelo
+               que orienta a investigacao — o radar e a ordem dos sistemas. -->
+          <span class="eyebrow">1 &middot; Mapa de Prioridades</span>
+          <h3>Onde olhar primeiro</h3>
+          <p>O radar mostra os cinco sistemas juntos; a lista ordena do que pede mais investigação para o que pede menos — é prioridade de olhar, não conclusão.</p>
+          <div class="holo-resultado">
+            <div class="holo-radar-box">
+              <svg id="radar-svg" viewBox="0 0 300 300" width="280" height="280"></svg>
+            </div>
+            <div id="holo-prioridades" class="holo-caixa-mapa"></div>
+          </div>
+
+          <!-- ===== 2. CINCO SISTEMAS ===== -->
+          <span class="eyebrow">2 &middot; Cinco Sistemas</span>
           <h3>Avaliação Integral do Terreno</h3>
           <p>Pontue cada sistema de 0 (comprometido) a 10 (muito bom). O sistema cruzará tudo e gerará a leitura sistêmica.</p>
+          <p class="holo-nota-neutra">Os cinco sistemas são categorias de organização do mapa, não categorias de doença.</p>
 
           <div class="holo-sistemas">
             <div class="holo-card" data-sistema="fungico">
@@ -329,20 +445,14 @@
             </div>
           </div>
 
-          <div class="holo-resultado">
-            <div class="holo-radar-box">
-              <svg id="radar-svg" viewBox="0 0 300 300" width="280" height="280"></svg>
-            </div>
-            <div class="holo-score-box">
-              <span class="eyebrow">Índice HOLOS</span>
-              <div class="holo-score-numero" id="holo-score-total">0</div>
-              <span class="holo-score-label">de 100</span>
-              <p class="holo-origem" id="holo-origem"></p>
-              <p class="holo-score-interpretacao" id="holo-interpretacao">Pontue os sistemas para gerar a leitura.</p>
-            </div>
-          </div>
+          <!-- ===== 3. SINAIS / MARCADORES DOMINANTES =====
+               "dominantes" ja vem pronto do motor (top-5 marcadores por
+               pontos, por sistema) — so nao era desenhado em lugar nenhum. -->
+          <span class="eyebrow">3 &middot; Sinais Dominantes</span>
+          <h3>O que mais pesou nas respostas</h3>
+          <div class="holo-caixa-mapa hidden" id="holo-dominantes"></div>
 
-          <!-- Triada HOLOS: fisico, mental, espiritual num grafico so.
+          <!-- ===== 4. TRIADE CORPO · MENTE · ESPÍRITO =====
                So aparece com o questionario respondido — ela vem da origem dos
                marcadores, nao das notas dos cinco sistemas. -->
           <div class="holo-triada hidden" id="holo-triada"></div>
@@ -353,14 +463,37 @@
                nao tem, de proposito. -->
           <div class="holo-frequencias hidden" id="holo-frequencias"></div>
 
+          <!-- ===== 5. COBERTURA DO QUESTIONÁRIO ===== -->
+          <span class="eyebrow">5 &middot; Cobertura do Questionário</span>
+          <p class="holo-origem" id="holo-origem"></p>
           <!-- A cobertura do olhar: o que foi perguntado e o que ficou de
                fora, pelos territorios do metodo. Escondido enquanto
                territorios.csv nao tiver nenhum declarado. -->
           <div class="holo-territorios hidden" id="holo-territorios"></div>
 
-          <!-- padrao emocional, impacto espiritual e direcao terapeutica.
+          <!-- ===== 6. ÍNDICE HOLOS — informação secundária =====
+               Revisao clinica do HOLOSCOPE: era o elemento hero da tela
+               (5rem, dourado, primeiro bloco). Continua existindo — so
+               deixou de ser o que a tela promove primeiro. -->
+          <span class="eyebrow">6 &middot; Índice HOLOS (informação secundária)</span>
+          <div class="holo-score-box holo-secundario">
+            <div class="holo-score-numero" id="holo-score-total">0</div>
+            <span class="holo-score-label">de 100</span>
+            <p class="holo-score-interpretacao" id="holo-interpretacao">Pontue os sistemas para gerar a leitura.</p>
+          </div>
+
+          <!-- ===== 7. APROFUNDAMENTO =====
+               padrao emocional, hipoteses, direcao terapeutica e conduta.
                Preenchido por lerTerreno() em app.js. -->
+          <span class="eyebrow">7 &middot; Aprofundamento</span>
           <div class="holo-leitura" id="holo-leitura"></div>
+
+          <!-- O HOLOSCAN era o item 8 daqui. Saiu para a secao propria
+               (#secao-holoscan, logo abaixo no menu): ele nao e uma parte do
+               HOLOSCOPE, e a etapa seguinte — le este mapa e os exames e
+               confronta os dois, sem mexer em nota, indice, triade ou
+               respostas. Manter dentro sugeria que o mapa se corrigia com
+               exame, e ele nao se corrige. -->
 
           <!-- A fronteira. Ficava so no rodape do relatorio impresso; a tela
                onde a nutricionista abre o mapa junto com a paciente nao dizia
@@ -404,6 +537,46 @@
 
           <div class="citacao clara" style="margin-top:34px">
           <p>"Seu corpo esta contando uma história que você ainda não ouviu. Quando você enxerga o que esta por trás, tudo muda."</p>
+        </div>
+      </section>
+
+      <!-- ============ HOLOSCAN ============
+           Saiu de dentro do HOLOSCOPE (era o item 8 de la) para ficar no
+           nivel que lhe cabe: a etapa seguinte do fluxo, nao um pedaco do
+           mapa. Le os exames lancados na aba Documentos da ficha e confronta
+           com as notas do HOLOSCOPE, sistema a sistema. NUNCA escreve: nao
+           altera nota, Indice, Triade nem resposta nenhuma.
+           O lancamento dos valores continua so na ficha — aqui e leitura.
+           Desenhado por desenharHoloscan() (arquivos.js), chamado tanto por
+           irPara("holoscan") quanto por desenharPontuacao() em app.js. -->
+      <section class="secao" id="secao-holoscan">
+        <div class="secao-cabeca">
+          <span class="eyebrow">HOLOSCAN &mdash; Relato e Laboratório</span>
+          <h2>O que os exames <em>acrescentam</em> ao mapa</h2>
+          <p>O HOLOSCAN confronta, sistema a sistema, o que o paciente relata no HOLOSCOPE com o que os exames mostram. Ele não corrige o mapa nem o exame: mostra onde os dois caminham juntos, onde divergem — e onde ainda não há dado para comparar.</p>
+          <p class="fluxo-clinico">História &rarr; HOLOSCOPE &rarr; <b>Holoscan</b> &rarr; Aprofundamento &rarr; Interpretação &rarr; Conduta &rarr; Evolução</p>
+        </div>
+
+        <div class="barra-paciente">
+          <span class="rotulo">Paciente</span>
+          <select class="seletor-paciente" id="sel-holoscan" aria-label="Selecionar paciente"></select>
+          <span class="aviso">O confronto usa o HOLOSCOPE já aplicado a este paciente.</span>
+        </div>
+
+        <div class="painel-escuro">
+          <!-- Esta linha vinha de dentro de desenharHoloscan(). Fica aqui
+               porque e verdade da tela inteira, nao de um bloco dela: aqui
+               nao se lanca exame nenhum. -->
+          <p class="arq-nota">O lançamento e a edição dos valores ficam na aba
+            <b>Documentos</b>, na ficha do paciente. Esta tela apenas lê.</p>
+
+          <div class="holo-caixa-mapa" id="holo-holoscan"></div>
+
+          <p class="holo-fronteira">
+            O HOLOSCAN organiza informações laboratoriais para apoiar a
+            <b>interpretação profissional</b>. Não realiza diagnóstico, não altera o
+            HOLOSCOPE e não substitui avaliação médica.
+          </p>
         </div>
       </section>
 
@@ -650,20 +823,12 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <span class="contador-busca" id="contador-corpo"><b>10</b> ferramentas</span>
+          <span class="contador-busca" id="contador-corpo"><b>2</b> ferramentas</span>
         </div>
 
         <div class="galeria-ferramentas" id="galeria-corpo" aria-label="Selecione uma ferramenta">
           <button class="card-ferr" data-vista="vista-oq3"><span class="ferr-num">01</span><span class="ferr-info"><h4>OQ3 &mdash; O Que Quer - Precisa - Consegue</h4><p>Clareza clínica entre desejo, necessidade e capacidade prática do paciente.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="mapa_rotina"><span class="ferr-num">02</span><span class="ferr-info"><h4>Mapa da Rotina</h4><p>Mapeamento das 24 horas do dia alimentar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="energia_vital"><span class="ferr-num">03</span><span class="ferr-info"><h4>Escala de Energia Vital</h4><p>Registro da energia física ao longo do dia.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="leitura_sinais"><span class="ferr-num">04</span><span class="ferr-info"><h4>Leitura de Sinais &mdash; O Corpo que Fala</h4><p>Tradução de sintomas físicos em informações clínicas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="diario_corporal"><span class="ferr-num">05</span><span class="ferr-info"><h4>Diário Corporal</h4><p>Registro de fome, saciedade e sensações corporais.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="ritmo_sono"><span class="ferr-num">06</span><span class="ferr-info"><h4>Ritmo &amp; Sono</h4><p>Avaliação do sono, descanso e recuperação.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="inventario_habitos"><span class="ferr-num">07</span><span class="ferr-info"><h4>Inventário de Hábitos</h4><p>Identificação dos hábitos que sustentam ou sabotam a transformação.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="hidratacao_movimento"><span class="ferr-num">08</span><span class="ferr-info"><h4>Termômetro de Hidratação &amp; Movimento</h4><p>Check rápido de água, movimento e pausas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="linha_momentum"><span class="ferr-num">09</span><span class="ferr-info"><h4>Linha do Momentum</h4><p>Leitura do momento de vida e do que o corpo consegue sustentar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="check_comprometimento"><span class="ferr-num">10</span><span class="ferr-info"><h4>Check-in de Comprometimento</h4><p>Medida do nível de comprometimento prático.</p></span><span class="ferr-status disponivel">Disponível</span></button>
+          <button class="card-ferr" data-ferramenta="linha_momentum"><span class="ferr-num">02</span><span class="ferr-info"><h4>Linha do Momentum</h4><p>Leitura do momento de vida e do que o corpo consegue sustentar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <div class="sem-resultado"><strong>Nenhuma ferramenta encontrada</strong><span>Tente outro termo ou limpe a busca.</span></div>
         </div>
 
@@ -717,6 +882,7 @@
               <select class="seletor-paciente" id="sel-oq3" aria-label="Selecionar paciente"></select>
               <span class="aviso">Os registros são salvos na ficha deste paciente.</span>
             </div>
+            <p class="ferr-de-quando hidden" id="oq3-de-quando"></p>
             <div class="grupo"><label for="oq3-data">Data da consulta</label><input id="oq3-data" type="date"></div>
             <div class="grupo"><label for="oq3-quer">OQQ &mdash; O que o paciente quer conquistar?</label><p class="dica">Sonhos, desejos, objetivos, visão de futuro.</p><textarea id="oq3-quer" placeholder="Ex.: quer emagrecer 8 kg para se sentir bem no casamento da filha..."></textarea></div>
             <div class="grupo"><label for="oq3-precisa">OQP &mdash; O que ele precisa resolver?</label><p class="dica">Dores, necessidades reais, sintomas físicos e emocionais.</p><textarea id="oq3-precisa" placeholder="Ex.: compulsão noturna, sono ruim, exames alterados, ansiedade..."></textarea></div>
@@ -724,8 +890,10 @@
             <div class="grupo"><label for="oq3-alavancas">Alavancas da transformação</label><p class="dica">O que esta na interseção entre desejo, necessidade e capacidade?</p><textarea id="oq3-alavancas" placeholder="Ex.: organizar o jantar em familia resolve a compulsão..."></textarea></div>
             <div class="acoes-form">
               <button type="button" id="btn-salvar-oq3" class="btn-verde">Salvar OQ3</button>
+              <button type="button" id="btn-nova-oq3" class="btn-fantasma">Nova aplicação</button>
               <button type="button" class="btn-fantasma" data-limpar="oq3">Limpar</button>
             </div>
+            <section class="ferr-historico hidden" id="oq3-historico"></section>
           </div>
         </div>
         <div class="vista-ferramenta hidden" id="vista-gen-corpo"></div>
@@ -745,20 +913,12 @@
             <input type="search" id="busca-mente" data-galeria="galeria-mente" placeholder="Buscar ferramenta em Mente..." aria-label="Buscar ferramenta no módulo Mente" autocomplete="off">
             <button type="button" class="btn-limpar-busca" aria-label="Limpar busca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
-          <span class="contador-busca" id="contador-mente"><b>10</b> ferramentas</span>
+          <span class="contador-busca" id="contador-mente"><b>2</b> ferramentas</span>
         </div>
 
         <div class="galeria-ferramentas" id="galeria-mente" aria-label="Selecione uma ferramenta">
           <button class="card-ferr" data-vista="vista-pqq"><span class="ferr-num">01</span><span class="ferr-info"><h4>PQQ &mdash; Pra Que Que?</h4><p>A chave dos porquês profundos: o propósito por trás dos objetivos do paciente.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <button class="card-ferr" data-ferramenta="mapa_crencas"><span class="ferr-num">02</span><span class="ferr-info"><h4>Mapa de Crenças Alimentares</h4><p>Levantamento das crenças limitantes sobre a comida.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="diario_emocoes"><span class="ferr-num">03</span><span class="ferr-info"><h4>Diário de Emoções &amp; Comida</h4><p>Registro da fome emocional: o que sente antes, durante e depois de comer.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="historia_alimentar"><span class="ferr-num">04</span><span class="ferr-info"><h4>Linha da História Alimentar</h4><p>Memórias e padrões que se repetem na relação com o alimento.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="gatilhos_respostas"><span class="ferr-num">05</span><span class="ferr-info"><h4>Gatilhos &amp; Respostas</h4><p>Mapeamento das situações que disparam comportamentos automaticos.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="roda_valores"><span class="ferr-num">06</span><span class="ferr-info"><h4>Roda dos Valores Essenciais</h4><p>Clarificação dos valores que orientam decisões e prioridades.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="reenquadramento"><span class="ferr-num">07</span><span class="ferr-info"><h4>Reenquadramento de Pensamentos</h4><p>Transformação de pensamentos sabotadores em narrativas possíveis.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="ancoras_motivacao"><span class="ferr-num">08</span><span class="ferr-info"><h4>Âncoras de Motivação</h4><p>Construção de lembretes e âncoras que sustentam a constância.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="autocompaixao"><span class="ferr-num">09</span><span class="ferr-info"><h4>Escala de Autocompaixão</h4><p>Avaliação do diálogo interno e da forma como o paciente trata a si mesmo.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="autoestima"><span class="ferr-num">10</span><span class="ferr-info"><h4>Termômetro de Autoestima</h4><p>Acompanhamento da autoimagem e do reconhecimento das próprias conquistas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <div class="sem-resultado"><strong>Nenhuma ferramenta encontrada</strong><span>Tente outro termo ou limpe a busca.</span></div>
         </div>
 
@@ -772,7 +932,7 @@
 
           <div class="escada-pqq" aria-label="As cinco perguntas do PQQ">
             <div class="degrau"><span class="num">01</span><div><h5>Pra que que</h5><div class="q">...você quer isso?</div><p>Conectamos ao desejo consciente.</p></div></div>
-            <div class="degrau"><span class="num">02</span><div><h5>Pra que que</h5><div class="q">...isso e importante para você?</div><p>Exploramos o significado pessoal.</p></div></div>
+            <div class="degrau"><span class="num">02</span><div><h5>Pra que que</h5><div class="q">...isso é importante para você?</div><p>Exploramos o significado pessoal.</p></div></div>
             <div class="degrau"><span class="num">03</span><div><h5>Pra que que</h5><div class="q">...isso faz diferença na sua vida?</div><p>Conectamos ao impacto real.</p></div></div>
             <div class="degrau"><span class="num">04</span><div><h5>Pra que que</h5><div class="q">...isso representa para você?</div><p>Revelamos valores e identidade.</p></div></div>
             <div class="degrau"><span class="num">05</span><div><h5>Pra que que</h5><div class="q">...isso existe na sua história?</div><p>Acessamos a raiz profunda.</p></div></div>
@@ -798,17 +958,20 @@
               <select class="seletor-paciente" id="sel-pqq" aria-label="Selecionar paciente"></select>
               <span class="aviso">Os registros são salvos na ficha deste paciente.</span>
             </div>
+            <p class="ferr-de-quando hidden" id="pqq-de-quando"></p>
             <div class="grupo"><label for="pqq-objetivo">Objetivo declarado</label><input id="pqq-objetivo" type="text" placeholder="Ex.: quero emagrecer 8 kg"></div>
             <div class="grupo"><label for="pqq-1">01 - Pra que que você quer isso?</label><textarea id="pqq-1" placeholder="Desejo consciente..."></textarea></div>
-            <div class="grupo"><label for="pqq-2">02 - Pra que que isso e importante para você?</label><textarea id="pqq-2" placeholder="Significado pessoal..."></textarea></div>
+            <div class="grupo"><label for="pqq-2">02 - Pra que que isso é importante para você?</label><textarea id="pqq-2" placeholder="Significado pessoal..."></textarea></div>
             <div class="grupo"><label for="pqq-3">03 - Pra que que isso faz diferença na sua vida?</label><textarea id="pqq-3" placeholder="Impacto real..."></textarea></div>
             <div class="grupo"><label for="pqq-4">04 - Pra que que isso representa para você?</label><textarea id="pqq-4" placeholder="Valores e identidade..."></textarea></div>
             <div class="grupo"><label for="pqq-5">05 - Pra que que isso existe na sua história?</label><textarea id="pqq-5" placeholder="Raiz profunda..."></textarea></div>
             <div class="grupo"><label for="pqq-verdadeiro">O "pra que" verdadeiro</label><p class="dica">A síntese do propósito que sustenta a transformação.</p><textarea id="pqq-verdadeiro" placeholder="Ex.: voltar a se reconhecer e ter energia para brincar com os filhos."></textarea></div>
             <div class="acoes-form">
               <button type="button" id="btn-salvar-pqq" class="btn-verde">Salvar PQQ</button>
+              <button type="button" id="btn-nova-pqq" class="btn-fantasma">Nova aplicação</button>
               <button type="button" class="btn-fantasma" data-limpar="pqq">Limpar</button>
             </div>
+            <section class="ferr-historico hidden" id="pqq-historico"></section>
           </div>
         </div>
         <div class="vista-ferramenta hidden" id="vista-gen-mente"></div>
@@ -828,20 +991,13 @@
             <input type="search" id="busca-espirito" data-galeria="galeria-espirito" placeholder="Buscar ferramenta em Espírito..." aria-label="Buscar ferramenta no módulo Espírito" autocomplete="off">
             <button type="button" class="btn-limpar-busca" aria-label="Limpar busca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
-          <span class="contador-busca" id="contador-espirito"><b>10</b> ferramentas</span>
+          <span class="contador-busca" id="contador-espirito"><b>3</b> ferramentas</span>
         </div>
 
         <div class="galeria-ferramentas" id="galeria-espirito" aria-label="Selecione uma ferramenta">
           <button class="card-ferr" data-vista="vista-mapa"><span class="ferr-num">01</span><span class="ferr-info"><h4>Mapa do Propósito</h4><p>Síntese do OQ3 e do PQQ: clareza, direção e um plano que pode ser vivido.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="roda_vida"><span class="ferr-num">02</span><span class="ferr-info"><h4>Roda da Vida Integral</h4><p>Visão panorâmica das áreas da vida e do equilibrio entre elas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="ritual_mesa"><span class="ferr-num">03</span><span class="ferr-info"><h4>Ritual de Presença a Mesa</h4><p>Prática de comer consciente: presença, gratidão e conexão.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="carta_futuro"><span class="ferr-num">04</span><span class="ferr-info"><h4>Carta ao Futuro Eu</h4><p>Escrita guiada para conectar o paciente a pessoa que deseja se tornar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="inventario_gratidao"><span class="ferr-num">05</span><span class="ferr-info"><h4>Inventário de Gratidão</h4><p>Registro diário do que nutre além do prato.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="conexao_pertencimento"><span class="ferr-num">06</span><span class="ferr-info"><h4>Conexão &amp; Pertencimento</h4><p>Mapeamento das relações que sustentam a jornada.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="circulo_sentido"><span class="ferr-num">07</span><span class="ferr-info"><h4>Círculo de Sentido</h4><p>Investigação do que da significado a vida do paciente.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="praticas_contemplativas"><span class="ferr-num">08</span><span class="ferr-info"><h4>Práticas Contemplativas</h4><p>Repertório de respiração, silêncio e presença.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="legado"><span class="ferr-num">09</span><span class="ferr-info"><h4>Legado &amp; Transcendência</h4><p>Reflexão sobre o que o paciente quer deixar e a quem quer servir.</p></span><span class="ferr-status disponivel">Disponível</span></button>
-          <button class="card-ferr" data-ferramenta="alinhamento"><span class="ferr-num">10</span><span class="ferr-info"><h4>Alinhamento Corpo - Mente - Espírito</h4><p>Check de equilibrio entre as três dimensões.</p></span><span class="ferr-status disponivel">Disponível</span></button>
+          <button class="card-ferr" data-ferramenta="roda_vida"><span class="ferr-num">02</span><span class="ferr-info"><h4>Roda Holística da Vida</h4><p>Visão panorâmica das áreas da vida e do equilibrio entre elas.</p></span><span class="ferr-status disponivel">Disponível</span></button>
+          <button class="card-ferr" data-ferramenta="carta_futuro"><span class="ferr-num">03</span><span class="ferr-info"><h4>Carta ao Futuro Eu</h4><p>Escrita guiada para conectar o paciente a pessoa que deseja se tornar.</p></span><span class="ferr-status disponivel">Disponível</span></button>
           <div class="sem-resultado"><strong>Nenhuma ferramenta encontrada</strong><span>Tente outro termo ou limpe a busca.</span></div>
         </div>
 
@@ -900,12 +1056,38 @@
 <!-- A persistencia e uma camada so, e ela e trocavel: hoje dados.js guarda no
      navegador, amanha o mesmo lugar guarda no Supabase. Vem antes do app.js
      porque e o app que a consome. -->
+<!-- O mapa do que o app guarda. Vem antes de dados.js porque dados.js
+     deriva dele a lista de tabelas, para que as duas nao possam divergir. -->
+<!-- Duas abas do mesmo app, e o dado no meio. Vem antes de tudo que
+     escreve, porque e por ele que as escritas avisam umas as outras. -->
+<script src="/concorrencia.js"></script>
+<script src="/armazenamento.js"></script>
+<!-- Le um pacote de FORA e diz se daria para restaurar. Estende o
+     Armazenamento, entao vem logo depois dele. Nao escreve nada, e
+     nenhuma tela o chama ainda: o importador V2 ainda nao existe. -->
+<script src="/validar-backup.js"></script>
+<!-- Aplica um Backup V2 com snapshot, rollback e recuperacao pos-crash.
+     Usa o validador acima, entao vem depois dele. NENHUMA TELA O CHAMA:
+     falta o P0.7 (trava entre abas) antes de isto poder virar botao. -->
+<script src="/restaurar-backup.js"></script>
+<!-- Restaura um Backup V1, o formato antigo que so tinha as 8 tabelas.
+     Nao tem motor proprio: converte para um alvo V2 limpo e entrega ao
+     restaurar-backup.js. Nenhuma tela o chama — o importador da interface
+     continua sendo o DadosLocais.importar() legado. -->
+<script src="/importar-v1.js"></script>
+<!-- Excluir um paciente e tudo o que era dele. Usa o mesmo motor de operacao
+     critica do restaurar-backup.js, entao vem depois dele. -->
+<script src="/excluir-paciente.js"></script>
 <script src="/dados.js"></script>
 <script src="/holoscope.js"></script>
 <!-- as regras de "o que falta neste paciente", usadas pela ficha e pelo
      dashboard. Uma copia so, senao elas divergem. -->
 <script src="/panorama.js"></script>
+<script src="/corpo-bancos.js"></script>
 <script src="/ferramentas.js"></script>
+<script src="/aplicacoes.js"></script>
+<script src="/resultado-corpo.js"></script>
+<script src="/render-resultado.js"></script>
 <script src="/formulario.js"></script>
 <script src="/app.js"></script>
 <script src="/questionario.js"></script>
@@ -920,5 +1102,9 @@
 <script src="/perfil.js"></script>
 <script src="/caso-marina.js"></script>
 <script src="/demo.js"></script>
+<!-- Por ultimo: a tela de entrada nao depende de nada do app, e o app nao
+     depende dela. O dia em que a autenticacao real chegar, e este arquivo que
+     muda — nao os de cima. -->
+<script src="/login.js"></script>
 </body>
 </html>

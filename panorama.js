@@ -69,16 +69,12 @@
     var id = pid || SEM_PACIENTE;
     var pont = window.ultimaPontuacao ? window.ultimaPontuacao(id) : null;
     var historico = window.historicoPontuacao ? window.historicoPontuacao(id) : [];
-    var ferr = caixa("holohacking.ferramentas", id) || {};
     var quest = caixa("holohacking.questionario", id) || {};
     var exames = caixa("holohacking.exames", id) || {};
 
-    var preenchidas = Object.keys(ferr).filter(function (fid) {
-      var campos = ferr[fid];
-      return Object.keys(campos).some(function (k) {
-        return campos[k] !== "" && campos[k] != null;
-      });
-    });
+    var preenchidas = window.Aplicacoes
+      ? window.Aplicacoes.preenchidas(id)
+      : [];
 
     var conhecidas = perguntasDeHoje();
     var respondidas = Object.keys(quest).filter(function (mid) {
@@ -141,14 +137,20 @@
       d.pontuacao.sistemas.forEach(function (s) { notas[s.sistema] = s.nota; });
       try {
         var r = window.HOLOSCOPE.lerExames(d.valoresExames, notas);
-        r.confronto.filter(function (c) { return c.concordancia === "diverge"; })
-          .forEach(function (c) {
-            var nome = NOME_SISTEMA[c.sistema] || c.sistema;
-            saida.push({ peso: 2, grau: "aviso",
-                         curto: "relato e exame não batem no " + nome,
-                         texto: "Sistema " + nome + ": relato e exame não batem.",
-                         acao: "aba:documentos", botao: "Ver exames" });
-          });
+        // Revisao clinica do HOLOSCOPE (Holoscan): "nao batem" sugeria que um
+        // dos dois lados esta errado. Divergencia e convite a aprofundar, nao
+        // veredito. window.Holoscan (arquivos.js) e quem decide o estado —
+        // se ainda nao carregou, nao alertamos nada (fail-safe, nao inventa).
+        if (window.Holoscan) {
+          r.confronto.filter(function (c) { return window.Holoscan.estado(c) === "DIVERGENTE"; })
+            .forEach(function (c) {
+              var nome = NOME_SISTEMA[c.sistema] || c.sistema;
+              saida.push({ peso: 2, grau: "aviso",
+                           curto: "relato e exames divergem no " + nome,
+                           texto: "Sistema " + nome + ": relato e exames laboratoriais divergem — aprofundar.",
+                           acao: "aba:documentos", botao: "Ver exames" });
+            });
+        }
       } catch (e) { /* sem alerta e melhor do que alerta errado */ }
     }
 
@@ -227,16 +229,21 @@
     });
 
     var ferramentas = {};
-    var ferr = caixa("holohacking.ferramentas", id) || {};
-    Object.keys(ferr).forEach(function (fid) {
-      var campos = ferr[fid] || {};
-      var numericos = {};
-      Object.keys(campos).forEach(function (c) {
-        var n = Number(campos[c]);
-        if (campos[c] !== "" && campos[c] != null && isFinite(n)) numericos[c] = n;
+    if (window.Aplicacoes) {
+      window.Aplicacoes.preenchidas(id).forEach(function (fid) {
+        var app = window.Aplicacoes.ultima(fid, id);
+        if (!app || !app.respostas) return;
+        var numericos = {};
+        Object.keys(app.respostas).forEach(function (c) {
+          var v = app.respostas[c];
+          // lista de itens nao entra: uma condicao le um valor, nao um array
+          if (v === "" || v == null || Array.isArray(v) || typeof v === "object") return;
+          var n = Number(v);
+          if (isFinite(n)) numericos[c] = n;
+        });
+        if (Object.keys(numericos).length) ferramentas[fid] = numericos;
       });
-      if (Object.keys(numericos).length) ferramentas[fid] = numericos;
-    });
+    }
 
     return { exames: exames, ferramentas: ferramentas };
   }

@@ -10,7 +10,11 @@ const ruim=[]; p.on('pageerror',e=>ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/',{waitUntil:'networkidle2'});
 await p.addStyleTag({content:'*{transition:none!important;animation:none!important}'});
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
-const ok=(c,t)=>console.log((c?'  ok    ':'  FALHA ')+t);
+let falhou = false;
+const ok = (c,t) => {
+  if (!c) falhou = true;
+  console.log((c?'  ok    ':'  FALHA ')+t);
+};
 
 async function verFicha(){
   const r = await p.evaluate(async () => {
@@ -63,18 +67,25 @@ await p.evaluate((r) => {
 const mapeado = await verFicha();
 ok(mapeado.indice === '43', 'a ficha mostra o Indice: ' + mapeado.indice);
 ok(mapeado.triada.length === 3, 'mostra a Triada: ' + mapeado.triada.join(' '));
-ok(/amea/.test(mapeado.combinada||''), 'mostra a leitura combinada');
+/* Revisao clinica do HOLOSCOPE (decisao 1): nenhuma CMB aparece na
+   interface clinica nesta rodada, nem a CMB-001 — ver app.js,
+   cmbParaExibir(). */
+ok(mapeado.combinada === undefined, 'nao mostra leitura combinada: ' + mapeado.combinada);
 ok(mapeado.alertas.some(a=>/nenhuma ferramenta/i.test(a)),
    'ACUSA mapeado sem conduta: ' + (mapeado.alertas.find(a=>/nenhuma ferramenta/i.test(a))||''));
 ok(mapeado.formularios.some(l=>/84 de 84 respondidas/.test(l)),
    'o questionario completo aparece em Formularios');
 
 // --- aplica uma ferramenta ---------------------------------------------------
-await p.evaluate(() => {
+// gatilhos_respostas foi uma das ferramentas retiradas da galeria de Mente na
+// rodada de revisao de Corpo/Mente/Espirito; mapa_crencas e uma das duas que
+// sobraram (a outra e o PQQ, que tem tela propria, nao generica).
+await p.evaluate(async () => {
   document.querySelector('.nav-item[data-secao="mente"]').click();
-  document.querySelector('[data-ferramenta="gatilhos_respostas"]').click();
-  document.getElementById('campo-gatilho1').value = 'Briga em casa';
-  document.querySelector('#vista-gen-mente [data-acao="salvar"]').click();
+  document.querySelector('[data-ferramenta="mapa_crencas"]').click();
+  await new Promise(r => setTimeout(r, 350));
+  document.getElementById('campo-crencas').value = 'Carboidrato engorda';
+  document.querySelector('#vista-gen-mente [data-acao="concluir"]').click();
 });
 const conduzido = await verFicha();
 ok(!conduzido.alertas.some(a=>/nenhuma ferramenta/i.test(a)), 'o alerta some depois da conduta');
@@ -83,7 +94,7 @@ ok(conduzido.formularios.some(l=>/1 de 30 aplicadas/.test(l)),
    'conta 1 de 30 ferramentas');
 
 // --- exame que diverge vira alerta -------------------------------------------
-await p.evaluate(() => {
+await p.evaluate(async () => {
   document.querySelector('.nav-item[data-secao="pacientes"]').click();
   document.getElementById('vista-lista-pacientes').classList.add('hidden');
   document.getElementById('vista-ficha').classList.remove('hidden');
@@ -93,8 +104,11 @@ await p.evaluate(() => {
   l.querySelector('input').dispatchEvent(new Event('input',{bubbles:true}));
 });
 const comExame = await verFicha();
-ok(comExame.alertas.some(a=>/n[aã]o batem/i.test(a)),
-   'ACUSA divergencia entre relato e exame: ' + (comExame.alertas.find(a=>/batem/.test(a))||''));
+/* Revisao clinica do HOLOSCOPE (Holoscan): "nao batem" sugeria que um dos
+   dois lados esta errado. panorama.js passou a falar em divergencia — um
+   convite a aprofundar, nao veredito. */
+ok(comExame.alertas.some(a=>/divergem/i.test(a)),
+   'ACUSA divergencia entre relato e exame: ' + (comExame.alertas.find(a=>/diverg/i.test(a))||''));
 ok(comExame.faixa.some(l=>/1 preenchidos/.test(l)),
    'a faixa conta os exames preenchidos: ' + (comExame.faixa.find(l=>/preenchid/.test(l))||''));
 ok(comExame.faixa.some(l=>/ÚLTIMA APLICAÇÃO/i.test(l) || /Última aplicação/i.test(l)),
@@ -102,3 +116,4 @@ ok(comExame.faixa.some(l=>/ÚLTIMA APLICAÇÃO/i.test(l) || /Última aplicação
 
 await nav.close();
 console.log(ruim.length?'\n  ERRO: '+ruim[0]:'\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

@@ -25,7 +25,11 @@ const ruim = []; p.on('pageerror', e => ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
-const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
+let falhou = false;
+const ok = (c, t) => {
+  if (!c) falhou = true;
+  console.log((c ? '  ok    ' : '  FALHA ') + t);
+};
 
 // --- o aprofundamento, a partir do caso de exemplo ----------------------
 const hoje = await p.evaluate((respostas) => {
@@ -43,12 +47,18 @@ const hoje = await p.evaluate((respostas) => {
 ok(hoje.doMotor > 0 && hoje.naTela === hoje.doMotor,
    hoje.doMotor + ' perguntas de aprofundamento abertas pelas respostas altas');
 console.log('          primeira: ' + hoje.primeira);
-ok(hoje.encaminhar > 0,
-   hoje.encaminhar + ' encaminhamento(s) disparado(s) pelo caso de exemplo');
-ok(hoje.titulos.includes('Hipótese a investigar'),
-   '"Leitura combinada" virou hipótese: ' + hoje.titulos.join(' · '));
-ok(!hoje.titulos.includes('Leitura combinada'),
-   'e o rótulo antigo, que soava a achado fechado, saiu');
+/* Revisao clinica do HOLOSCOPE (decisao 1): nenhuma CMB aparece na
+   interface clinica nesta rodada — nem "Hipótese a investigar" nem "Fora do
+   escopo da nutrição" — mesmo quando o caso de exemplo dispara encaminhamento
+   e hipotese no motor. cmbParaExibir() (app.js) sempre devolve lista vazia;
+   o aprofundamento (que NAO depende de combinacao nenhuma) continua intacto,
+   como as duas asserções acima provam. */
+ok(hoje.encaminhar === 0,
+   'nenhum encaminhamento aparece na tela, mesmo o caso disparando no motor: ' + hoje.encaminhar);
+ok(!hoje.titulos.includes('Hipótese a investigar') &&
+   !hoje.titulos.includes('Fora do escopo da nutrição') &&
+   !hoje.titulos.includes('Leitura combinada'),
+   'nenhum bloco de combinação aparece: ' + hoje.titulos.join(' · '));
 
 // --- amanha: com aprofundamento e encaminhamento -------------------------
 const amanha = await p.evaluate((respostas) => {
@@ -88,18 +98,18 @@ amanha.perguntas.forEach(q => console.log('          ' + q.de + ' → ' + q.perg
 ok(/dorme pior/.test(amanha.perguntas[0].pergunta),
    'a que pesou mais vem primeiro');
 
-ok(amanha.encaminhar.length === 1,
-   'o encaminhamento sai em bloco próprio: "' + amanha.encaminhar[0] + '"');
-ok(!amanha.hipoteses.includes('Quadro sugere avaliação médica'),
-   'e não se mistura com as hipóteses clínicas');
-ok(amanha.hipoteses.length === 1 && /estado crônico/.test(amanha.hipoteses[0]),
-   'a hipótese fica no bloco dela: ' + amanha.hipoteses[0]);
-ok(/Conferir antes de concluir: cortisol/.test(amanha.investigar || ''),
-   'e diz o que conferir antes de virar conclusão');
-
-const iEnc = amanha.ordemTitulos.findIndex(t => /Fora do escopo/.test(t));
-const iHip = amanha.ordemTitulos.findIndex(t => /Hipótese/.test(t));
-ok(iEnc >= 0 && iEnc < iHip, 'o que sai do escopo aparece antes da leitura clínica');
+/* Revisao clinica do HOLOSCOPE (decisao 1): mesmo com CMB-001 (status
+   implicito confirmado neste objeto forjado) e um encaminhamento manufaturado
+   os dois — de proposito, para prova de fogo do H4 (item H): nenhuma CMB
+   pode aparecer como conclusao automatica, nem a "confirmada". */
+ok(amanha.encaminhar.length === 0,
+   'o encaminhamento manufaturado nao aparece na tela: ' + amanha.encaminhar.length);
+ok(amanha.hipoteses.length === 0,
+   'nenhuma hipotese aparece na tela, nem a CMB-001: ' + amanha.hipoteses.length);
+ok(!amanha.investigar,
+   'sem bloco de hipotese, tambem nao ha "conferir antes de concluir": ' + amanha.investigar);
+ok(!amanha.ordemTitulos.some(t => /Fora do escopo|Hipótese/.test(t)),
+   'nenhum titulo de combinacao aparece: ' + amanha.ordemTitulos.join(' · '));
 
 // --- territorios do olhar: cobertura, nao mais uma nota ------------------
 const terr = await p.evaluate((respostas) => {
@@ -143,3 +153,4 @@ ok(/não é equilíbrio/i.test(terr.buraco || ''),
 
 await nav.close();
 console.log(ruim.length ? '\n  ERRO: ' + ruim[0] : '\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

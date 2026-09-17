@@ -429,6 +429,18 @@ export function pontuar(
     nota_media: notaMedia,
     sistemas,
     triada,
+    /* Quais eixos da Triada tem pelo menos uma resposta.
+
+       A formula devolve 10 para eixo sem nenhum marcador respondido — nota
+       maxima por ausencia de dado, exatamente o erro que o Indice ja corrige
+       um nivel acima com avaliavel. Aqui a conta continua a mesma; o que
+       muda e que quem desenha passa a saber a diferenca, e pode mostrar
+       "sem dado" em vez de "10". */
+    triada_com_dado: {
+      fisico: !!triadaComDado.fisico,
+      mental: !!triadaComDado.mental,
+      espiritual: !!triadaComDado.espiritual,
+    },
     frequencias,
     combinacoes,
     cobertura: {

@@ -216,10 +216,10 @@
   ];
 
   /** Uma cena de galeria por modulo: os cards reais, com nome e descricao. */
-  function catalogo(modulo, titulo) {
+  function catalogo(modulo, titulo, total) {
     return {
       dur: 10,
-      legenda: titulo + " · 10 ferramentas",
+      legenda: titulo + " · " + total + " ferramentas",
       entrar: function () {
         mostrarPainel(false);
         irSecao(modulo);
@@ -351,9 +351,9 @@
       } },
 
     /* 10, 11, 12 — o catalogo dos tres modulos */
-    catalogo("corpo", "Corpo"),
-    catalogo("mente", "Mente"),
-    catalogo("espirito", "Espírito"),
+    catalogo("corpo", "Corpo", 2),
+    catalogo("mente", "Mente", 2),
+    catalogo("espirito", "Espírito", 3),
 
     /* 13 — exames: o confronto, app de verdade */
     { dur: 13, legenda: "Relato × laboratório",

@@ -14,9 +14,17 @@ const p = await nav.newPage();
 await p.setViewport({ width: 1500, height: 1100 });
 const ruim = []; p.on('pageerror', e => ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
+/* Estes testes fotografam um elemento, e a camada de entrada (login.js) o
+   cobriria. Dispensa-la aqui nao e autenticar: e descobrir a tela, o mesmo que
+   o botao visivel de desenvolvimento faz. */
+await p.evaluate(() => window.LoginView && window.LoginView.abrirApp());
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
-const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
+let falhou = false;
+const ok = (c, t) => {
+  if (!c) falhou = true;
+  console.log((c ? '  ok    ' : '  FALHA ') + t);
+};
 
 // --- a tela abre e monta as 84 --------------------------------------------
 const abriu = await p.evaluate(() => {
@@ -86,7 +94,12 @@ ok(fim.conta.includes('84'), 'respondeu tudo: ' + fim.conta.trim());
 ok(fim.indice === '43', 'INDICE = ' + fim.indice + '  (o terminal da 43)');
 ok(fim.notas.join(' ') === '6.7 6.7 0.8 6.7 0.7', 'notas exatas: ' + fim.notas.join(' · '));
 ok(fim.travadas, 'as reguas viraram resultado, nao entrada');
-ok(fim.combinadas.length > 0, 'leitura combinada: ' + (fim.combinadas[0] || 'nenhuma'));
+/* Revisao clinica do HOLOSCOPE (decisao 1): nenhuma CMB aparece na
+   interface clinica nesta rodada, nem a CMB-001 (status=confirmado no
+   banco, mas sem revisao de tom) — ver app.js, cmbParaExibir(). O motor
+   continua disparando as 16 (ver testar-motor.mjs, testar-combinacoes-
+   status.mjs); so a tela nunca mais mostra. */
+ok(fim.combinadas.length === 0, 'nenhuma leitura combinada na tela: ' + fim.combinadas.length);
 ok(fim.voltouAoMapa, 'o questionario fecha e mostra o mapa');
 ok(/84/.test(fim.origem), 'diz de onde veio: ' + fim.origem.trim().slice(0, 60));
 
@@ -94,3 +107,4 @@ const el = await p.$('#secao-holoscope');
 await el.screenshot({ path: 'questionario-resultado.png' });
 await nav.close();
 console.log(ruim.length ? '\n  ERRO: ' + ruim[0] : '\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

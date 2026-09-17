@@ -17,7 +17,11 @@ const ruim = []; p.on('pageerror', e => ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
-const ok = (c, t) => console.log((c ? '  ok    ' : '  FALHA ') + t);
+let falhou = false;
+const ok = (c, t) => {
+  if (!c) falhou = true;
+  console.log((c ? '  ok    ' : '  FALHA ') + t);
+};
 
 // --- a secao existe e abre -------------------------------------------------
 const base = await p.evaluate(() => {
@@ -83,14 +87,19 @@ const conf = await p.evaluate(() => {
   const itens = [...document.querySelectorAll('.conf-item')];
   return itens.map(i => ({
     sistema: i.querySelector('b').textContent,
-    tipo: i.classList.contains('diverge') ? 'diverge' : 'confirma',
+    tipo: i.classList.contains('divergente') ? 'divergente' : 'convergente',
     leitura: i.querySelector('.conf-leitura').textContent.trim().slice(0, 60),
   }));
 });
+/* Revisao clinica do HOLOSCOPE (Holoscan): os nomes de classe/estado viraram
+   convergente/divergente/dados_insuficientes (window.Holoscan em
+   arquivos.js) em vez de confirma/diverge — so a apresentacao, o motor
+   continua devolvendo confirma/diverge/sem_exame como sempre (ver
+   testar-exames.mjs). */
 const met = conf.find(c => /Metab/.test(c.sistema));
 const det = conf.find(c => /Detox/.test(c.sistema));
-ok(met && met.tipo === 'confirma', 'metabolico baixo + exame alterado = confirma');
-ok(det && det.tipo === 'diverge', 'detox alto + exame alterado = diverge');
+ok(met && met.tipo === 'convergente', 'metabolico baixo + exame alterado = convergente');
+ok(det && det.tipo === 'divergente', 'detox alto + exame alterado = divergente');
 if (det) console.log('    divergencia: ' + det.leitura + '...');
 
 // --- documentos ------------------------------------------------------------
@@ -115,12 +124,15 @@ const rel = await p.evaluate(() => {
   const r = document.getElementById('relatorio');
   return {
     existe: !!r,
-    indice: r?.querySelector('.rel-meta b')?.textContent,
+    // Revisao clinica do HOLOSCOPE: o Indice saiu do cabecalho (.rel-meta) e
+    // foi para o fim da secao A, como informacao secundaria (.rel-indice).
+    indice: r?.querySelector('.rel-indice b')?.textContent,
     sistemas: r?.querySelectorAll('.rel-sistema').length,
     primeiro: r?.querySelector('.rel-sistema b')?.textContent,
     combinada: r?.querySelector('.rel-combinada')?.textContent.trim(),
     temTriada: !!r?.querySelector('.rel-triada'),
-    temExames: /Exames/.test(r?.textContent || ''),
+    temHoloscan: /Holoscan/.test(r?.textContent || ''),
+    partes: [...r?.querySelectorAll('.rel-parte') || []].map(s => s.dataset.origem),
     textoNutri: r?.querySelector('.rel-sistema p')?.textContent.slice(0, 70),
   };
 });
@@ -131,18 +143,38 @@ const maisBaixo = await p.evaluate((respostas) =>
   [...HOLOSCOPE.calcular(respostas).sistemas].sort((a, b) => a.nota - b.nota)[0].nome,
   caso.respostas);
 ok(rel.primeiro === maisBaixo, 'comeca pelo mais baixo: ' + rel.primeiro);
-ok(rel.temTriada && rel.temExames, 'traz Triada e Exames');
-ok(/amea/.test(rel.combinada || ''), 'traz a leitura combinada');
+ok(rel.temTriada && rel.temHoloscan, 'traz Triada e Holoscan');
+/* Revisao clinica do HOLOSCOPE (decisao 1): nenhuma CMB aparece no
+   relatorio nesta rodada, nem a CMB-001. */
+ok(!rel.combinada, 'nao traz leitura combinada: ' + rel.combinada);
+ok(rel.partes.join(',') === 'automatico,automatico,profissional',
+   'relatorio separa A/B automatico de C profissional: ' + rel.partes.join(','));
 
-// os dois registros dao textos diferentes
+/* Revisao clinica do HOLOSCOPE (decisao 2): o paragrafo de "Os cinco
+   sistemas" que antes vinha de mensagens.csv (status=rascunho, e por isso
+   diferia por registro) foi substituido pela mesma linha neutra fixa nos
+   dois registros — o dado objetivo (nota/faixa/cobertura) nao muda por
+   registro nenhum. O que continua diferindo por registro e a secao C:
+   "nutri" edita a interpretacao profissional; "paciente" so le. */
 const dois = await p.evaluate(() => {
   const antes = document.querySelector('.rel-sistema p').textContent;
+  const eraTextarea = !!document.getElementById('rel-interpretacao');
   document.querySelector('[data-registro="paciente"]').click();
-  return { antes: antes.slice(0, 50), depois: document.querySelector('.rel-sistema p').textContent.slice(0, 50) };
+  return {
+    antes: antes.slice(0, 50),
+    depois: document.querySelector('.rel-sistema p').textContent.slice(0, 50),
+    eraTextarea,
+    viraSoLeitura: !document.getElementById('rel-interpretacao'),
+  };
 });
-ok(dois.antes !== dois.depois, 'nutricionista e paciente recebem textos diferentes');
+ok(dois.antes === dois.depois,
+   'os cinco sistemas mostram o mesmo texto objetivo nos dois registros (mensagens.csv suprimido): "' +
+   dois.antes + '"');
+ok(dois.eraTextarea && dois.viraSoLeitura,
+   'mas a seção C continua mudando por registro: "nutri" edita, "paciente" só lê');
 console.log('    nutri:    ' + dois.antes + '...');
 console.log('    paciente: ' + dois.depois + '...');
 
 await nav.close();
 console.log(ruim.length ? '\n  ERRO: ' + ruim[0] : '\n  sem erro de JS');
+process.exit(falhou ? 1 : 0);

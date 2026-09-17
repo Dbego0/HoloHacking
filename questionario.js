@@ -94,16 +94,23 @@
   function respostasDoPaciente() {
     return tudo()[pacienteAtual()] || {};
   }
+  /* O mapa inteiro e RELIDO aqui, imediatamente antes de gravar, e tudo isto
+     acontece num turno sincrono so: outra aba nao consegue se enfiar entre a
+     leitura e a escrita. Entao a resposta que a outra aba acabou de dar nao se
+     perde. O que se acrescenta e o aviso: depois de gravar, a revisao avanca,
+     e as outras abas descobrem que o que elas tem na tela envelheceu. */
   function gravar(marcadorId, valor) {
     var t = tudo(), p = pacienteAtual();
     if (!t[p]) t[p] = {};
     t[p][marcadorId] = valor;
     localStorage.setItem(CHAVE, JSON.stringify(t));
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("questionario");
   }
   function limpar() {
     var t = tudo();
     delete t[pacienteAtual()];
     localStorage.setItem(CHAVE, JSON.stringify(t));
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("questionario");
   }
 
   /* Respostas que ainda existem no banco de hoje. Marcador removido numa

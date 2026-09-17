@@ -41,8 +41,27 @@
   /* "consultas" e "bloqueios" sao a agenda: o atendimento marcado e o tempo
      que nao esta disponivel. Entram aqui para viajar no exportar — levar os
      pacientes sem levar a agenda deixaria a semana vazia do outro lado. */
-  var TABELAS = ["pacientes", "oq3", "pqq", "holoscope", "perfil",
-                 "consultas", "bloqueios"];
+  /* "aplicacoes" e cada vez que uma ferramenta foi aplicada a alguem. Nasceu
+     versionada de proposito: a caixa anterior guardava um registro por
+     ferramenta por paciente e sobrescrevia, entao reaplicar apagava a leitura
+     de tres meses atras — que e justamente a que serve para comparar. */
+  /* Esta lista era escrita aqui e repetida no manifesto. Agora ela SAI do
+     manifesto (armazenamento.js), que e a fonte tecnica de verdade sobre o
+     que este app guarda — as oito entradas de backend "tabela", na ordem em
+     que ele as declara. Um teste compara a lista derivada com a lista
+     literal abaixo, item por item e na mesma ordem: se divergirem, ele falha.
+
+     O literal continua aqui como fallback, nao como segunda fonte. Ele so
+     entra em cena se armazenamento.js nao tiver carregado — o que, no app,
+     nao acontece: a tag vem antes desta no index.html. Serve ao teste que
+     roda dados.js isolado e a nao transformar uma ordem de <script> errada
+     num app que nao abre. */
+  var TABELAS_LITERAIS = ["pacientes", "oq3", "pqq", "holoscope", "perfil",
+                          "consultas", "bloqueios", "aplicacoes"];
+
+  var TABELAS = (window.Armazenamento && window.Armazenamento.tabelasDaFachada)
+    ? window.Armazenamento.tabelasDaFachada()
+    : TABELAS_LITERAIS;
 
   /* ---------- o disco de hoje ------------------------------------------- */
 
@@ -58,13 +77,31 @@
     }
   }
 
+  /* TODA escrita das 8 tabelas passa por aqui — insert, update, delete,
+     importar e apagarTudo. E por isso que a revisao global e avancada neste
+     ponto, e nao em dez lugares: um funil so, que nao da para esquecer.
+
+     A ordem importa: primeiro o setItem, depois a revisao. Avancar antes
+     seria prometer as outras abas uma escrita que ainda pode falhar. */
   function escrever(tabela, linhas) {
     try {
       localStorage.setItem(PREFIXO + tabela, JSON.stringify(linhas));
-      return null;
     } catch (e) {
       return { message: "não foi possível gravar neste navegador (" + e.name + ")" };
     }
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("tabela:" + tabela);
+    return null;
+  }
+
+  /** A guarda desta camada. Sincrona porque as escritas sao sincronas: torna-las
+      assincronas para entrarem no Web Lock quebraria todos os chamadores, e o
+      que elas precisam e mais simples — nao escrever enquanto outra aba
+      reescreve tudo. Devolve null quando pode seguir. */
+  function barrado(acao, tabela) {
+    if (!window.Concorrencia) return null;
+    var v = window.Concorrencia.podeEscrever({ ignorarRevisao: true });
+    if (v.ok) return null;
+    return { message: v.mensagem, codigo: v.codigo, acao: acao, tabela: tabela };
   }
 
   function novoId() {
@@ -127,6 +164,9 @@
 
   Consulta.prototype.executar = function () {
     var linhas = ler(this.tabela);
+
+    var impedido = barrado(this.acao, this.tabela);
+    if (impedido) return { data: null, error: impedido };
 
     if (this.acao === "insert") {
       var linha = {};
@@ -235,6 +275,12 @@
 
     apagarTudo: function () {
       TABELAS.forEach(function (t) { localStorage.removeItem(PREFIXO + t); });
+    },
+
+    /* Nao faz parte da API que as telas usam: existe para o teste conseguir
+       provar que derivar do manifesto nao mudou nada. Leitura pura. */
+    _tabelas: function () {
+      return { usadas: TABELAS.slice(), literais: TABELAS_LITERAIS.slice() };
     }
   };
 })();

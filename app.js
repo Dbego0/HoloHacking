@@ -122,7 +122,8 @@
   const nomesSecao = {
     dashboard:"Dashboard", pacientes:"Pacientes", consultas:"Consultas",
     agenda:"Agenda", documentos:"Documentos",
-    holoscope:"HOLOSCOPE", corpo:"Módulo Corpo", mente:"Módulo Mente",
+    holoscope:"HOLOSCOPE", holoscan:"HOLOSCAN",
+    corpo:"Módulo Corpo", mente:"Módulo Mente",
     espirito:"Módulo Espírito", perfil:"Perfil"
   };
   function irPara(secao){
@@ -144,6 +145,11 @@
       consultas: window.redesenharConsultas,
       agenda: window.redesenharAgenda,
       documentos: window.redesenharDocumentos,
+      /* O HOLOSCAN virou secao propria e precisa disto mais do que as outras:
+         os exames sao lancados na ficha, noutra tela. Sem redesenhar ao abrir,
+         lancar um exame e vir para ca mostrava o confronto de antes — e um
+         confronto desatualizado e pior do que confronto nenhum. */
+      holoscan: () => { if(window.desenharHoloscan) window.desenharHoloscan("holo-holoscan"); },
       /* Pacientes entrou aqui depois das outras, e era a que mais precisava:
          o cartao agora mostra "Último contato" e o proximo passo. Aplicar um
          HOLOSCOPE e voltar para a lista deixava o cartao dizendo "Sem consulta
@@ -174,6 +180,10 @@
     if(barra) barra.classList.add("hidden");
     vista.classList.remove("hidden");
     carregarFormularios();
+    // O OQ3 era a unica das dez ferramentas fora do historico versionado.
+    // Abrir a vista abre a aplicacao de trabalho, como formulario.js faz.
+    if(idVista === "vista-oq3") abrirAplicacaoOQ3();
+    if(idVista === "vista-pqq") abrirAplicacaoPQQ();
     if(idVista === "vista-mapa") renderizarMapa();
     window.scrollTo({ top:0, behavior:"smooth" });
   }
@@ -225,7 +235,7 @@
       });
       galeria.classList.toggle("vazia", visiveis === 0);
       campo.classList.toggle("com-texto", termo.length > 0);
-      contador.innerHTML = termo ? "<b>" + visiveis + "</b> de 10" : "<b>10</b> ferramentas";
+      contador.innerHTML = termo ? "<b>" + visiveis + "</b> de " + cards.length : "<b>" + cards.length + "</b> ferramentas";
     }
     input.addEventListener("input", filtrar);
     input.addEventListener("keydown", e => {
@@ -749,12 +759,31 @@
       : quantos + (novo === "inativo" ? " marcados como inativos." : " reativados."));
   }
 
+  /* Antes, isto apagava UMA coisa: a linha do paciente na tabela. As
+     respostas, a serie de pontuacoes, os exames, os documentos, as aplicacoes,
+     as consultas e o mapa gravado continuavam no disco, ligados a um id que
+     nao existia mais — nove destinos invisiveis em toda tela.
+
+     Agora a exclusao passa pelo motor: um lock, um snapshot, os filhos antes
+     da raiz, verificacao no fim, e rollback se algo falhar. Tudo o mais aqui
+     — o confirm, o toast, a selecao do proximo ativo — continua igual. */
   async function removerPacientes(ids){
-    for(const id of ids){
-      await sb.from("pacientes").delete().eq("id", id);
+    if(!window.Armazenamento || !window.Armazenamento.excluirPaciente){
+      toast("A exclusão segura não está disponível neste navegador.");
+      return;
+    }
+    /* Uma operacao so para todos os selecionados: N operacoes seriam N
+       snapshots e N janelas de crash, e um crash no meio deixaria metade
+       apagada e metade nao, sem nada dizendo qual era qual. */
+    const r = await window.Armazenamento.excluirPaciente(ids, { confirmado: true });
+    if(!r.aplicado){
+      toast("Não foi possível remover: " + (r.motivo || "erro desconhecido"));
+      return;
+    }
+    ids.forEach(id => {
       estado.pacientes = estado.pacientes.filter(x => x.id !== id);
       if(estado.ativo === id) definirAtivo(estado.pacientes[0] ? estado.pacientes[0].id : null);
-    }
+    });
     selecionados.clear();
     renderPacientes();
     toast(ids.length === 1 ? "Paciente removido." : ids.length + " pacientes removidos.");
@@ -937,52 +966,232 @@
   ============================================================ */
   function carregarFormularios(){
     const p = pacienteAtivo();
-    const oq3 = p ? p.oq3 : vazioOQ3();
-    const pqq = p ? p.pqq : vazioPQQ();
-    $("#oq3-data").value = oq3.data_consulta || "";
-    $("#oq3-quer").value = oq3.quer || "";
-    $("#oq3-precisa").value = oq3.precisa || "";
-    $("#oq3-consegue").value = oq3.consegue || "";
-    $("#oq3-alavancas").value = oq3.alavancas || "";
-    $("#pqq-objetivo").value = pqq.objetivo || "";
-    $("#pqq-1").value = pqq.r1 || "";
-    $("#pqq-2").value = pqq.r2 || "";
-    $("#pqq-3").value = pqq.r3 || "";
-    $("#pqq-4").value = pqq.r4 || "";
-    $("#pqq-5").value = pqq.r5 || "";
-    $("#pqq-verdadeiro").value = pqq.verdadeiro || "";
+    pintarOQ3(p ? p.oq3 : vazioOQ3());
+    pintarPQQ(p ? p.pqq : vazioPQQ());
   }
 
-  $("#btn-salvar-oq3").addEventListener("click", async () => {
-    const p = pacienteAtivo();
-    if(!p){ toast("Selecione um paciente para salvar o OQ3."); return; }
+  /* ------------------------------------------------------------------------
+     OQ3 — AGORA COM HISTORICO
 
-    const dados = {
-      paciente_id: p.id,
+     Antes: cada "Salvar OQ3" inseria uma linha na tabela `oq3`, e a tela
+     mostrava so a mais recente. O dado nao se perdia, mas o historico era
+     invisivel — nao havia como abrir a aplicacao de junho para comparar com a
+     de setembro, que e exatamente para o que o OQ3 serve.
+
+     Agora ele usa o mesmo modelo das outras nove (aplicacoes.js): cada
+     aplicacao e um registro datado, com paciente_id, consulta_id, status e os
+     tres carimbos de tempo. Salvar CONCLUI a aplicacao aberta; comecar outra e
+     um gesto explicito, no botao "Nova aplicacao".
+
+     NADA do conteudo clinico mudou: os mesmos cinco campos, com os mesmos
+     rotulos e as mesmas dicas, guardados com os mesmos nomes dentro de
+     `respostas`. Nenhuma nota, nenhuma sintese, nenhuma interpretacao — o OQ3
+     nao declara `resultado`, e por isso `resultado` fica null.
+     ---------------------------------------------------------------------- */
+
+  const FERR_OQ3 = { id: "oq3", titulo: "OQ³" };
+  let aplicacaoOQ3 = null;
+
+  /** O dia do calendário de um instante, no fuso de quem está olhando. */
+  function diaLocalOQ3(iso){
+    if(!iso) return "";
+    if(iso.length <= 10) return iso;            // já é data, não instante
+    const d = new Date(iso);
+    if(isNaN(d)) return "";
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
+         + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  /** A data que identifica uma aplicação do OQ3 na tela: a da consulta, se
+      quem atende a preencheu; senão a do dia em que o registro foi fechado. */
+  function dataDaAplicacaoOQ3(a){
+    if(!a) return "";
+    const consulta = a.respostas && a.respostas.data_consulta;
+    if(consulta) return { dia: consulta, deConsulta: true };
+    return { dia: diaLocalOQ3(a.concluida_em || a.iniciada_em), deConsulta: false };
+  }
+
+  function respostasOQ3(){
+    return {
       data_consulta: $("#oq3-data").value || null,
       quer: $("#oq3-quer").value.trim(),
       precisa: $("#oq3-precisa").value.trim(),
       consegue: $("#oq3-consegue").value.trim(),
       alavancas: $("#oq3-alavancas").value.trim()
     };
+  }
 
-    const { data, error } = await sb.from("oq3").insert(dados).select().single();
-    if(error){ toast("Erro ao salvar OQ3."); return; }
+  function pintarOQ3(r){
+    const v = r || vazioOQ3();
+    $("#oq3-data").value = v.data_consulta || "";
+    $("#oq3-quer").value = v.quer || "";
+    $("#oq3-precisa").value = v.precisa || "";
+    $("#oq3-consegue").value = v.consegue || "";
+    $("#oq3-alavancas").value = v.alavancas || "";
+  }
 
-    p.oq3 = data;
+  /** O que a ficha, o painel e o Mapa do Proposito leem como "o OQ3 dele":
+      as respostas da ultima aplicacao concluida. */
+  function oq3DaUltimaAplicacao(pid){
+    if(!window.Aplicacoes) return null;
+    const u = window.Aplicacoes.ultima("oq3", pid);
+    if(!u) return null;
+    return Object.assign({ id: u.id, created_at: u.concluida_em || u.iniciada_em },
+                         u.respostas || {});
+  }
+
+  /** Mantem p.oq3 alinhado com o historico, sem que ninguem mais precise
+      saber que o OQ3 virou aplicacao. */
+  function sincronizarOQ3(){
+    (estado.pacientes || []).forEach(p => {
+      const derivado = oq3DaUltimaAplicacao(p.id);
+      if(derivado) p.oq3 = derivado;
+      else if(!p.oq3) p.oq3 = vazioOQ3();
+    });
+  }
+
+  function notaDeQuandoOQ3(){
+    const nota = $("#oq3-de-quando");
+    if(!nota) return;
+    if(!aplicacaoOQ3 || aplicacaoOQ3.status === "rascunho"){
+      nota.classList.add("hidden");
+      nota.textContent = "";
+      return;
+    }
+    const q = dataDaAplicacaoOQ3(aplicacaoOQ3);
+    nota.textContent = "Você está vendo a aplicação de " + dataBR(q.dia) +
+      (q.deConsulta ? "" : " (data do registro — a consulta não foi datada)") +
+      ". Editar altera essa aplicação; para começar outra, use “Nova aplicação”.";
+    nota.classList.remove("hidden");
+  }
+
+  function desenharHistoricoOQ3(){
+    const caixa = $("#oq3-historico");
+    if(!caixa || !window.Aplicacoes) return;
+    const lista = window.Aplicacoes.historico("oq3");
+    if(lista.length < 2){ caixa.classList.add("hidden"); caixa.innerHTML = ""; return; }
+
+    caixa.innerHTML = '<h4 class="ferr-historico-titulo">Aplicações anteriores</h4>'
+      + '<div class="ferr-historico-lista">'
+      + lista.map(a => {
+          const resumo = (a.respostas && a.respostas.quer) || "";
+          return '<button type="button" class="ferr-hist-item" data-oq3-app="' + a.id + '">'
+            + "<b>" + dataBR(dataDaAplicacaoOQ3(a).dia) + "</b>"
+            + '<span class="ferr-hist-estado">'
+            + window.Aplicacoes.rotulo(a.status === "rascunho" ? "em_preenchimento" : a.status)
+            + "</span>"
+            /* O resumo e texto digitado por quem atende: a resposta do
+               paciente em "O que quer" (OQ3) ou o "pra que" verdadeiro (PQQ).
+               Ele entra em innerHTML, entao precisa ser escapado na SAIDA —
+               como todo o resto do app ja faz. O conteudo guardado nao muda:
+               um "<" continua sendo "<" dentro de respostas. */
+            + '<span class="ferr-hist-leitura">' + escapar(resumo) + "</span></button>";
+        }).join("")
+      + "</div>";
+    caixa.classList.remove("hidden");
+
+    caixa.querySelectorAll("[data-oq3-app]").forEach(b => {
+      b.addEventListener("click", () => {
+        const alvo = lista.find(a => String(a.id) === b.dataset.oq3App);
+        if(!alvo) return;
+        aplicacaoOQ3 = alvo;
+        pintarOQ3(alvo.respostas);
+        notaDeQuandoOQ3();
+      });
+    });
+  }
+
+  /** Abre a aplicacao de trabalho: o rascunho aberto, ou a ultima concluida
+      para reler e corrigir, ou uma nova se nao houver nenhuma. */
+  async function abrirAplicacaoOQ3(){
+    const p = pacienteAtivo();
+    if(!p || !window.Aplicacoes){
+      aplicacaoOQ3 = null;
+      notaDeQuandoOQ3();
+      return;
+    }
+    aplicacaoOQ3 = await window.Aplicacoes.abrir(FERR_OQ3);
+    pintarOQ3(aplicacaoOQ3.respostas);
+    notaDeQuandoOQ3();
+    desenharHistoricoOQ3();
+  }
+
+  $("#btn-salvar-oq3").addEventListener("click", async () => {
+    const p = pacienteAtivo();
+    if(!p){ toast("Selecione um paciente para salvar o OQ3."); return; }
+    if(!window.Aplicacoes){ toast("Erro ao salvar OQ3."); return; }
+
+    if(!aplicacaoOQ3) aplicacaoOQ3 = await window.Aplicacoes.abrir(FERR_OQ3);
+    // resultado fica null: o OQ3 nao deriva sintese nenhuma.
+    await window.Aplicacoes.concluir(aplicacaoOQ3, respostasOQ3(), null);
+
+    sincronizarOQ3();
     renderPacientes();
+    notaDeQuandoOQ3();
+    desenharHistoricoOQ3();
     toast("OQ3 salvo na ficha de " + p.nome.split(" ")[0] + ".");
+  });
+
+  /* Comecar outra aplicacao e um gesto explicito — e o que garante que a
+     anterior continue inteira, com a data dela. */
+  $("#btn-nova-oq3").addEventListener("click", async () => {
+    const p = pacienteAtivo();
+    if(!p){ toast("Selecione um paciente primeiro."); return; }
+    if(!window.Aplicacoes) return;
+    aplicacaoOQ3 = await window.Aplicacoes.nova(FERR_OQ3);
+    pintarOQ3(vazioOQ3());
+    notaDeQuandoOQ3();
+    desenharHistoricoOQ3();
+    toast("Nova aplicação do OQ3. A anterior continua no histórico.");
   });
 
   /* ============================================================
      FORMULARIOS: PQQ
   ============================================================ */
-  $("#btn-salvar-pqq").addEventListener("click", async () => {
-    const p = pacienteAtivo();
-    if(!p){ toast("Selecione um paciente para salvar o PQQ."); return; }
+  /* ------------------------------------------------------------------------
+     PQQ — AGORA COM HISTORICO
 
-    const dados = {
-      paciente_id: p.id,
+     Antes: cada "Salvar PQQ" inseria uma linha na tabela `pqq`, e a tela
+     mostrava so a mais recente. O dado nao se perdia, mas o historico era
+     invisivel — e o PQQ e justamente a ferramenta em que comparar o "pra que"
+     de marco com o de outubro e a leitura.
+
+     Agora ele usa o mesmo modelo das outras (aplicacoes.js): cada aplicacao e
+     um registro datado, com paciente_id, consulta_id, status e os tres
+     carimbos de tempo. Salvar CONCLUI a aplicacao aberta; comecar outra e um
+     gesto explicito.
+
+     NADA do conteudo mudou: os mesmos sete campos — objetivo, r1..r5 e
+     verdadeiro — com os mesmos nomes. Nenhuma nota, nenhuma sintese, nenhuma
+     interpretacao: o PQQ nao declara `resultado`, e `resultado` fica null.
+     ---------------------------------------------------------------------- */
+
+  const FERR_PQQ = { id: "pqq", titulo: "PQQ" };
+  let aplicacaoPQQ = null;
+
+  /** O dia do calendario de um instante, no fuso de quem esta olhando. */
+  function diaLocalDaAplicacao(iso){
+    if(!iso) return "";
+    if(iso.length <= 10) return iso;
+    const d = new Date(iso);
+    if(isNaN(d)) return "";
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
+         + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  /** A data que identifica uma aplicacao na tela: a da consulta, quando a
+      ferramenta tem esse campo e ele foi preenchido; senao a do dia em que o
+      registro foi fechado. O PQQ nao tem campo de data de consulta, entao cai
+      sempre no carimbo — e a tela diz isso. */
+  function dataDaAplicacao(a){
+    if(!a) return { dia: "", deConsulta: false };
+    const consulta = a.respostas && a.respostas.data_consulta;
+    if(consulta) return { dia: consulta, deConsulta: true };
+    return { dia: diaLocalDaAplicacao(a.concluida_em || a.iniciada_em), deConsulta: false };
+  }
+
+  function respostasPQQ(){
+    return {
       objetivo: $("#pqq-objetivo").value.trim(),
       r1: $("#pqq-1").value.trim(),
       r2: $("#pqq-2").value.trim(),
@@ -991,13 +1200,125 @@
       r5: $("#pqq-5").value.trim(),
       verdadeiro: $("#pqq-verdadeiro").value.trim()
     };
+  }
 
-    const { data, error } = await sb.from("pqq").insert(dados).select().single();
-    if(error){ toast("Erro ao salvar PQQ."); return; }
+  function pintarPQQ(r){
+    const v = r || vazioPQQ();
+    $("#pqq-objetivo").value = v.objetivo || "";
+    $("#pqq-1").value = v.r1 || "";
+    $("#pqq-2").value = v.r2 || "";
+    $("#pqq-3").value = v.r3 || "";
+    $("#pqq-4").value = v.r4 || "";
+    $("#pqq-5").value = v.r5 || "";
+    $("#pqq-verdadeiro").value = v.verdadeiro || "";
+  }
 
-    p.pqq = data;
+  /** O que a ficha, o painel, o perfil e o Mapa leem como "o PQQ dele":
+      as respostas da ultima aplicacao concluida. */
+  function pqqDaUltimaAplicacao(pid){
+    if(!window.Aplicacoes) return null;
+    const u = window.Aplicacoes.ultima("pqq", pid);
+    if(!u) return null;
+    return Object.assign({ id: u.id, created_at: u.concluida_em || u.iniciada_em },
+                         u.respostas || {});
+  }
+
+  function sincronizarPQQ(){
+    (estado.pacientes || []).forEach(p => {
+      const derivado = pqqDaUltimaAplicacao(p.id);
+      if(derivado) p.pqq = derivado;
+      else if(!p.pqq) p.pqq = vazioPQQ();
+    });
+  }
+
+  function notaDeQuandoPQQ(){
+    const nota = $("#pqq-de-quando");
+    if(!nota) return;
+    if(!aplicacaoPQQ || aplicacaoPQQ.status === "rascunho"){
+      nota.classList.add("hidden");
+      nota.textContent = "";
+      return;
+    }
+    const q = dataDaAplicacao(aplicacaoPQQ);
+    nota.textContent = "Você está vendo a aplicação de " + dataBR(q.dia) +
+      ". Editar altera essa aplicação; para começar outra, use “Nova aplicação”.";
+    nota.classList.remove("hidden");
+  }
+
+  function desenharHistoricoPQQ(){
+    const caixa = $("#pqq-historico");
+    if(!caixa || !window.Aplicacoes) return;
+    const lista = window.Aplicacoes.historico("pqq");
+    if(lista.length < 2){ caixa.classList.add("hidden"); caixa.innerHTML = ""; return; }
+
+    caixa.innerHTML = '<h4 class="ferr-historico-titulo">Aplicações anteriores</h4>'
+      + '<div class="ferr-historico-lista">'
+      + lista.map(a => {
+          const resumo = (a.respostas && (a.respostas.verdadeiro || a.respostas.objetivo)) || "";
+          return '<button type="button" class="ferr-hist-item" data-pqq-app="' + a.id + '">'
+            + "<b>" + dataBR(dataDaAplicacao(a).dia) + "</b>"
+            + '<span class="ferr-hist-estado">'
+            + window.Aplicacoes.rotulo(a.status === "rascunho" ? "em_preenchimento" : a.status)
+            + "</span>"
+            /* O resumo e texto digitado por quem atende: a resposta do
+               paciente em "O que quer" (OQ3) ou o "pra que" verdadeiro (PQQ).
+               Ele entra em innerHTML, entao precisa ser escapado na SAIDA —
+               como todo o resto do app ja faz. O conteudo guardado nao muda:
+               um "<" continua sendo "<" dentro de respostas. */
+            + '<span class="ferr-hist-leitura">' + escapar(resumo) + "</span></button>";
+        }).join("")
+      + "</div>";
+    caixa.classList.remove("hidden");
+
+    caixa.querySelectorAll("[data-pqq-app]").forEach(b => {
+      b.addEventListener("click", () => {
+        const alvo = lista.find(a => String(a.id) === b.dataset.pqqApp);
+        if(!alvo) return;
+        aplicacaoPQQ = alvo;
+        pintarPQQ(alvo.respostas);
+        notaDeQuandoPQQ();
+      });
+    });
+  }
+
+  async function abrirAplicacaoPQQ(){
+    const p = pacienteAtivo();
+    if(!p || !window.Aplicacoes){
+      aplicacaoPQQ = null;
+      notaDeQuandoPQQ();
+      return;
+    }
+    aplicacaoPQQ = await window.Aplicacoes.abrir(FERR_PQQ);
+    pintarPQQ(aplicacaoPQQ.respostas);
+    notaDeQuandoPQQ();
+    desenharHistoricoPQQ();
+  }
+
+  $("#btn-salvar-pqq").addEventListener("click", async () => {
+    const p = pacienteAtivo();
+    if(!p){ toast("Selecione um paciente para salvar o PQQ."); return; }
+    if(!window.Aplicacoes){ toast("Erro ao salvar PQQ."); return; }
+
+    if(!aplicacaoPQQ) aplicacaoPQQ = await window.Aplicacoes.abrir(FERR_PQQ);
+    // resultado fica null: o PQQ nao deriva sintese nenhuma.
+    await window.Aplicacoes.concluir(aplicacaoPQQ, respostasPQQ(), null);
+
+    sincronizarPQQ();
     renderPacientes();
+    notaDeQuandoPQQ();
+    desenharHistoricoPQQ();
     toast("PQQ salvo na ficha de " + p.nome.split(" ")[0] + ".");
+  });
+
+  $("#btn-nova-pqq").addEventListener("click", async () => {
+    const p = pacienteAtivo();
+    if(!p){ toast("Selecione um paciente primeiro."); return; }
+    if(!window.Aplicacoes) return;
+    aplicacaoPQQ = await window.Aplicacoes.nova(FERR_PQQ);
+    pintarPQQ(vazioPQQ());
+    notaDeQuandoPQQ();
+    desenharHistoricoPQQ();
+    toast("Nova aplicação do PQQ. A anterior continua no histórico.");
   });
 
   /* ---------- limpar ---------- */
@@ -1026,8 +1347,18 @@
     preencher("#mapa-consegue", oq3.consegue, "Aplique o OQ3 no módulo Corpo.");
     preencher("#mapa-alavancas", oq3.alavancas, "Aplique o OQ3 no módulo Corpo.");
     preencher("#mapa-objetivo", pqq.objetivo, "Aplique o PQQ no módulo Mente.");
-    let proposito = pqq.verdadeiro;
-    if(!proposito) proposito = [pqq.r5, pqq.r4, pqq.r3, pqq.r2, pqq.r1].find(r => r) || "";
+    /* O propósito é o campo "O verdadeiro", e só ele.
+
+       Havia aqui uma escolha automática: com "O verdadeiro" vazio, o sistema
+       pegava a resposta mais profunda que estivesse preenchida (r5, senão r4,
+       e assim por diante) e a exibia entre aspas como sendo o propósito. Isso
+       assume que profundidade na escada equivale a propósito — uma leitura que
+       ninguém decidiu, feita em silêncio, sobre a fala do paciente.
+
+       Foi removida e NÃO foi substituída por outra. Sem "O verdadeiro"
+       preenchido, o Mapa fica sem propósito definido, com o mesmo aviso que já
+       existia para quando o PQQ não foi aplicado. */
+    const proposito = pqq.verdadeiro || "";
     preencher("#mapa-proposito", proposito ? "“" + proposito + "”" : "", "Aplique o PQQ no módulo Mente para revelar o propósito.");
   }
 
@@ -1107,16 +1438,15 @@
     const semMapa = !pronta && scores.every(s => s === 0) && !temMapaSalvo();
     $("#holo-score-total").textContent = semMapa ? "—" : total;
 
-    // A escala e 10 = muito bom, decisao registrada no motor. Estava invertida
-    // aqui: antes, indice alto era diagnosticado como estado grave. Duas partes
-    // do mesmo produto mediam ao contrario.
-    let msg = "Pontue os sistemas para gerar a leitura.";
-    if(semMapa) msg = "Aplique o questionário ou pontue os cinco sistemas à mão para gerar a leitura.";
-    else if(total === 0) msg = "Estado crônico de ameaça. Abordagem integrativa prioritária: corpo, mente e espírito.";
-    else if(total < 40) msg = "Estado crônico de ameaça. Abordagem integrativa prioritária: corpo, mente e espírito.";
-    else if(total < 60) msg = "Desequilíbrios significativos. Conduta nutricional recomendada.";
-    else if(total < 80) msg = "Desequilíbrios moderados. Atenção aos sistemas de nota mais baixa.";
-    else msg = "Terreno equilibrado. Manter acompanhamento preventivo.";
+    // As quatro faixas que existiam aqui (<40/<60/<80/>=80, cada uma com uma
+    // frase clinica propria, incluindo "Estado cronico de ameaca" repetida da
+    // CMB-001) nao tem fonte, nao tem status, nao estao em nenhum CSV — eram
+    // regra clinica escrita direto no JS. Removidas nesta rodada (revisao
+    // clinica do HOLOSCOPE): o Indice fica com uma frase fixa, a mesma para
+    // qualquer valor, dizendo o que ele E, nao o que ele "significa".
+    const msg = semMapa
+      ? "Aplique o questionário ou pontue os cinco sistemas à mão para gerar a leitura."
+      : "O Índice HOLOS resume as respostas deste mapa e não representa percentual de saúde.";
     $("#holo-interpretacao").textContent = msg;
     lerTerreno(scores, pronta);
   }
@@ -1309,33 +1639,105 @@
      paciente — quem decide qual ferramenta atende qual sistema e ele.
      --------------------------------------------------------------------- */
 
-  const CONDUTA = {
-    fungico: [
-      ["gatilhos_respostas", "compulsão por doce responde a gatilho, não a força de vontade"],
-      ["diario_corporal", "separar fome do corpo de vontade da cabeça"],
-      ["mapa_rotina", "onde do dia a compulsão aparece"]
-    ],
-    acido_inflamatorio: [
-      ["reenquadramento", "a reatividade começa num pensamento"],
-      ["ritmo_sono", "sono ruim mantém o corpo em alerta"],
-      ["autocompaixao", "irritação consigo alimenta a de fora"]
-    ],
-    metabolico: [
-      ["pqq", "o vazio pede propósito, não dieta"],
-      ["circulo_sentido", "o que ainda dá sentido"],
-      ["ancoras_motivacao", "o que sustenta quando a vontade cai"]
-    ],
-    detox_linfatico: [
-      ["historia_alimentar", "mágoa antiga tem data de início"],
-      ["diario_emocoes", "o que é engolido junto com a comida"],
-      ["conexao_pertencimento", "quem sustenta e quem drena"]
-    ],
-    mental_emocional_espiritual: [
-      ["autocompaixao", "como ela fala consigo é o terreno"],
-      ["roda_vida", "qual área está puxando as outras"],
-      ["praticas_contemplativas", "religar antes de mudar"]
-    ]
+  /* ------------------------------------------------------------------------
+     AUDITORIA DOS DESEMPATES
+
+     Duas escolhas do sistema sempre foram resolvidas em silencio, pela ordem
+     em que as coisas aparecem num array:
+
+       1. dois sistemas com a MESMA nota — qual e "o pior";
+       2. duas regras com a MESMA prioridade — qual entra na conduta.
+
+     Nesta rodada NENHUMA das duas mudou de comportamento. O que mudou e que
+     elas deixam rastro: quando ha empate, fica registrado quem empatou, quem
+     venceu e por que regra tecnica. Isso nao e criterio clinico — e a ordem de
+     declaracao, e esta marcada como decisao_implementacao, pendente.
+     ---------------------------------------------------------------------- */
+
+  const REGRA_DESEMPATE = {
+    sistemas: "ordem de declaracao dos sistemas em app.js (Array.sort estavel)",
+    regras: "ordem de declaracao das regras em corpo-bancos.js (Array.sort estavel)",
+    procedencia: "decisao_implementacao",
+    status: "pendente — nenhum criterio clinico de desempate foi definido"
   };
+
+  let auditoriaSelecao = { empate_sistemas: null, empate_regras: [], escolhidas: [] };
+
+  /** O que o sistema decidiu por criterio tecnico nesta pontuacao. */
+  window.auditoriaDaConduta = () => auditoriaSelecao;
+
+  /** Registra empate entre sistemas, sem mudar quem venceu. */
+  function anotarEmpateDeSistemas(ordem){
+    auditoriaSelecao.empate_sistemas = null;
+    if(ordem.length < 2) return;
+    const nota = ordem[0].nota;
+    const empatados = ordem.filter(s => s.nota === nota);
+    if(empatados.length < 2) return;
+    auditoriaSelecao.empate_sistemas = {
+      nota,
+      entre: empatados.map(s => s.chave),
+      venceu: ordem[0].chave,
+      regra: REGRA_DESEMPATE.sistemas,
+      procedencia: REGRA_DESEMPATE.procedencia,
+      status: REGRA_DESEMPATE.status
+    };
+  }
+
+  /** Registra empate de prioridade entre as regras candidatas de um filtro. */
+  function anotarEmpateDeRegras(candidatas, entraram){
+    const porPrioridade = {};
+    candidatas.forEach(r => {
+      const p = r.priority || 99;
+      (porPrioridade[p] = porPrioridade[p] || []).push(r.id);
+    });
+    Object.keys(porPrioridade).forEach(p => {
+      if(porPrioridade[p].length < 2) return;
+      auditoriaSelecao.empate_regras.push({
+        prioridade: Number(p),
+        entre: porPrioridade[p],
+        venceu: porPrioridade[p].find(id => entraram.indexOf(id) >= 0) || null,
+        regra: REGRA_DESEMPATE.regras,
+        procedencia: REGRA_DESEMPATE.procedencia,
+        status: REGRA_DESEMPATE.status
+      });
+    });
+  }
+
+  /* As regras de recomendação saíram daqui: viraram dado em corpo-bancos.js,
+     com fonte e status em cada uma, como manda a Especificação Mestre §18 e a
+     regra do projeto de não escrever método em JavaScript. */
+  function regrasDeRecomendacao(){
+    /* Revisao clinica do HOLOSCOPE (rodada de reorganizacao): "Por onde
+       comecar" passou a usar regrasApresentaveis(), nao regrasAtivas().
+       regrasAtivas() so tira o rascunho_nao_validado e deixava passar as
+       REC-001..015 legado — que, alem de nao validadas pelo metodo, apontam
+       recommended_tool_id para ferramentas que a revisao de Corpo/Mente/
+       Espirito ja tirou da galeria (mapa_rotina, diario_corporal,
+       gatilhos_respostas, etc.). Sem esse troca, "Por onde comecar" era uma
+       porta dos fundos ativa reabrindo o que foi fechado de proposito.
+       regrasApresentaveis() so deixa passar regra com status=confirmado —
+       hoje, nenhuma. */
+    const b = window.CorpoBancos;
+    if(!b) return [];
+    return b.regrasApresentaveis ? b.regrasApresentaveis() : [];
+  }
+
+  /* As cotas da conduta sairam daqui e viraram dado (SEL-001). Se o banco nao
+     tiver carregado, nao ha conduta a montar — melhor nada do que numeros
+     clinicos escritos em JavaScript. */
+  function selecaoDaConduta(){
+    return (window.CorpoBancos && window.CorpoBancos.SELECAO) || null;
+  }
+
+  /* O estado de Momentum mais recente do paciente, se houver uma aplicação da
+     Linha do Momentum concluída. É a segunda porta de recomendação, e é o que
+     alcança as sete ferramentas do Corpo que o mapa dos sistemas nunca citava. */
+  function momentumAtual(){
+    if(!window.Aplicacoes) return null;
+    const u = window.Aplicacoes.ultima("linha_momentum");
+    const c = u && u.resultado && u.resultado.estado_confirmado;
+    return c ? c.id : null;
+  }
 
   const NOME_FERRAMENTA = {
     pqq: "PQQ — Pra Que Que?",
@@ -1360,33 +1762,120 @@
     return f ? nomes[f.modulo] : "";
   }
 
+  /* Quantas ferramentas entram, e de onde, esta em SEL-001 — nao aqui. Os
+     numeros (2 + 1 + 1, teto de 4) sao decisao de implementacao e ninguem os
+     aprovou; a diferenca e que agora da para encontra-los, com procedencia e
+     status, no mesmo lugar que as regras. */
   function montarConduta(criticos){
-    // duas ferramentas do sistema mais baixo, uma do segundo. Nao adianta
-    // devolver dez: ela precisa saber por onde COMECAR.
+    const sel = selecaoDaConduta();
+    auditoriaSelecao.empate_regras = [];
+    auditoriaSelecao.escolhidas = [];
+    if(!sel) return [];
+
+    const regras = regrasDeRecomendacao();
     const escolhidas = [];
     const vistas = new Set();
-    const pega = (chave, quantas) => {
-      for(const [id, porque] of (CONDUTA[chave] || [])){
-        if(escolhidas.length >= 3 || vistas.has(id)) continue;
+
+    const pega = (filtro, quantas) => {
+      /* sort estavel: prioridades iguais mantem a ordem de declaracao do
+         banco. E o comportamento de sempre, agora anotado. */
+      const candidatas = regras
+        .filter(filtro)
+        .sort((a, b) => (a.priority || 99) - (b.priority || 99));
+      const entraram = [];
+      for(const r of candidatas){
+        if(escolhidas.length >= sel.maximo || vistas.has(r.recommended_tool_id)) continue;
         if(quantas-- <= 0) break;
-        vistas.add(id);
-        escolhidas.push({ id, porque, sistema: chave });
+        vistas.add(r.recommended_tool_id);
+        entraram.push(r.id);
+        escolhidas.push({ id: r.recommended_tool_id, porque: r.rationale, regra: r.id,
+                          rascunho: r.status !== "confirmado" });
       }
+      anotarEmpateDeRegras(candidatas, entraram);
     };
-    if(criticos[0]) pega(CHAVE_MOTOR[criticos[0].chave] || criticos[0].chave, 2);
-    if(criticos[1]) pega(CHAVE_MOTOR[criticos[1].chave] || criticos[1].chave, 1);
+
+    const porSistema = (chave) => (r) =>
+      r.condition && r.condition.tipo === "sistema" && r.condition.sistema === chave;
+
+    if(criticos[0]) pega(porSistema(CHAVE_MOTOR[criticos[0].chave] || criticos[0].chave),
+                         sel.do_pior_sistema);
+    if(criticos[1]) pega(porSistema(CHAVE_MOTOR[criticos[1].chave] || criticos[1].chave),
+                         sel.do_segundo_sistema);
+
+    /* A vaga do Momentum esta declarada como vazia em SEL-001
+       (do_momentum: null, momentum_aguarda_definicao: true). Ela NAO foi
+       redistribuida para outra origem: fica sem produzir nada ate que o metodo
+       diga qual ferramenta cada estado pede. O ramo continua escrito porque e
+       por aqui que as regras voltam a entrar quando forem validadas. */
+    if(sel.do_momentum){
+      const estado = momentumAtual();
+      if(estado) pega((r) => r.condition && r.condition.tipo === "momentum" &&
+                             r.condition.estado === estado, sel.do_momentum);
+    }
+
+    auditoriaSelecao.escolhidas = escolhidas.map(c => c.regra);
     return escolhidas;
   }
+
+  /* As regras que sustentam a conduta de hoje sao todas herdadas do projeto
+     anterior, e nenhuma foi validada pelo metodo. A tela precisa dizer isso:
+     sem essa linha, "Por onde comecar" se le como indicacao oficial. */
+  function condutaValidada(conduta){
+    const b = window.CorpoBancos;
+    if(!b || !b.validada) return false;
+    const porId = new Map((b.RECOMENDACOES || []).map(r => [r.id, r]));
+    return conduta.every(c => b.validada(porId.get(c.regra)));
+  }
+
+  /* Revisao clinica do HOLOSCOPE: as 16 regras de combinacao (CMB-001..016)
+     ficam fora da interface clinica e do relatorio nesta rodada inteira —
+     inclusive a CMB-001, que tem status=confirmado no banco mas cujo texto
+     ("Paciente vivendo em estado cronico de ameaca") ainda nao passou por
+     revisao de tom/redacao com o Rodrigo. status no banco != homologacao
+     clinica. PENDENTE RODRIGO: revisar tom da CMB-001 e decidir criterio de
+     reexibicao regra a regra (nao construir toggle nem allow-list agora).
+     O motor continua retornando as 16 (HOLOSCOPE.calcular(), CLI, testes) e
+     combinacoes.csv continua com as 16 linhas — so a tela nunca mais le
+     esta lista. */
+  function cmbParaExibir(){
+    return [];
+  }
+  window.cmbParaExibir = cmbParaExibir;
 
   function lerTerreno(scores, pronta){
     const caixa = $("#holo-leitura");
     if(!caixa) return;
-    if(scores.every(s => s === 0)){ caixa.innerHTML = ""; return; }
+
+    /* "Mapa calculado?" NAO se decide pelo valor das notas.
+
+       A guarda antiga era `scores.every(s => s === 0)`, e confundia dois
+       estados que nao tem nada a ver um com o outro:
+
+         1. ninguem respondeu nada — nao ha mapa;
+         2. o mapa foi calculado e os cinco sistemas deram 0.
+
+       O segundo e um resultado legitimo, e e o pior quadro que o questionario
+       consegue descrever: carga maxima em todos os marcadores. Era exatamente
+       ele que ficava sem leitura do terreno — o caso mais grave possivel era o
+       unico que a nutricionista abria e nao via nada.
+
+       Quem sabe a diferenca e o motor, e ele ja dizia: `avaliavel` e true
+       quando existe pelo menos um sistema com resposta, independente da nota.
+       Zero nunca foi ausencia; ausencia e `respondidos === 0`.
+
+       Sem Pontuacao — pontuando a mao, com as reguas — nao ha o que perguntar
+       ao motor, e a leitura antiga continua valendo tal e qual: regua em zero e
+       regua que ninguem tocou. Esse ramo NAO mudou. */
+    const calculado = pronta ? pronta.avaliavel : !scores.every(s => s === 0);
+    if(!calculado){ caixa.innerHTML = ""; return; }
 
     // as duas notas mais baixas: e por onde a conduta comeca
     const ordem = sistemas
       .map((s, i) => ({ chave: s, nota: scores[i], dado: terreno()[s] }))
       .sort((a, b) => a.nota - b.nota);
+    /* Empate entre sistemas continua sendo resolvido pela ordem do array —
+       exatamente como antes. A diferenca e que agora fica registrado. */
+    anotarEmpateDeSistemas(ordem);
     const criticos = ordem.slice(0, 2);
 
     let html = '<h4 class="leitura-titulo">O terreno por tras do numero</h4>';
@@ -1403,7 +1892,22 @@
                   + (c.dado.rascunho ? '<i>definição em revisão</i>' : "") + '</p>'
                 : "")
             + '<p><em>padrão emocional</em>' + c.dado.emocional + '</p>'
-            + '<p><em>impacto espiritual</em>' + c.dado.espiritual + '</p>'
+            /* O "impacto espiritual" de cada sistema NAO e mais exibido aqui.
+
+               Os textos sao legado do material de 11/08 — "bloqueio no plexo
+               solar", "queda de frequencia geral", "dessintonizacao do corpo
+               como templo", "bloqueio do fluxo", "perda de vitalidade e
+               clareza". Nenhum foi validado metodologicamente, e nesta tela
+               eles apareciam ao lado da nota do sistema e do padrao emocional,
+               isto e, no lugar onde se leem ACHADOS do paciente. Frequencia e
+               grandeza fisica; plexo solar e estrutura nervosa. Linguagem
+               simbolica naquele lugar e lida como mecanismo do corpo.
+
+               NADA foi apagado: sistemas.csv continua inteiro, com a coluna, a
+               fonte e o status de cada linha, e o dado continua chegando ate
+               aqui em c.dado.espiritual. O que mudou e que a tela clinica ativa
+               nao o apresenta enquanto o metodo nao disser o que ele e e onde
+               deve aparecer. Religar e uma linha. */
             + '</div>';
     }
     html += '</div>';
@@ -1429,7 +1933,7 @@
        2. Combinacao com tipo=encaminhar nao e leitura clinica: e o sistema
           reconhecendo que aquilo sai do escopo da nutricao. Vai em bloco
           proprio, na frente de tudo. */
-    const combinadas = pronta ? pronta.combinacoes : combinacoesDoMotor(scores);
+    const combinadas = cmbParaExibir(pronta ? pronta.combinacoes : combinacoesDoMotor(scores));
     const encaminhar = combinadas.filter(c => c.tipo === "encaminhar");
     const hipoteses  = combinadas.filter(c => c.tipo !== "encaminhar");
 
@@ -1486,7 +1990,12 @@
     // POR ONDE COMECAR: as ferramentas, com botao que abre cada uma
     const conduta = montarConduta(criticos);
     if(conduta.length > 0){
-      html += '<h4 class="leitura-titulo">Por onde começar</h4><div class="leitura-conduta">';
+      html += '<h4 class="leitura-titulo">Por onde começar</h4>';
+      if(!condutaValidada(conduta)){
+        html += '<p class="leitura-aviso">Sugestões herdadas da versão anterior do '
+              + 'app. Nenhuma foi validada pelo método — a escolha é sua.</p>';
+      }
+      html += '<div class="leitura-conduta">';
       for(const c of conduta){
         html += '<button type="button" class="conduta-item" data-abrir="' + c.id + '">'
               + '<span class="conduta-modulo">' + moduloDaFerramenta(c.id) + "</span>"
@@ -1495,6 +2004,16 @@
               + '<span class="conduta-abrir">abrir &rarr;</span></button>';
       }
       html += "</div>";
+    } else {
+      /* Revisao clinica do HOLOSCOPE: regrasApresentaveis() so deixa passar
+         regra com status=confirmado (hoje, nenhuma), entao "Por onde
+         comecar" fica sem itens. Sem esta linha a secao simplesmente
+         sumiria, sem dizer por que — e a nutricionista precisa saber que a
+         ausencia e decisao, nao bug. */
+      html += '<h4 class="leitura-titulo">Por onde começar</h4>'
+            + '<p class="leitura-aviso">As sugestões de ferramenta herdadas do app '
+            + 'anterior estão desativadas até serem validadas pelo método. A escolha '
+            + 'da conduta é da nutricionista.</p>';
     }
 
     caixa.innerHTML = html;
@@ -1544,19 +2063,68 @@
     const id = (window.pacienteAtivoId && window.pacienteAtivoId()) || "_sem_paciente";
     const tudo = lerHistorico();
     const hoje = hojeISO();
-    const nova = Object.assign({}, r, { quando: hoje });
+    // versao_estrutura marca snapshots desta rodada (revisao clinica do
+    // HOLOSCOPE) sem tocar nos antigos — nada le esse campo ainda, existe
+    // so para uma migracao futura saber distinguir os dois formatos.
+    const nova = Object.assign({}, r, { quando: hoje, versao_estrutura: 2 });
     if(!tudo[id]) tudo[id] = [];
     // reaplicar no mesmo dia substitui, em vez de criar duas do mesmo dia
     const mesmoDia = tudo[id].findIndex(x => x.quando === hoje);
-    if(mesmoDia >= 0) tudo[id][mesmoDia] = nova; else tudo[id].push(nova);
+    if(mesmoDia >= 0){
+      // Interpretacao profissional e escrita por fora, num campo separado
+      // do resultado calculado. Reaplicar o HOLOSCOPE no mesmo dia
+      // sobrescrevia a entrada inteira (Object.assign de cima) e apagava
+      // essa interpretacao sem ninguem pedir. Ela sobrevive a troca.
+      if(nova.interpretacao === undefined && tudo[id][mesmoDia].interpretacao !== undefined){
+        nova.interpretacao = tudo[id][mesmoDia].interpretacao;
+      }
+      tudo[id][mesmoDia] = nova;
+    } else {
+      tudo[id].push(nova);
+    }
     tudo[id].sort((a, b) => (a.quando || "").localeCompare(b.quando || ""));
     localStorage.setItem("holohacking.pontuacao", JSON.stringify(tudo));
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("pontuacao");
   }
 
   /** Todas as aplicacoes de um paciente, da mais antiga para a mais nova. */
   window.historicoPontuacao = function(id){
     const pid = id || (window.pacienteAtivoId && window.pacienteAtivoId()) || "_sem_paciente";
     return lerHistorico()[pid] || [];
+  };
+
+  /* ------------------------------------------------------------------------
+     INTERPRETACAO PROFISSIONAL — campo opcional no proprio snapshot
+
+     Reaproveita a estrutura que ja existe (o snapshot de Pontuacao dentro de
+     holohacking.pontuacao) em vez de criar um armazenamento novo fora do
+     manifesto: essa tabela ja e exportar:true/excluirComPaciente:true no
+     Storage Manifest, entao Backup V2 e exclusao de paciente cobrem o campo
+     novo automaticamente, sem precisar tocar em armazenamento.js.
+
+     NAO cria um snapshot so para guardar o texto: se nao existir aplicacao
+     do dia, nao ha onde prender a interpretacao, e a funcao recusa. */
+  window.guardarInterpretacao = function(texto, quando){
+    const id = (window.pacienteAtivoId && window.pacienteAtivoId()) || "_sem_paciente";
+    const tudo = lerHistorico();
+    const dia = quando || hojeISO();
+    const lista = tudo[id] || [];
+    const alvo = quando ? lista.find(x => x.quando === dia) : lista[lista.length - 1];
+    if(!alvo) return false;
+    alvo.interpretacao = { texto: String(texto || ""), quando_escrita: hojeISO(), versao: 1 };
+    localStorage.setItem("holohacking.pontuacao", JSON.stringify(tudo));
+    if (window.Concorrencia) window.Concorrencia.avancarRevisao("pontuacao");
+    return true;
+  };
+
+  /** A interpretacao da aplicacao pedida, ou da mais recente se `quando`
+      nao for informado. null quando nao ha nenhuma escrita ainda. */
+  window.interpretacaoDe = function(quando, id){
+    const pid = id || (window.pacienteAtivoId && window.pacienteAtivoId()) || "_sem_paciente";
+    const lista = window.historicoPontuacao(pid);
+    if(!lista.length) return null;
+    const alvo = quando ? lista.find(x => x.quando === quando) : lista[lista.length - 1];
+    return (alvo && alvo.interpretacao) || null;
   };
   window.ultimaPontuacao = function(id){
     const h = window.historicoPontuacao(id);
@@ -1597,20 +2165,37 @@
     });
 
     updateRadar(notas, r);                      // desenha com o decimal, nao com o arredondado
-    desenharTriada(r.triada);
+    desenharPrioridades(r);
+    desenharDominantes(r);
+    desenharTriada(r.triada, r.triada_com_dado);
     desenharFrequencias(r.frequencias);
     desenharTerritorios(r.territorios);
+    if(window.desenharHoloscan) window.desenharHoloscan("holo-holoscan");
     if(window.redesenharEvolucao) window.redesenharEvolucao();
 
     $("#holo-score-total").textContent = r.indice;
 
     const faltando = r.sistemas.filter(s => !s.avaliavel).map(s => s.nome);
+    /* `cobertura` pode faltar num snapshot guardado antes de o motor ter esse
+       campo — o mesmo motivo pelo qual s.respondidos ja era tratado com
+       cuidado logo abaixo, em desenharPrioridades(). Sem a defesa, abrir um
+       mapa antigo quebrava esta funcao inteira num TypeError, e com ela a
+       Triada, o Holoscan e a evolucao, que sao desenhados nas linhas acima.
+       Ausencia e dita, nao preenchida: nao ha como recalcular cobertura sem
+       as respostas daquele dia, e elas nao ficaram guardadas. */
+    const cob = r.cobertura;
+    const temContagem = cob && typeof cob.respondidos === "number"
+                            && typeof cob.total === "number";
+    const temPercentual = cob && typeof cob.percentual === "number";
     $("#holo-origem").innerHTML =
-      "Calculado a partir de <b>" + r.cobertura.respondidos + "</b> de "
-      + r.cobertura.total + " respostas"
-      + (r.cobertura.percentual < 100
+      (temContagem
+        ? "Calculado a partir de <b>" + cob.respondidos + "</b> de "
+          + cob.total + " respostas"
+        : '<span class="holo-sem-dado">Este mapa não registrou a cobertura do '
+          + "questionário.</span>")
+      + (temPercentual && cob.percentual < 100
           ? ' &middot; <b class="holo-parcial">questionário incompleto ('
-            + r.cobertura.percentual + '%)</b>'
+            + cob.percentual + '%)</b>'
           : "")
       + ' &middot; <button type="button" class="btn-relink" id="btn-repontuar">pontuar à mão</button>'
       + (faltando.length
@@ -1628,6 +2213,8 @@
         $("#val-" + s).textContent = el.value;
       });
       $("#holo-origem").textContent = "";
+      desenharPrioridades(null);
+      desenharDominantes(null);
       desenharTriada(null);   // pontuando a mao nao ha Triada: ela vem das respostas
       desenharFrequencias(null);
       desenharTerritorios(null);
@@ -1669,12 +2256,78 @@
     return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
   }
 
-  function desenharTriada(triada){
+  /* A formula da Triada devolve 10 para um eixo sem NENHUMA resposta — nota
+     maxima por ausencia de dado. A conta nao muda aqui (nem deve: e a mesma
+     que alimenta triada.* nas combinacoes). O que muda e a tela: eixo sem
+     dado mostra tracinho, nao 10, nao entra no desenho da area e nao pode
+     ser eleito como a dimensao mais baixa.
+
+     Ausencia tambem NAO virou zero: nao ha nota nenhuma atribuida. */
+  /* ------------------------------------------------------------------------
+     MAPA DE PRIORIDADES e SINAIS DOMINANTES — revisao clinica do HOLOSCOPE
+
+     Duas telas novas, dado nenhum novo: "prioridades" e so os cinco sistemas
+     reordenados do mais carregado para o mais leve (a mesma ordem que
+     lerTerreno() e o relatorio ja usam para escolher os "criticos"), e
+     "dominantes" e o campo NotaSistema.dominantes que o motor ja calcula
+     (top-5 marcadores por pontos, por sistema) e que nenhuma tela desenhava.
+     So aparecem com Pontuacao calculada via questionario — pontuando a mao
+     nao ha cobertura nem marcador nenhum para mostrar, exatamente como a
+     Triade ja se comporta. */
+  function desenharPrioridades(r){
+    const caixa = $("#holo-prioridades");
+    if(!caixa) return;
+    if(!r){ caixa.innerHTML = ""; return; }
+    const ordenado = r.sistemas.slice().sort((a, b) => a.nota - b.nota);
+    const linhas = ordenado.map(s => {
+      const semDado = s.avaliavel === false;
+      // s.respondidos/total_marcadores podem faltar num snapshot bem antigo,
+      // salvo antes desses campos existirem no motor — nao inventa numero.
+      const temContagem = typeof s.respondidos === "number" && typeof s.total_marcadores === "number";
+      const cobertura = semDado
+        ? "nenhuma pergunta respondida"
+        : temContagem ? s.respondidos + " de " + s.total_marcadores + " respondidas" : "";
+      const conta = [cobertura, s.faixa ? "faixa " + s.faixa : ""].filter(Boolean).join(" &middot; ");
+      // Classes proprias (prio-*), NAO terr-*: territorios (#holo-territorios)
+      // ja usa .terr-linha para outra lista, e testar-raciocinio.mjs conta
+      // .terr-linha esperando achar so as dele. Reaproveitar o nome de
+      // classe misturava as duas listas na mesma consulta.
+      return '<li class="prio-linha' + (semDado ? " sem-dado" : "") + '">'
+           + '<span class="prio-nome">' + s.nome
+             + '<i>Área do mapa. Investigar com mais profundidade na consulta.</i></span>'
+           + '<span class="prio-conta">' + conta + '</span>'
+           + '<span class="prio-nota">' + (semDado ? "—" : s.nota.toFixed(1)) + '</span>'
+           + '</li>';
+    }).join("");
+    caixa.innerHTML = '<ul class="prio-lista">' + linhas + '</ul>';
+  }
+
+  function desenharDominantes(r){
+    const caixa = $("#holo-dominantes");
+    if(!caixa) return;
+    if(!r){ caixa.classList.add("hidden"); caixa.innerHTML = ""; return; }
+    const comSinais = r.sistemas.filter(s => s.dominantes && s.dominantes.length > 0);
+    if(comSinais.length === 0){ caixa.classList.add("hidden"); caixa.innerHTML = ""; return; }
+    const blocos = comSinais.map(s => {
+      const itens = s.dominantes.map(d => "<li>" + (d.rotulo || d.marcador_id) + "</li>").join("");
+      return '<div class="holo-dominante-sistema"><h5>' + s.nome + '</h5>'
+           + '<ul class="holo-dominante-lista">' + itens + '</ul></div>';
+    }).join("");
+    caixa.innerHTML =
+      '<div class="terr-cabeca"><span class="eyebrow">Os sinais que mais pesaram</span>'
+      + "<p>Os sinais que mais pesaram nas respostas de cada sistema — é a "
+      + "aritmética das respostas, não um achado novo.</p></div>" + blocos;
+    caixa.classList.remove("hidden");
+  }
+
+  function desenharTriada(triada, comDado){
     const caixa = $("#holo-triada");
     if(!caixa) return;
     if(!triada){ caixa.classList.add("hidden"); caixa.innerHTML = ""; return; }
 
     const L = 260, C = L / 2, R = 88;
+    const temDado = (i) => !comDado || comDado[EIXOS_TRIADA[i][0]] !== false;
+    const todosComDado = [0,1,2].every(temDado);
     const valores = EIXOS_TRIADA.map(e => triada[e[0]] ?? 0);
 
     // moldura: triangulos concentricos em 1/4, 1/2, 3/4 e cheio
@@ -1690,10 +2343,17 @@
            + '" stroke="rgba(201,163,90,.14)" stroke-width="1"/>';
     }
 
-    const area = valores.map((v, i) => pontoTriada(C, C, R, v, i).map(n => n.toFixed(1)).join(",")).join(" ");
-    svg += '<polygon points="' + area + '" fill="rgba(201,163,90,.2)" '
-         + 'stroke="var(--dourado)" stroke-width="2" stroke-linejoin="round"/>';
+    /* Um triangulo precisa de tres vertices. Faltando um eixo, qualquer
+       poligono desenhado seria uma afirmacao sobre dado que nao existe —
+       entao a area nao e desenhada, e so a moldura fica. Os pontos dos eixos
+       que TEM dado continuam marcados. */
+    if(todosComDado){
+      const area = valores.map((v, i) => pontoTriada(C, C, R, v, i).map(n => n.toFixed(1)).join(",")).join(" ");
+      svg += '<polygon points="' + area + '" fill="rgba(201,163,90,.2)" '
+           + 'stroke="var(--dourado)" stroke-width="2" stroke-linejoin="round"/>';
+    }
     valores.forEach((v, i) => {
+      if(!temDado(i)) return;
       const [x, y] = pontoTriada(C, C, R, v, i);
       svg += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" fill="var(--dourado)"/>';
     });
@@ -1704,9 +2364,14 @@
            + EIXOS_TRIADA[i][1].toUpperCase() + "</text>";
     }
 
-    // o eixo mais baixo e o que a leitura deve olhar primeiro
-    let menor = 0;
-    valores.forEach((v, i) => { if(v < valores[menor]) menor = i; });
+    /* O eixo mais baixo so pode sair de quem tem dado. Sem isso, um eixo em
+       branco (que a formula devolve como 10) nunca seria o menor — mas um
+       eixo em branco tambem nao pode competir. */
+    let menor = -1;
+    [0,1,2].forEach(i => {
+      if(!temDado(i)) return;
+      if(menor < 0 || valores[i] < valores[menor]) menor = i;
+    });
 
     caixa.innerHTML =
       '<h4 class="leitura-titulo">Triada HOLOS</h4>'
@@ -1715,11 +2380,25 @@
       +   'class="triada-grafico" aria-hidden="true">' + svg + "</svg>"
       +   '<div class="triada-eixos">'
       +     EIXOS_TRIADA.map((e, i) =>
-            '<div class="triada-eixo' + (i === menor ? " menor" : "") + '">'
-            + '<span class="triada-nota">' + valores[i].toFixed(1) + "</span>"
-            + "<b>" + e[1] + "</b><span class=\"triada-sub\">" + e[2] + "</span></div>").join("")
-      +     '<p class="triada-leitura">Dimensão mais baixa: <b>'
-      +       EIXOS_TRIADA[menor][1] + "</b>. É por onde a conduta começa.</p>"
+            '<div class="triada-eixo' + (i === menor ? " menor" : "")
+              + (temDado(i) ? "" : " sem-dado") + '">'
+            + '<span class="triada-nota">'
+            + (temDado(i) ? valores[i].toFixed(1) : "—") + "</span>"
+            + "<b>" + e[1] + "</b><span class=\"triada-sub\">"
+            + (temDado(i) ? e[2] : "sem resposta") + "</span></div>").join("")
+      /* A frase dizia: "Dimensao mais baixa: X. E por onde a conduta comeca."
+         A segunda metade transformava uma nota em prescricao, e nao tem
+         procedencia: nada no metodo diz que a dimensao mais baixa da Triade e
+         por onde comecar. Saiu so ela. A Triade continua identificando e
+         destacando a menor — isso e descricao, e e o que o grafico ja faz. */
+      +     (menor >= 0
+              ? '<p class="triada-leitura">Dimensão mais baixa: <b>'
+                + EIXOS_TRIADA[menor][1] + "</b>.</p>"
+              : "")
+      +     (todosComDado
+              ? ""
+              : '<p class="triada-leitura sem-dado">Eixo sem resposta não recebe '
+                + "nota: o desenho só é fechado com os três.</p>")
       +   "</div>"
       + "</div>";
     caixa.classList.remove("hidden");
@@ -1846,6 +2525,23 @@
   updateRadar([0,0,0,0,0]);
   renderPacientes();
   carregarFormularios();
+  /* p.oq3 deixou de sair da tabela `oq3` e passa a sair do historico. Este
+     gancho roda depois que aplicacoes.js carrega e migra — e e por isso que a
+     ficha, o painel e o Mapa do Proposito continuam funcionando sem saber de
+     nada disso. */
+  {
+    const anteriorOQ3 = window.aoTrocarPaciente;
+    window.aoTrocarPaciente = function(){
+      if(typeof anteriorOQ3 === "function") anteriorOQ3();
+      sincronizarOQ3();
+      sincronizarPQQ();
+      const vista = document.getElementById("vista-oq3");
+      if(vista && !vista.classList.contains("hidden")) abrirAplicacaoOQ3();
+      const vistaPQQ = document.getElementById("vista-pqq");
+      if(vistaPQQ && !vistaPQQ.classList.contains("hidden")) abrirAplicacaoPQQ();
+    };
+  }
+
   carregarTudo();
 
 })();

@@ -63,6 +63,17 @@
   }
   function dataBR(iso) { return iso ? iso.split("-").reverse().join("/") : ""; }
 
+  /** O dia do calendário de um instante, no fuso de quem está olhando. */
+  function diaLocal(iso) {
+    if (!iso) return "";
+    if (iso.length <= 10) return iso;          // já é uma data, não um instante
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    return d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+
   function diasDesde(iso) {
     if (!iso) return null;
     var d = new Date(iso + "T00:00:00");
@@ -215,11 +226,22 @@
             '<span class="fic-barra-faixa">' + escapar(s.faixa || "") + "</span></div>";
         }).join("") + "</div>";
 
-    if (p.combinacoes && p.combinacoes.length > 0) {
+    // Revisao clinica do HOLOSCOPE: nenhuma CMB aparece na interface clinica
+    // nesta rodada (ver app.js, cmbParaExibir()) — inclusive a CMB-001.
+    var combinacoesParaExibir = window.cmbParaExibir ? window.cmbParaExibir(p.combinacoes) : [];
+    if (combinacoesParaExibir.length > 0) {
       html += '<div class="fic-leituras"><span class="fic-rot">Leitura combinada</span>' +
-        p.combinacoes.map(function (c) {
+        combinacoesParaExibir.map(function (c) {
           return '<p class="fic-combinada">&ldquo;' + escapar(c.leitura) + "&rdquo;</p>";
         }).join("") + "</div>";
+    }
+
+    // Espelho somente-leitura da Interpretacao profissional (escrita na aba
+    // Relatorio) — nunca editada aqui, e nunca gerada automaticamente.
+    var interpretacao = window.interpretacaoDe ? window.interpretacaoDe() : null;
+    if (interpretacao && interpretacao.texto) {
+      html += '<div class="fic-leituras"><span class="fic-rot">Interpretação profissional</span>' +
+        "<p class=\"fic-combinada\">" + escapar(interpretacao.texto).replace(/\n/g, "<br>") + "</p></div>";
     }
 
     alvo.innerHTML = html;
@@ -249,6 +271,23 @@
         acao: "aba:visao"
       });
     });
+
+    /* Cada aplicacao de ferramenta agora tem data, entao ela entra na linha do
+       tempo — era o registro que faltava, e por isso a nota dizia que nao
+       entrava. Rascunho nao entra: nao aconteceu ainda. */
+    if (window.Aplicacoes) {
+      window.Aplicacoes.doPaciente(pid)
+        .filter(function (a) { return a.status !== "rascunho"; })
+        .forEach(function (a) {
+          eventos.push({
+            quando: diaLocal(a.concluida_em || a.iniciada_em),
+            tipo: "ferramenta", selo: nomeFerramenta(a.ferramenta_id),
+            titulo: nomeFerramenta(a.ferramenta_id) + " aplicada",
+            detalhe: a.leitura ? escapar(a.leitura) : "sem leitura registrada",
+            acao: "aba:formularios"
+          });
+        });
+    }
 
     if (window.Agenda && window.Agenda.todas) {
       window.Agenda.todas(pid).forEach(function (c) {
@@ -282,9 +321,7 @@
 
       var html = '<p class="dash-sub">' + eventos.length +
         (eventos.length === 1 ? " registro" : " registros") +
-        ", do mais recente para o mais antigo. Ferramenta preenchida não " +
-        "aparece aqui: ela não guarda data, e datar no chute seria inventar " +
-        "quando aconteceu.</p><div class=\"fic-tempo\">";
+        ", do mais recente para o mais antigo.</p><div class=\"fic-tempo\">";
 
       var mesCorrente = null;
       eventos.forEach(function (e) {
@@ -337,7 +374,16 @@
   }
 
   /* Os quatro formulários do método, mais as 30 ferramentas. Cada um diz o que
-     é, o que já foi respondido, e o que dá para fazer com ele agora. */
+     é, o que já foi respondido, e o que dá para fazer com ele agora.
+
+     SOBRE O CAMPO `extra`: ele é uma string MISTA — texto autoral com entidades
+     de propósito (o separador "&middot;", o "&reg;" do nome) somado a respostas
+     guardadas do paciente. Por isso o escape fica aqui, em cada pedaço que vem
+     do dado, e NÃO num `escapar(f.extra)` lá embaixo na montagem do HTML:
+     escapar a string inteira transformaria os separadores em texto literal.
+
+     O valor persistido não muda — nada é removido da resposta. Só a SAÍDA é
+     escapada, que é o mesmo que o histórico do OQ³/PQQ em app.js faz. */
   function desenharFormularios() {
     var alvo = document.getElementById("aba-formularios");
     if (!alvo) return;
@@ -356,7 +402,8 @@
         pronto: d.respondidas >= d.totalPerguntas,
         comeco: d.respondidas > 0,
         extra: d.pontuacao
-          ? "Mapa gerado em " + dataBR(d.pontuacao.quando) + " &middot; Índice " + d.pontuacao.indice
+          ? "Mapa gerado em " + escapar(dataBR(d.pontuacao.quando)) +
+            " &middot; Índice " + escapar(d.pontuacao.indice)
           : (d.respondidas > 0 ? "Respondido e ainda sem mapa gerado." : ""),
         ver: d.respondidas > 0 ? "questionario" : null,
         abrir: "holoscope"
@@ -367,9 +414,10 @@
         estado: temConteudo(p.oq3) ? "preenchido" : "não aplicado",
         pronto: temConteudo(p.oq3), comeco: temConteudo(p.oq3),
         extra: temConteudo(p.oq3)
-          ? [p.oq3.quer && "Quer: " + p.oq3.quer,
-             p.oq3.precisa && "Precisa: " + p.oq3.precisa,
-             p.oq3.consegue && "Consegue: " + p.oq3.consegue].filter(Boolean).join(" &middot; ")
+          ? [p.oq3.quer && "Quer: " + escapar(p.oq3.quer),
+             p.oq3.precisa && "Precisa: " + escapar(p.oq3.precisa),
+             p.oq3.consegue && "Consegue: " + escapar(p.oq3.consegue)]
+              .filter(Boolean).join(" &middot; ")
           : "",
         abrir: "corpo"
       },
@@ -379,19 +427,50 @@
         estado: temConteudo(p.pqq) ? "preenchido" : "não aplicado",
         pronto: temConteudo(p.pqq), comeco: temConteudo(p.pqq),
         extra: temConteudo(p.pqq)
-          ? [p.pqq.objetivo && "Objetivo: " + p.pqq.objetivo,
-             p.pqq.verdadeiro && "Pra que: " + p.pqq.verdadeiro].filter(Boolean).join(" &middot; ")
+          ? [p.pqq.objetivo && "Objetivo: " + escapar(p.pqq.objetivo),
+             p.pqq.verdadeiro && "Pra que: " + escapar(p.pqq.verdadeiro)]
+              .filter(Boolean).join(" &middot; ")
           : "",
         abrir: "mente"
       },
-      {
-        id: "mapa", nome: "Mapa do Propósito",
-        sub: "Síntese do OQ³ e do PQQ: direção e um plano que pode ser vivido.",
-        estado: d.ferramentas.indexOf("mapa") >= 0 ? "preenchido" : "não aplicado",
-        pronto: d.ferramentas.indexOf("mapa") >= 0,
-        comeco: d.ferramentas.indexOf("mapa") >= 0,
-        extra: "", abrir: "espirito"
-      }
+      /* O Mapa do Propósito NAO e uma ferramenta do catalogo: e uma tela que
+         compoe OQ³ e PQQ e nao guarda nada. O card procurava uma aplicacao com
+         ferramenta_id "mapa", que nenhuma parte do sistema cria — entao ele
+         ficava "nao aplicado" para sempre, inclusive com as duas metades
+         prontas.
+
+         CRITERIO TECNICO: o estado do card e derivado do que ja existe, sem
+         inventar dado nenhum —
+
+           nenhuma das duas metades  ->  "não aplicado"
+           so o OQ³                  ->  "falta o PQQ"
+           so o PQQ                  ->  "falta o OQ³"
+           as duas                   ->  "pronto para montar"
+
+         "pronto" e "comeco" seguem a mesma leitura: da para montar o Mapa
+         quando as duas metades existem; da para comecar quando existe uma.
+
+         Nao foi criada aplicacao, persistencia nem historico do Mapa: isso e
+         decisao metodologica em aberto. */
+      (function () {
+        var temOQ3 = temConteudo(p.oq3);
+        var temPQQ = temConteudo(p.pqq);
+        var estado = temOQ3 && temPQQ ? "pronto para montar"
+                   : temOQ3 ? "falta o PQQ"
+                   : temPQQ ? "falta o OQ³"
+                   : "não aplicado";
+        return {
+          id: "mapa", nome: "Mapa do Propósito",
+          sub: "Síntese do OQ³ e do PQQ: direção e um plano que pode ser vivido.",
+          estado: estado,
+          pronto: temOQ3 && temPQQ,
+          comeco: temOQ3 || temPQQ,
+          extra: temOQ3 && temPQQ
+            ? "As duas metades estão preenchidas."
+            : (temOQ3 || temPQQ ? "O Mapa se monta com o OQ³ e o PQQ juntos." : ""),
+          abrir: "espirito"
+        };
+      })()
     ];
 
     var html = '<p class="dash-sub">No método, o HOLOSCOPE é um formulário: 84 ' +

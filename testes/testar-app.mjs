@@ -33,7 +33,15 @@ const { window } = dom;
 const doc = window.document;
 await new Promise((r) => window.addEventListener('load', r, { once: true }));
 
-const ok = (cond, txt) => console.log((cond ? '  ok    ' : '  FALHA ') + txt);
+let falhou = false;
+const ok = (cond, txt) => {
+  if (!cond) falhou = true;
+  console.log((cond ? '  ok    ' : '  FALHA ') + txt);
+};
+
+/* Abrir uma ferramenta cria a aplicacao antes de desenhar, entao a tela nao
+   fica pronta no mesmo tique do clique. */
+const respirar = () => new Promise((r) => setTimeout(r, 120));
 
 // ---------------------------------------------------------------- marca
 ok(doc.title.includes('HoloHacking'), 'titulo da aba: ' + doc.title);
@@ -44,46 +52,77 @@ ok(doc.querySelectorAll('#logo-simbolo path').length > 10,
 ok(!!doc.querySelector('.marca-hero'), 'logo no dashboard');
 
 // ------------------------------------------------------------ ferramentas
+// A revisao clinica de Corpo/Mente/Espirito reduziu as galerias para 2+2+3
+// ferramentas; OQ3/PQQ/Mapa do Proposito usam [data-vista] (tela propria),
+// entao sobram 1+1+2 = 4 cards [data-ferramenta] (generico) na tela.
 const cards = doc.querySelectorAll('[data-ferramenta]');
-ok(cards.length === 27, cards.length + ' ferramentas do catalogo na tela');
+ok(cards.length === 4, cards.length + ' ferramentas do catalogo na tela');
 ok(doc.body.innerHTML.indexOf('Em breve') === -1, 'nenhuma "Em breve" sobrou');
 
-// abrir uma
-const alvo = doc.querySelector('[data-ferramenta="gatilhos_respostas"]');
+// abrir uma — gatilhos_respostas foi retirada da galeria de Mente nessa
+// revisao; mapa_crencas e uma das duas que sobraram.
+const alvo = doc.querySelector('[data-ferramenta="mapa_crencas"]');
 alvo.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+await respirar();
 const vista = doc.getElementById('vista-gen-mente');
 ok(!vista.classList.contains('hidden'), 'a ficha abriu');
-ok(vista.querySelectorAll('.grupo').length === 9, 'renderizou 9 campos');
+ok(vista.querySelectorAll('.form-ferramenta .campos .grupo').length === 4,
+   'renderizou 4 campos da ferramenta');
 ok(doc.querySelector('#secao-mente .galeria-ferramentas').classList.contains('hidden'),
    'a galeria sumiu por tras');
 
 // preencher e salvar
-vista.querySelector('#campo-gatilho1').value = 'Briga em casa';
-vista.querySelector('[data-acao="salvar"]')
+vista.querySelector('#campo-crencas').value = 'Carboidrato engorda';
+vista.querySelector('[data-acao="concluir"]')
      .dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-ok(vista.querySelector('[data-papel="aviso"]').textContent === 'Salvo.', 'avisou que salvou');
-ok(alvo.querySelector('.ferr-status').textContent === 'Preenchida', 'o selo virou Preenchida');
+await respirar();
+ok(vista.querySelector('[data-papel="aviso"]').textContent === 'Aplicação concluída.',
+   'avisou que concluiu');
+ok(alvo.querySelector('.ferr-status').textContent === 'Concluída', 'o selo virou Concluída');
 
 // voltar e reabrir: o texto tem que estar la
 vista.querySelector('.btn-voltar').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
 ok(vista.classList.contains('hidden'), 'voltou para a galeria');
 alvo.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-ok(doc.getElementById('vista-gen-mente').querySelector('#campo-gatilho1').value === 'Briga em casa',
+await respirar();
+ok(doc.getElementById('vista-gen-mente').querySelector('#campo-crencas').value === 'Carboidrato engorda',
    'o que foi digitado voltou');
+
+/* Reabrir mostra a aplicacao concluida, e diz de quando ela e — sem isso
+   pareceria que o formulario abriu em branco e o dado sumiu. */
+ok(!!doc.querySelector('.ferr-de-quando'), 'reabrir diz de quando e a aplicacao a vista');
+
+/* "Nova aplicacao" e que comeca outra. Ai sim a anterior vai para o historico:
+   e a regra que a caixa antiga nao tinha — antes isso apagava a de antes. */
+doc.querySelector('[data-acao="nova"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+await respirar();
+const vistaNova = doc.getElementById('vista-gen-mente');
+ok(vistaNova.querySelector('#campo-crencas').value === '',
+   'a aplicacao nova comeca vazia');
+ok(vistaNova.querySelectorAll('.ferr-hist-item').length === 1,
+   'e a anterior foi para o historico, nao para o lixo');
+ok(window.DadosLocais.resumo().aplicacoes === 2,
+   'duas aplicacoes guardadas: ' + window.DadosLocais.resumo().aplicacoes);
 
 // --------------------------------------------------- tipos de campo dificeis
 const roda = doc.querySelector('[data-ferramenta="roda_vida"]');
 roda.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+await respirar();
 const v2 = doc.getElementById('vista-gen-espirito');
-ok(v2.querySelectorAll('input[type="range"]').length === 8, 'Roda da Vida: 8 reguas');
+ok(v2.querySelectorAll('input[type="range"]').length === 8, 'Roda Holística da Vida: 8 reguas');
 const r = v2.querySelector('#campo-saude');
 r.value = '9'; r.dispatchEvent(new window.Event('input', { bubbles: true }));
 ok(v2.querySelector('output[data-para="campo-saude"]').textContent === '9',
    'a regua move o numero ao lado');
 
-const diario = doc.querySelector('[data-ferramenta="diario_emocoes"]');
-diario.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-const v3 = doc.getElementById('vista-gen-mente');
+// botao de escolha unica: diario_emocoes (removida da galeria de Mente) e
+// quem tinha esse tipo de campo alcancavel antes; linha_momentum (Corpo,
+// mantida) tem o mesmo tipo de campo ("opcoes") no campo estado_confirmado.
+await respirar();
+const momentum = doc.querySelector('[data-ferramenta="linha_momentum"]');
+momentum.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+await respirar();
+const v3 = doc.getElementById('vista-gen-corpo');
 const botao = v3.querySelector('.grupo-opcoes .btn-opcao');
 botao.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
 ok(botao.classList.contains('marcado'), 'botao de escolha unica marca');
@@ -104,3 +143,4 @@ for (const b of doc.querySelectorAll('.nav-item')) {
 ok(doc.querySelectorAll('.secao.ativa').length === 1, 'navegacao do menu funciona');
 
 console.log('\n' + (erros.length ? 'ERROS:\n' + erros.join('\n') : 'nenhum erro de JS'));
+process.exit(falhou ? 1 : 0);
