@@ -47,6 +47,32 @@
 
   /* ---------- os blocos --------------------------------------------------- */
 
+  /* O cabecalho operacional e os atalhos do dia. Os quatro numeros do resumo
+     ficam neutros (0/0/-/0) enquanto consultas de hoje e proxima consulta
+     nao tem fonte propria no dashboard — entram na Etapa 2, junto com
+     "proximos atendimentos". Pacientes/pendencias ja tem numero real logo
+     abaixo, em blocoNumeros/blocoPendencias; duplicar aqui so com dado de
+     verdade e trabalho da mesma etapa. */
+  function blocoCabecalho(ativo) {
+    return '<div class="secao-cabeca dash-cabeca">' +
+        '<span class="eyebrow">Plataforma clínica</span>' +
+        "<h2>Bom dia, <em>Nutricionista</em></h2>" +
+        (ativo ? '<p>Paciente aberta: <b>' + escapar(ativo) + "</b>.</p>" : "") +
+      "</div>" +
+      '<div class="dash-numeros dash-resumo">' +
+        '<div class="dash-tile"><b>0</b><span>Pacientes ativos</span></div>' +
+        '<div class="dash-tile"><b>0</b><span>Consultas hoje</span></div>' +
+        '<div class="dash-tile"><b>&mdash;</b><span>Próxima consulta</span></div>' +
+        '<div class="dash-tile"><b>0</b><span>Avaliações pendentes</span></div>' +
+      "</div>" +
+      '<div class="dash-acoes-rapidas">' +
+        '<button type="button" class="perf-botao" data-destino="novo">Novo paciente</button>' +
+        '<button type="button" class="perf-botao" data-destino="nova-consulta">Nova consulta</button>' +
+        '<button type="button" class="perf-botao" data-destino="holoscope">Abrir HOLOSCOPE</button>' +
+        '<button type="button" class="perf-botao" data-destino="documentos">Registrar exames</button>' +
+      "</div>";
+  }
+
   function blocoPendencias(c) {
     if (c.pendentes.length === 0) {
       return '<div class="dash-bloco">' +
@@ -149,7 +175,8 @@
     if (c.total === 0) {
       // Primeira visita: o metodo e a resposta certa, e o convite vem junto.
       if (metodo) metodo.classList.remove("hidden");
-      alvo.innerHTML = '<div class="dash-primeiro">' +
+      alvo.innerHTML = blocoCabecalho(null) +
+        '<div class="dash-primeiro">' +
         '<p>Nenhum paciente cadastrado ainda. A jornada começa por aqui.</p>' +
         '<button type="button" class="btn-verde" data-destino="novo">Cadastrar o primeiro paciente</button>' +
         "</div>";
@@ -162,11 +189,7 @@
     var ativo = window.pacienteAtivoNome ? window.pacienteAtivoNome() : null;
 
     alvo.innerHTML =
-      '<div class="secao-cabeca dash-cabeca">' +
-        '<span class="eyebrow">Plataforma clínica</span>' +
-        "<h2>Sua clínica <em>hoje</em></h2>" +
-        (ativo ? '<p>Paciente aberta: <b>' + escapar(ativo) + "</b>.</p>" : "") +
-      "</div>" +
+      blocoCabecalho(ativo) +
       blocoPendencias(c) +
       blocoNumeros(c) +
       blocoTerreno(c);
@@ -184,6 +207,15 @@
           if (window.irParaSecao) window.irParaSecao("pacientes");
           var abrir = document.getElementById("btn-abrir-novo");
           if (abrir) abrir.click();
+          return;
+        }
+
+        // Mesmo atalho que perfil.js usa (data-atalho="agenda"): ir para a
+        // agenda e abrir o formulario que ja existe la.
+        if (destino === "nova-consulta") {
+          if (window.irParaSecao) window.irParaSecao("agenda");
+          var novaConsulta = document.querySelector('[data-novo="consulta"]');
+          if (novaConsulta) novaConsulta.click();
           return;
         }
 

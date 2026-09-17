@@ -1589,6 +1589,10 @@ body.escuro .btn-tema .icone-lua{display:none}
 .dash-cabeca{margin-bottom:30px}
 .dash-cabeca p{margin-top:10px}
 
+/* ---------- acoes rapidas ---------- */
+.dash-numeros.dash-resumo{margin-bottom:18px}
+.dash-acoes-rapidas{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:34px}
+
 .dash-bloco{margin-bottom:34px}
 .dash-titulo{
   font-family:var(--fonte-display);font-size:1.32rem;font-weight:500;
@@ -3270,7 +3274,8 @@ a.pac-link:hover{color:var(--dourado);text-decoration:underline;text-underline-o
 
 body.login-aberto{overflow:hidden}
 
-body.login-aberto #app{display:none!important}
+body.login-aberto #app,
+#app[aria-hidden="true"]{display:none!important}
 
 .tela-login{
   position:fixed;inset:0;z-index:2000;
