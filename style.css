@@ -3312,7 +3312,19 @@ a.pac-link:hover{color:var(--dourado);text-decoration:underline;text-underline-o
   .abas,.rel-acoes,.secao-cabeca,.aba-painel.hidden{display:none!important}
   .relatorio{border:none;padding:0;background:#fff;color:#111}
   .relatorio .rel-topo h3,.relatorio b{color:#111}
+  /* No modo escuro (padrao quando o sistema pede prefers-color-scheme:dark
+     — o caso mais comum), --texto-suave e as outras variaveis viram tons
+     claros pensados para o fundo verde-noite. Sem isto, o papel imprime
+     com texto cinza-claro quase invisivel sobre o branco. */
+  body.escuro{
+    --titulo:#0b3325;--texto:#1d3a2e;--texto-suave:#4f6a5d;
+    --realce:#14503b;--borda-suave:rgba(29,58,46,.1);--dourado-suave:rgba(201,163,90,.35);
+  }
   .sidebar,.topo,.form-ferramenta,.acoes-form,.mapa-acoes,#toast,.btn-tema,.barra-busca,.barra-paciente,.acoes-topo,.ficha-acoes{display:none!important}
+  /* Etapa 6: cabecalho da ficha, faixa e Jornada clinica nao existiam quando
+     esta regra foi escrita — sao chrome da ficha, nao conteudo do relatorio,
+     e imprimiam junto (avatar, botoes de acao, pilulas da faixa). */
+  .btn-voltar,.fic-topo,.fic-sobre,.fic-detalhe-corpo,.fic-faixa,.fic-jornada-bloco{display:none!important}
   body,.principal{background:#fff}
   .mapa{box-shadow:none}
 }

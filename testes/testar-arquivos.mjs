@@ -147,8 +147,8 @@ ok(rel.temTriada && rel.temHoloscan, 'traz Triada e Holoscan');
 /* Revisao clinica do HOLOSCOPE (decisao 1): nenhuma CMB aparece no
    relatorio nesta rodada, nem a CMB-001. */
 ok(!rel.combinada, 'nao traz leitura combinada: ' + rel.combinada);
-ok(rel.partes.join(',') === 'automatico,automatico,profissional',
-   'relatorio separa A/B automatico de C profissional: ' + rel.partes.join(','));
+ok(rel.partes.join(',') === 'automatico,automatico,automatico,automatico,profissional',
+   'relatorio separa A/B/C/D automatico de E profissional: ' + rel.partes.join(','));
 
 /* Revisao clinica do HOLOSCOPE (decisao 2): o paragrafo de "Os cinco
    sistemas" que antes vinha de mensagens.csv (status=rascunho, e por isso

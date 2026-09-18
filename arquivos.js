@@ -688,8 +688,8 @@
     var g = motor();
 
     if (!p || !g) {
-      alvo.innerHTML = '<p class="arq-vazio">Aplique o questionário do HOLOSCOPE para ' +
-        'este paciente. O relatório é montado a partir do mapa.</p>';
+      alvo.innerHTML = '<div class="lista-vazia"><strong>Relatório ainda sem dados suficientes</strong>' +
+        "<span>Conclua etapas da jornada clínica para gerar uma consolidação mais completa.</span></div>";
       return;
     }
 
@@ -744,7 +744,11 @@
        no cabecalho — e as CMB/textos interpretativos nao confirmados nao
        aparecem (ver decisoes 1 e 2 da revisao clinica do HOLOSCOPE). */
     html += '<section class="rel-parte" data-origem="automatico">' +
-      "<h3>A. HOLOSCOPE — o que o paciente relatou</h3>";
+      "<h3>A. HOLOSCOPE — o que o paciente relatou</h3>" +
+      // Secao 3 da Etapa 6: a data da APLICACAO, nao a de hoje (.rel-meta do
+      // cabecalho ja mostra quando o relatorio foi gerado — sao datas
+      // diferentes, e a antiga faltava aqui).
+      (p.quando ? '<p class="rel-meta">Aplicado em ' + escapar(dataBR(p.quando)) + "</p>" : "");
 
     var ordenados = p.sistemas.slice().sort(function (a, b) { return a.nota - b.nota; });
     html += '<div class="rel-bloco"><h4>Mapa de prioridades</h4>';
@@ -832,14 +836,43 @@
       "apoiar a interpretação profissional. Não realiza diagnóstico.</p></div></section>";
 
     /* ====================================================================
-       C. INTERPRETACAO PROFISSIONAL — texto que a nutricionista escreveu,
-       nunca gerado automaticamente. Nunca misturado com A/B sem etiqueta.
+       C. CONSULTAS E ACOMPANHAMENTO — window.Agenda.todas() ja e a mesma
+       lista, em ordem decrescente, que a aba Consultas da ficha usa. Aparece
+       sempre, como a B: "nenhuma consulta" tambem e informacao da jornada. */
+    var consultas = (window.Agenda && window.Agenda.todas) ? window.Agenda.todas(paciente()) : [];
+    html += '<section class="rel-parte" data-origem="automatico">' +
+      "<h3>C. Consultas e acompanhamento</h3><div class=\"rel-bloco\">";
+    if (consultas.length === 0) {
+      html += '<p class="rel-vazio">Nenhuma consulta registrada até o momento.</p>';
+    } else {
+      html += "<p>" + consultas.length +
+        (consultas.length === 1 ? " consulta registrada." : " consultas registradas.") + "</p>";
+      consultas.forEach(function (c) {
+        html += '<p class="rel-prioridade"><b>' + escapar(dataBR(c.data)) + "</b> &middot; " +
+          escapar(c.hora) + " &middot; " + escapar(c.tipo || "Consulta") + "</p>";
+      });
+    }
+    html += "</div></section>";
+
+    /* ====================================================================
+       D. DOCUMENTOS E MATERIAIS — mesmo ArquivoStore.listar() que a aba
+       Documentos ja usa, ja em ordem decrescente de data. IndexedDB e
+       assincrono: a secao nasce com "carregando" e preencherDocumentosRelatorio()
+       troca pelo conteudo real quando a promessa resolve, sem travar o
+       resto do relatorio (que e todo sincrono) esperando por isto. */
+    html += '<section class="rel-parte" data-origem="automatico">' +
+      "<h3>D. Documentos e materiais</h3>" +
+      '<div class="rel-bloco" id="rel-documentos-corpo"><p class="rel-vazio">Carregando…</p></div></section>';
+
+    /* ====================================================================
+       E. INTERPRETACAO PROFISSIONAL — texto que a nutricionista escreveu,
+       nunca gerado automaticamente. Nunca misturado com A/B/C/D sem etiqueta.
        Editavel so no registro "nutri"; no registro "paciente" e so leitura,
        exatamente com o que foi escrito — sem gerar nada em cima. */
     var interpretacao = window.interpretacaoDe ? window.interpretacaoDe() : null;
     var textoInterpretacao = (interpretacao && interpretacao.texto) || "";
     html += '<section class="rel-parte" data-origem="profissional">' +
-      "<h3>C. Interpretação profissional</h3><div class=\"rel-bloco\">";
+      "<h3>E. Interpretação profissional</h3><div class=\"rel-bloco\">";
     if (registroAtual === "nutri") {
       html += '<textarea id="rel-interpretacao" class="rel-interpretacao-campo" ' +
         'placeholder="Registre aqui a leitura profissional deste mapa.">' +
@@ -875,6 +908,30 @@
 
     alvo.innerHTML = html;
     pintarImagensDoPerfil(eu);
+    preencherDocumentosRelatorio(paciente());
+  }
+
+  /* Mesmo padrao de pintarImagensDoPerfil(): o HTML sincrono ja foi escrito
+     com um "carregando", e o real entra no buraco quando a promessa do
+     ArquivoStore resolve. Confere se a secao ainda existe — trocar de aba
+     ou de paciente antes da promise resolver nao pode escrever por cima da
+     tela errada. */
+  function preencherDocumentosRelatorio(pid) {
+    if (!window.ArquivoStore) return;
+    window.ArquivoStore.listar(pid).then(function (itens) {
+      var alvo = document.getElementById("rel-documentos-corpo");
+      if (!alvo) return;
+      if (!itens.length) {
+        alvo.innerHTML = '<p class="rel-vazio">Nenhum documento registrado até o momento.</p>';
+        return;
+      }
+      alvo.innerHTML = "<p>" + itens.length +
+        (itens.length === 1 ? " documento registrado." : " documentos registrados.") + "</p>" +
+        itens.map(function (d) {
+          return '<p class="rel-prioridade"><b>' + escapar(d.nome) + "</b> &middot; " + escapar(d.tipo) +
+            (d.data ? " &middot; " + escapar(dataBR(d.data)) : "") + "</p>";
+        }).join("");
+    });
   }
 
   /* As imagens do perfil vivem no IndexedDB e chegam por promessa; o HTML ja
