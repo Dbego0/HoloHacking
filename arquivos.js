@@ -474,6 +474,12 @@
       if (a) {
         if (a.dataset.acao === "conferir") conferir();
         if (a.dataset.acao === "limpar-ex") { gravar(CHAVE_EX, {}); desenharExames(); }
+        // O botao do topo e o do estado vazio so abrem o MESMO seletor de
+        // arquivo que a zona de arrastar ja usa — nao e um fluxo novo.
+        if (a.dataset.acao === "adicionar-documento") {
+          var campoArq = document.getElementById("doc-arquivo");
+          if (campoArq) campoArq.click();
+        }
         return;
       }
       var abrir = ev.target.closest("[data-abrir]");
@@ -504,6 +510,10 @@
     }
 
     alvo.innerHTML =
+      '<div class="fic-consultas-topo">' +
+        '<button type="button" class="btn-verde" data-acao="adicionar-documento">Adicionar documento</button>' +
+      "</div>" +
+
       '<p class="arq-intro">O papel que o paciente traz e os números que saem dele. ' +
       "São a mesma coisa em dois passos: primeiro o arquivo fica guardado, depois " +
       "você lê o que ele diz e lança aqui embaixo. " +
@@ -525,7 +535,9 @@
           ["Exame laboratorial", "Laudo", "Receita", "Termo de consentimento", "Foto", "Outro"]
             .map(function (x) { return "<option>" + x + "</option>"; }).join("") +
           '</select><input type="date" id="doc-data"></div>' +
-        '<div id="doc-aviso"></div><div id="doc-lista"></div>' +
+        '<div id="doc-aviso"></div>' +
+        '<p class="dash-sub" id="doc-total"></p>' +
+        '<div id="doc-lista"></div>' +
         '<p class="arq-nota" id="doc-espaco"></p>' +
       "</section>" +
 
@@ -537,7 +549,11 @@
         "&mdash; ele confronta o que o paciente relatou com o que o sangue mostra.</p>" +
         '<div id="ex-atalhos"></div>' +
         '<div id="ex-corpo"></div>' +
-      "</section>";
+      "</section>" +
+
+      '<div class="fic-continuidade">' +
+        '<span class="fic-rot">Consulta &rarr; HOLOSCOPE &rarr; HOLOSCAN &rarr; Documentos</span>' +
+      "</div>";
 
     ligarDocumentos();
     listarDocumentos();
@@ -566,10 +582,19 @@
     var alvo = document.getElementById("doc-lista");
     if (!alvo) return;
     window.ArquivoStore.listar(paciente()).then(function (itens) {
+      var total = document.getElementById("doc-total");
+      // ArquivoStore.listar() ja devolve em ordem decrescente de data (e sem
+      // data, por ultimo) — e a mesma lista que ja serve de "documentos
+      // recentes": nao ha por que destacar um segundo bloco so com os
+      // primeiros itens dela.
       if (itens.length === 0) {
-        alvo.innerHTML = '<p class="arq-vazio">Nenhum arquivo para este paciente.</p>';
+        if (total) total.textContent = "";
+        alvo.innerHTML = '<div class="lista-vazia"><strong>Nenhum documento adicionado</strong>' +
+          "<span>Adicione arquivos e materiais relacionados à jornada deste paciente.</span>" +
+          '<button type="button" class="btn-verde" data-acao="adicionar-documento">Adicionar documento</button></div>';
         desenharAtalhosDeExame(itens);
       } else {
+        if (total) total.textContent = itens.length + (itens.length === 1 ? " documento" : " documentos");
         desenharAtalhosDeExame(itens);
         alvo.innerHTML = '<div class="doc-lista-itens">' + itens.map(function (d) {
           return '<div class="doc-item">' +
