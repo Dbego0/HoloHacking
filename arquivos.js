@@ -179,6 +179,133 @@
     alvo.innerHTML = html;
   };
 
+  function dataBR(iso) { return iso ? String(iso).split("-").reverse().join("/") : ""; }
+
+  /* ========================================== ABA HOLOSCAN (na ficha) =====
+     Resumo compacto do mesmo confronto que window.desenharHoloscan() e
+     #ex-confronto ja calculam — nao reimplementa nada, so mostra menos:
+     a contagem por estado e a leitura por sistema, sem a grade de exame a
+     exame que a secao HOLOSCAN completa (#secao-holoscan) ja tem.
+
+     HISTORICO DE COLETAS: holohacking.exames guarda so {examId: valor},
+     sem data nenhuma — nao ha "coleta" persistida, so o ultimo valor
+     lancado (proxima aplicacao sobrescreve). Por isso nao ha historico
+     real para mostrar aqui; ver o aviso fixo no bloco correspondente e
+     testes/testar-ficha-holoscan.mjs, onde isso fica registrado. Historico
+     de coletas por data e trabalho para quando o Supabase entrar. */
+  function desenharHoloscanAba() {
+    var alvo = document.getElementById("aba-holoscan");
+    if (!alvo) return;
+    var g = motor();
+    if (!g || !g.listaDeExames || !window.Holoscan) { alvo.innerHTML = ""; return; }
+
+    var valores = ler(CHAVE_EX);
+    var quantidade = Object.keys(valores).length;
+    var p = pontuacaoGuardada();
+    var temMapa = Object.keys(notasDoPaciente()).length > 0;
+
+    var topo = '<div class="fic-consultas-topo">' +
+      '<button type="button" class="btn-verde" data-ir="aba:documentos">Registrar exames</button>' +
+    "</div>";
+
+    // Secao 3: nao bloqueia o registro sem HOLOSCOPE, so avisa que o
+    // confronto depende de um mapa disponivel — a mesma frase que
+    // #ex-confronto ja usa quando nao ha mapa (desenharConfronto()).
+    var avisoSemMapa = !temMapa
+      ? '<p class="dash-vazio">Sem HOLOSCOPE aplicado, o confronto ainda não tem com o que comparar — ' +
+        "toda dimensão aparece como dados insuficientes até existir um mapa.</p>"
+      : "";
+
+    if (quantidade === 0) {
+      alvo.innerHTML = topo +
+        '<div class="lista-vazia"><strong>Nenhum exame registrado</strong>' +
+        "<span>Registre exames para confrontar os dados laboratoriais com o mapa do HOLOSCOPE.</span></div>" +
+        avisoSemMapa;
+      ligarHoloscanAba();
+      return;
+    }
+
+    var r;
+    try { r = g.lerExames(valores, notasDoPaciente()); }
+    catch (e) { r = { confronto: [] }; }
+    var confronto = r.confronto || [];
+
+    // Secao 4: so os tres rotulos que window.Holoscan ja expoe — nunca uma
+    // contagem calculada por fora dele.
+    var contagem = { Convergente: 0, Divergente: 0, "Dados insuficientes": 0 };
+    confronto.forEach(function (c) {
+      var rot = window.Holoscan.rotulo(c);
+      contagem[rot] = (contagem[rot] || 0) + 1;
+    });
+
+    var html = topo + avisoSemMapa;
+
+    html += '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Última coleta</h3>' +
+      '<p class="dash-sub">' + quantidade + (quantidade === 1 ? " exame registrado" : " exames registrados") +
+        (temMapa && p ? " &middot; confrontado com o mapa de " + escapar(dataBR(p.quando)) : "") + "</p>" +
+      '<div class="fic-piores-caixa"><div class="fic-piores">' +
+        '<span class="fic-sis">Convergentes <b>' + contagem.Convergente + "</b></span>" +
+        '<span class="fic-sis">Divergentes <b>' + contagem.Divergente + "</b></span>" +
+        '<span class="fic-sis">Dados insuficientes <b>' + contagem["Dados insuficientes"] + "</b></span>" +
+      "</div></div>" +
+      '<button type="button" class="fic-ir-min" data-ir="holoscan">Ver HOLOSCAN completo</button>' +
+    "</div>";
+
+    // Secao 5: nome + estado, com o mesmo .conf-item que #ex-confronto ja
+    // usa — inclusive o mesmo window.Holoscan.texto(c) fixo, NUNCA a
+    // `leitura` causal que o motor gera internamente.
+    html += '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Leitura por sistema</h3>' +
+      '<div class="conf-lista">' + confronto.map(function (c) {
+        var estado = window.Holoscan.estado(c);
+        return '<div class="conf-item ' + estado.toLowerCase() + '">' +
+          '<span class="conf-selo">' + escapar(window.Holoscan.rotulo(c)) + "</span>" +
+          "<b>" + NOME_SISTEMA[c.sistema] + "</b>" +
+          '<span class="conf-nota">nota ' + (c.nota === null || c.nota === undefined ? "—" : c.nota.toFixed(1)) + "</span>" +
+          '<span class="conf-leitura">' + escapar(window.Holoscan.texto(c)) + "</span></div>";
+      }).join("") + "</div>" +
+    "</div>";
+
+    // Secao 6: sem coleta datada persistida, o honesto e dizer isso — nao
+    // fingir um historico que nao existe.
+    html += '<div class="dash-bloco dash-bloco-compacto">' +
+      '<h3 class="dash-titulo">Histórico de coletas</h3>' +
+      '<p class="dash-vazio">O HOLOSCAN mostra sempre o estado atual dos exames lançados — ' +
+      "não há coleta por data persistida ainda. Histórico completo entra com a persistência no Supabase.</p>" +
+    "</div>";
+
+    // Secao 7: a relacao entre as duas camadas, sem linguagem de correcao.
+    html += '<div class="fic-continuidade">' +
+      '<span class="fic-rot">HOLOSCOPE &rarr; mapa de investigação</span>' +
+      '<span class="fic-rot">HOLOSCAN &rarr; confronto com exames</span>' +
+    "</div>";
+
+    alvo.innerHTML = html;
+    ligarHoloscanAba();
+  }
+
+  var holoscanAbaLigada = false;
+  function ligarHoloscanAba() {
+    if (holoscanAbaLigada) return;
+    holoscanAbaLigada = true;
+    var alvo = document.getElementById("aba-holoscan");
+    if (!alvo) return;
+    alvo.addEventListener("click", function (ev) {
+      var ir = ev.target.closest("[data-ir]");
+      if (!ir) return;
+      // "aba:x" abre uma aba da mesma ficha; o resto e secao do menu — o
+      // mesmo contrato que ficha.js (ligar()) e app.js ja seguem.
+      if (ir.dataset.ir.indexOf("aba:") === 0) {
+        var aba = document.querySelector('[data-aba="' + ir.dataset.ir.slice(4) + '"]');
+        if (aba) aba.click();
+        return;
+      }
+      var b = document.querySelector('.nav-item[data-secao="' + ir.dataset.ir + '"]');
+      if (b) b.click();
+    });
+  }
+
   /* ================================================================ EXAMES */
 
   function notasDoPaciente() {
@@ -748,7 +875,7 @@
     });
     // "exames" virou parte de "documentos"; quem ainda pedir aquilo cai aqui
     if (nome === "exames") nome = "documentos";
-    ["visao", "consultas", "holoscope", "linha", "formularios", "documentos", "relatorio"]
+    ["visao", "consultas", "holoscope", "holoscan", "linha", "formularios", "documentos", "relatorio"]
       .forEach(function (n) {
         var painel = document.getElementById("aba-" + n);
         if (painel) painel.classList.toggle("hidden", n !== nome);
@@ -758,6 +885,7 @@
     });
     if (nome === "documentos") desenharDocumentos();
     if (nome === "relatorio") desenharRelatorio();
+    if (nome === "holoscan") desenharHoloscanAba();
     // as tres novas sao da ficha; ela desenha quando a aba abre
     if (window.desenharAbaDaFicha) window.desenharAbaDaFicha(nome);
   }
