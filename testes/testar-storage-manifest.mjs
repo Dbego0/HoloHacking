@@ -282,11 +282,14 @@ ok(ordem.manifesto < ordem.dados,
 /* 22 era o numero antes do P0. Cada etapa que acrescenta uma tag sobe este
    numero de proposito: o manifesto (P0.2), o validador (P0.4a) e o motor de
    restauracao (P0.4b). O teste conta para que nenhuma entre sem ninguem
-   reparar — e foi exatamente o que ele fez quando login.js entrou. */
-ok(ordem.total === 29,
-   'o index tem 29 tags de script: 22 de antes do P0 + concorrencia.js + ' +
+   reparar — e foi exatamente o que ele fez quando login.js entrou, e de novo
+   na Fase 1 do Supabase (CDN do supabase-js + supabase-client.js +
+   dados-router.js, as tres antes de dados.js/app.js consumirem `sb`). */
+ok(ordem.total === 32,
+   'o index tem 32 tags de script: 22 de antes do P0 + concorrencia.js + ' +
    'armazenamento.js + validar-backup.js + restaurar-backup.js + ' +
-   'importar-v1.js + excluir-paciente.js + login.js — ' + ordem.total);
+   'importar-v1.js + excluir-paciente.js + login.js + CDN supabase-js + ' +
+   'supabase-client.js + dados-router.js — ' + ordem.total);
 /* A tela de entrada e a ultima a carregar: nada do app depende dela, e ela
    nao depende de nada do app. Se um dia depender, esta linha cai junto. */
 ok(ordem.login === ordem.total - 1,

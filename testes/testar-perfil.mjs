@@ -273,8 +273,8 @@ conferir(conta.perfilNoPacote === 1 && conta.nomeNoPacote === 'Ana Paula Ferreir
 conferir(conta.tiles.some(t => /^1 paciente/.test(t)) &&
          conta.tiles.some(t => /arquivos/.test(t)),
   'a aba conta o que existe: ' + conta.tiles.join(' · '));
-conferir(/ainda não tem login/i.test(conta.texto),
-  'e diz a verdade sobre o acesso em vez de desenhar um campo de senha');
+conferir(/nenhuma sessão do supabase ativa/i.test(conta.texto),
+  'sem sessão real (teste usa o app direto, sem logar), a aba diz isso com honestidade');
 conferir(!/senha atual/i.test(conta.texto) && !/plano/i.test(conta.texto),
   'sem campo de senha e sem plano: nada disso existe neste app');
 

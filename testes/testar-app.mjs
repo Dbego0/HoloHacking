@@ -14,14 +14,23 @@ vc.on('jsdomError', (e) => erros.push('DOM: ' + e.message));
 vc.on('error', (...a) => erros.push('console.error: ' + a.join(' ')));
 
 const html = readFileSync(RAIZ + '/index.html', 'utf8')
-  // o CDN do supabase nao carrega aqui; um duble basta para o app iniciar
+  // o CDN do supabase nao carrega aqui; um duble basta para o app iniciar.
+  // .auth precisa de forma propria (nao so a cadeia .from().select()...):
+  // login.js chama getSession/onAuthStateChange/signInWithPassword/signOut
+  // de verdade no carregamento da pagina, mesmo sem ninguem logar aqui.
   .replace(/<script src="https:\/\/cdn\.jsdelivr[^"]*"><\/script>/,
     '<script>' +
     'var _c=new Proxy(function(){},{' +
     '  get:function(t,p){ if(p==="then") return function(r){ r({data:[],error:null}); };' +
     '                     return function(){ return _c; }; },' +
     '  apply:function(){ return _c; }});' +
-    'window.supabase={createClient:function(){ return _c; }};' +
+    'var _auth={' +
+    '  getSession:function(){ return Promise.resolve({data:{session:null},error:null}); },' +
+    '  onAuthStateChange:function(){ return {data:{subscription:{unsubscribe:function(){}}}}; },' +
+    '  signInWithPassword:function(){ return Promise.resolve({data:{session:null},error:{message:"stub"}}); },' +
+    '  signOut:function(){ return Promise.resolve({error:null}); }' +
+    '};' +
+    'window.supabase={createClient:function(){ return {from:function(){ return _c; }, auth:_auth}; }};' +
     'window.scrollTo=function(){};' +
     '</script>')
   .replace(/<script src="\/([^"]+)"><\/script>/g,

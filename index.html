@@ -114,13 +114,13 @@
     <p class="login-rodape">Área de acesso profissional</p>
 
     <!-- A SAIDA DE DESENVOLVIMENTO.
-         Enquanto nao ha autenticacao, esta e a unica forma de alcancar o app —
-         e ela se anuncia pelo que e. Nao verifica nada, nao guarda nada, nao
-         cria sessao. Sai daqui no dia em que POST /api/auth/login existir. -->
+         A autenticacao real existe (Supabase Auth) — isto e so um atalho
+         para rodar o app localmente sem precisar logar a cada teste. Nao
+         verifica nada, nao guarda nada, nao cria sessao. login.js so deixa
+         este bloco existir (e o clique funcionar) em localhost/127.0.0.1;
+         em producao ele nem aparece no HTML. -->
     <div class="login-dev">
-      <!-- Nao repetir aqui a frase que o submit ja devolve: dita duas vezes na
-           mesma tela, ela vira decoracao e para de ser lida. -->
-      <p>Enquanto o servidor de autenticação não existe:</p>
+      <p>Atalho local de desenvolvimento — indisponível fora de localhost:</p>
       <button type="button" id="saida-dev" class="login-dev-botao">
         Entrar sem autenticação &mdash; ambiente de desenvolvimento
       </button>
@@ -1111,6 +1111,11 @@
      deriva dele a lista de tabelas, para que as duas nao possam divergir. -->
 <!-- Duas abas do mesmo app, e o dado no meio. Vem antes de tudo que
      escreve, porque e por ele que as escritas avisam umas as outras. -->
+<!-- O cliente Supabase: URL e chave publicavel do projeto (nao e segredo — a
+     RLS no banco e quem protege os dados). Vem antes de qualquer script que
+     fale com ele. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+<script src="/supabase-client.js"></script>
 <script src="/concorrencia.js"></script>
 <script src="/armazenamento.js"></script>
 <!-- Le um pacote de FORA e diz se daria para restaurar. Estende o
@@ -1130,6 +1135,11 @@
      critica do restaurar-backup.js, entao vem depois dele. -->
 <script src="/excluir-paciente.js"></script>
 <script src="/dados.js"></script>
+<!-- Roteia SO a tabela "pacientes" para o Supabase real (tabela `patients`);
+     todo o resto continua em dados.js/localStorage, sem mudar. E o unico
+     lugar que decide isso — por isso vem logo depois de dados.js, antes de
+     qualquer tela consumir `sb`. -->
+<script src="/dados-router.js"></script>
 <script src="/holoscope.js"></script>
 <!-- as regras de "o que falta neste paciente", usadas pela ficha e pelo
      dashboard. Uma copia so, senao elas divergem. -->

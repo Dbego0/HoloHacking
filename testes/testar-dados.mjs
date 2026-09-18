@@ -1,9 +1,17 @@
 /**
- * A camada de dados: o app tem que funcionar inteiro sem rede.
+ * A camada de dados: sem sessao, o app tem que funcionar inteiro sem tocar
+ * num banco remoto de verdade.
  *
  * Ate 13/09 o app.js abria um cliente Supabase real, com a chave escrita nele.
- * Este teste existe para isso nao voltar em silencio: se alguem religar um
- * banco remoto, a primeira asserção falha.
+ * Este teste existe para isso nao voltar em silencio: se alguem religar uma
+ * CHAMADA de banco remoto (REST/Auth da API), a primeira asserção falha.
+ *
+ * Fase 1 do Supabase (deliberada, nao um regressao): supabase-client.js
+ * carrega a biblioteca supabase-js por CDN em todo carregamento de pagina —
+ * e so um arquivo estatico, nao uma chamada de banco, e por isso a unica
+ * excecao explicita no filtro abaixo. window.supabaseClient existe a partir
+ * daqui, mas sem sessao (ninguem loga neste teste) ele nao faz nenhuma
+ * chamada de REST/Auth sozinho — se um dia fizer, isto continua pegando.
  */
 import puppeteer from 'puppeteer-core';
 
@@ -33,8 +41,13 @@ p.on('request', r => {
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
 
-const remotos = externos.filter(u => /supabase|firebase|amazonaws|\/rest\/v1\//i.test(u));
-ok(remotos.length === 0, 'nenhum banco remoto foi chamado' + (remotos.length ? ': ' + remotos[0] : ''));
+// o CDN do supabase-js (arquivo estatico, sem sessao) e a unica excecao
+// deliberada — qualquer chamada de API (REST/Auth, aqui ou em outro banco)
+// continua proibida.
+const remotos = externos
+  .filter(u => !u.startsWith('https://cdn.jsdelivr.net/npm/@supabase/supabase-js'))
+  .filter(u => /supabase|firebase|amazonaws|\/rest\/v1\//i.test(u));
+ok(remotos.length === 0, 'nenhuma chamada de banco remoto foi feita' + (remotos.length ? ': ' + remotos[0] : ''));
 ok(await p.evaluate(() => typeof window.DadosLocais === 'object'), 'a camada de dados esta no ar');
 ok(await p.evaluate(() => window.DadosLocais.onde === 'neste navegador'),
    'e ela sabe dizer onde guarda');

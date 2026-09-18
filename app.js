@@ -9,8 +9,15 @@
      sywlqaxnceojkhfrprfy com a chave anonima escrita no arquivo. O app nao
      abria sem rede, cada rodada de teste cadastrava paciente num banco de
      verdade, e o projeto continuava de pe sem ninguem ter decidido isso. As
-     linhas que ja estao la continuam la — nada foi apagado. */
-  const sb = window.DadosLocais;
+     linhas que ja estao la continuam la — nada foi apagado.
+
+     Fase 1 do Supabase (projeto sllhyymeeyoozokgbnuv): a licao acima nao foi
+     esquecida. Em vez de apontar `sb` inteiro para o Supabase de novo,
+     dados-router.js decide TABELA POR TABELA — e so troca `pacientes` para
+     `patients`, e so quando existe uma sessao Supabase real. Sem sessao (dev
+     local, suite de testes), cai para o DadosLocais de sempre: continua
+     funcionando sem rede, sem sujar banco nenhum. */
+  const sb = window.DadosRouter;
 
   const estado = { pacientes: [], ativo: null, carregado: false };
 

@@ -16,16 +16,15 @@
    - senha do banco / connection string do Postgres
    - qualquer chave descrita como "secret" no painel do Supabase
 
-   AINDA SEM VALORES REAIS: os dois placeholders abaixo travam o boot de
-   proposito (erro alto, no console, em vez de silenciosamente falhar em
-   cada chamada) ate serem preenchidos.
+   A checagem de placeholder abaixo fica no arquivo mesmo depois de preenchido:
+   e a mesma guarda que evita um deploy futuro com valor esquecido em branco.
    =========================================================================== */
 
 (function () {
   "use strict";
 
-  var PROJECT_URL = "COLOQUE_AQUI_A_PROJECT_URL";
-  var PUBLISHABLE_KEY = "COLOQUE_AQUI_A_PUBLISHABLE_KEY";
+  var PROJECT_URL = "https://sllhyymeeyoozokgbnuv.supabase.co";
+  var PUBLISHABLE_KEY = "sb_publishable_vq17LUTsVBjLChCa5XjArw_IJ7c432Q";
 
   if (PROJECT_URL.indexOf("COLOQUE_AQUI") === 0 || PUBLISHABLE_KEY.indexOf("COLOQUE_AQUI") === 0) {
     console.error(

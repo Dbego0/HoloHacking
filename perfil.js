@@ -15,10 +15,11 @@
      CONTA         onde os dados estao, como levar embora, como apagar
 
    O que NAO esta aqui, e por que: o app de referencia tem "Plano e Pagamento"
-   e um bloco de senha em Seguranca. Este app nao tem login nem cobranca — um
-   campo "nova senha" que nao troca senha nenhuma e pior do que campo nenhum,
-   porque a pessoa sai achando que protegeu alguma coisa. Quando a conta
-   existir, ela entra na aba Conta, que ja esta reservada para isso.
+   e um bloco de troca de senha em Seguranca. Este app nao tem cobranca, e a
+   troca de senha (fluxo de recuperacao com pagina de redirect) ainda nao
+   chegou na Fase 1 do Supabase — um campo "nova senha" pela metade e pior do
+   que nenhum. O que a Fase 1 trouxe (quem esta logado, e sair) esta na aba
+   Conta, abaixo.
 
    Onde as coisas ficam: os campos de texto vao para a tabela `perfil` (uma
    linha so) e viajam no exportar/importar junto com os pacientes. As imagens
@@ -645,15 +646,19 @@
         '<button type="button" class="perf-tirar forte" id="btn-apagar-tudo">Apagar todos os dados</button>' +
       "</div>";
 
-    /* O que o app de referencia tem aqui e nao existe deste lado. Melhor
-       dizer isso do que desenhar um campo de senha que nao protege nada. */
-    var acesso =
-      '<p>Este app ainda não tem login: quem abre o endereço, abre o app. ' +
-      "Não há e-mail de acesso para alterar nem senha para trocar, e um campo " +
-      "aqui dizendo o contrário faria você achar que protegeu alguma coisa.</p>" +
-      '<p class="perf-ajuda">Enquanto for assim, quem protege o dado do paciente é o ' +
-      "próprio computador: mantenha a máquina com senha e não deixe a sessão aberta " +
-      "em máquina compartilhada. Quando a conta existir, ela aparece nesta aba.</p>";
+    /* Fase 1 do Supabase: a conta existe de verdade agora. Sem campo de nova
+       senha ainda — so o que a Fase 1 pediu: quem esta logado, e sair. */
+    var usuario = window.HoloAuth && window.HoloAuth.usuarioAtual && window.HoloAuth.usuarioAtual();
+    var acesso = usuario
+      ? '<p>Você está conectado como <b>' + escapar(usuario.email || "") + "</b>.</p>" +
+        '<p class="perf-ajuda">A sessão fica neste navegador. Se for sair de uma máquina ' +
+        "compartilhada, encerre a sessão em vez de só fechar a aba.</p>" +
+        '<div class="perf-foto-acoes">' +
+          '<button type="button" class="perf-tirar" id="btn-sair">Sair da conta</button>' +
+        "</div>"
+      : '<p>Nenhuma sessão do Supabase ativa neste navegador — normal se você ' +
+        "entrou pelo atalho de desenvolvimento local. Fora de localhost, isto " +
+        "deveria ter te levado para a tela de entrada.</p>";
 
     alvo.innerHTML =
       cartao("Onde ficam os seus dados", "", dados) +
@@ -872,6 +877,14 @@
     return (e && e.message) ? e.message : String(e);
   }
 
+  /* Encerra a sessao Supabase de verdade (auth.signOut). login.js escuta
+     onAuthStateChange e bloqueia o app sozinho quando o evento chega — esta
+     funcao nao mexe em tela nenhuma diretamente. */
+  function sair() {
+    if (!window.HoloAuth) return;
+    window.HoloAuth.sair();
+  }
+
   function apagarTudo() {
     var frase = "APAGAR";
     var dito = prompt("Isto apaga tudo deste navegador e não dá para desfazer.\n\n" +
@@ -1026,6 +1039,7 @@
         return;
       }
       if (ev.target.closest("#btn-apagar-tudo")) { apagarTudo(); return; }
+      if (ev.target.closest("#btn-sair")) { sair(); return; }
     });
 
     // as cores andam em par: mexer no seletor escreve no texto, e vice-versa

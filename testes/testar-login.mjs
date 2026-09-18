@@ -1,5 +1,5 @@
 /**
- * LOGIN — a tela de entrada, nesta rodada SEM autenticacao.
+ * LOGIN — a tela de entrada, agora com Supabase Auth de verdade (Fase 1).
  *
  * O que este teste trava:
  *
@@ -7,13 +7,25 @@
  *   D-E  mostrar/ocultar alterna o type e devolve o foco ao campo.
  *   F    a senha nao encosta em localStorage, sessionStorage, dataset ou URL.
  *   G-I  validacao de formato: e-mail obrigatorio, formato, senha obrigatoria.
- *   J    o submit valido NAO libera a aplicacao — porque nao ha servidor.
- *        Este e o teste mais importante do arquivo: ele falha no dia em que
- *        alguem "resolver" o login com um autenticado=true.
+ *   J    credencial invalida É REJEITADA DE VERDADE pelo Supabase — chamada
+ *        de rede real contra o projeto, sem servidor nenhum simulado — e o
+ *        app continua bloqueado. Este e o teste mais importante do arquivo:
+ *        ele falha no dia em que alguem afrouxar essa checagem.
  *   K    clicar repetido durante o carregamento dispara UMA chamada.
- *   L    "Esqueci minha senha" nao simula recuperacao.
+ *   L    "Esqueci minha senha" ainda nao tem fluxo completo (falta pagina de
+ *        redirect) e diz isso, sem fingir enviar nada.
  *   M    a tela se comporta em viewport de 375px.
  *   N    nenhuma tela clinica existente foi alterada pela camada de entrada.
+ *   O    o atalho de desenvolvimento SO existe (aparece e funciona) em
+ *        localhost/127.0.0.1 — testado contra o hostname real de producao
+ *        via --host-resolver-rules, nao mockado.
+ *
+ * O QUE ESTE ARQUIVO NAO TESTA (e por que): login VALIDO com sessao real,
+ * restauracao apos refresh e logout end-to-end exigiriam um usuario Supabase
+ * de teste que ninguem pediu para eu inventar. testes/testar-supabase-auth.mjs
+ * cobre esses casos SE as variaveis de ambiente HOLO_TESTE_EMAIL/HOLO_TESTE_SENHA
+ * existirem — e diz claramente "PULADO" quando nao existirem, em vez de fingir
+ * que testou.
  */
 import puppeteer from 'puppeteer-core';
 
@@ -139,27 +151,32 @@ const digitando = await p.evaluate(async () => {
 ok(!digitando.invalido && digitando.erro, 'digitar de novo limpa o erro daquele campo');
 
 /* ==================================================================== */
-console.log('\n  J — SUBMIT VALIDO NAO LIBERA A APLICACAO\n');
+console.log('\n  J — CREDENCIAL INVALIDA E REJEITADA DE VERDADE PELO SUPABASE\n');
 /* ==================================================================== */
 
-const valido = await p.evaluate(async (senha) => {
-  document.getElementById('login-email').value = 'pessoa@clinica.com';
-  document.getElementById('login-senha').value = senha;
+// Chamada de rede real contra o projeto Supabase configurado em
+// supabase-client.js — nao ha stub nem simulacao aqui. Um e-mail que quase
+// certamente nao existe garante rejeicao independente de qualquer usuario
+// real ja cadastrado.
+const invalido = await p.evaluate(async () => {
+  document.getElementById('login-email').value =
+    'ninguem-existe-de-verdade-' + Date.now() + '@holohacking.test';
+  document.getElementById('login-senha').value = 'senha-com-certeza-errada-123456';
   document.getElementById('form-login').requestSubmit();
-  await new Promise(r => setTimeout(r, 300));
+  await new Promise(r => setTimeout(r, 1500));
   const t = document.getElementById('tela-login');
   return {
     mensagem: document.getElementById('login-mensagem').textContent,
     telaAindaAberta: !t.hidden && getComputedStyle(t).display !== 'none',
     appAindaEscondido: document.getElementById('app').getAttribute('aria-hidden') === 'true',
   };
-}, SENHA);
-ok(valido.telaAindaAberta, 'a tela de entrada continua aberta depois de um submit valido');
-ok(valido.appAindaEscondido, 'a aplicacao nao foi liberada');
-ok(/não conectada ao servidor/i.test(valido.mensagem),
-   'a resposta diz o que de fato acontece: "' + valido.mensagem + '"');
-ok(!/inválid|incorret|senha errada/i.test(valido.mensagem),
-   'e NAO simula erro de credencial, que exigiria conferir credencial');
+});
+ok(invalido.telaAindaAberta, 'a tela de entrada continua aberta depois de credencial invalida');
+ok(invalido.appAindaEscondido, 'a aplicacao nao foi liberada');
+ok(/incorretos/i.test(invalido.mensagem),
+   'a mensagem e clara sobre o que aconteceu: "' + invalido.mensagem + '"');
+ok(!/SEM_SERVIDOR|não conectada ao servidor/i.test(invalido.mensagem),
+   'e nao fala mais em "servidor desconectado" — o servidor existe e respondeu');
 
 /* ==================================================================== */
 console.log('\n  F — A SENHA NAO E ARMAZENADA EM LUGAR NENHUM\n');
@@ -235,7 +252,7 @@ const esqueci = await p.evaluate(async () => {
     storageIntacto: localStorage.length === antesLS,
   };
 });
-ok(/será disponibilizada quando a autenticação/i.test(esqueci.mensagem),
+ok(/recuperação de senha ainda não está disponível/i.test(esqueci.mensagem),
    'a mensagem e neutra e honesta: "' + esqueci.mensagem + '"');
 ok(!/enviamos|verifique seu e-mail|link de recuperação foi/i.test(esqueci.mensagem),
    'nao afirma ter enviado nada');
@@ -327,5 +344,50 @@ ok(app.holoscope && app.holoscan, 'HOLOSCOPE e HOLOSCAN continuam abrindo pelo m
 ok(app.loginNaoEhSecao, 'a tela de entrada nao virou secao nem item de menu');
 
 await nav.close();
+
+/* ==================================================================== */
+console.log('\n  O — O ATALHO DE DESENVOLVIMENTO SO EXISTE EM LOCALHOST\n');
+/* ==================================================================== */
+
+// --host-resolver-rules mapeia o hostname REAL de producao para o servidor
+// local: location.hostname vira "holohacking.com.br" de verdade — nao um
+// mock de string, o proprio navegador resolve assim. E o teste mais real
+// que da para fazer sem ter feito o deploy ainda.
+const navProd = await puppeteer.launch({
+  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  headless: 'new',
+  args: ['--hide-scrollbars', '--host-resolver-rules=MAP holohacking.com.br 127.0.0.1']
+});
+const pProd = await navProd.newPage();
+const ruimProd = []; pProd.on('pageerror', e => ruimProd.push(e.message));
+await pProd.goto('http://holohacking.com.br:5500/', { waitUntil: 'networkidle2' });
+await new Promise(r => setTimeout(r, 300));
+
+const antesDeForcar = await pProd.evaluate(() => ({
+  hostname: location.hostname,
+  blocoExiste: !!document.querySelector('.login-dev'),
+  blocoVisivel: !!document.querySelector('.login-dev') && !document.querySelector('.login-dev').hidden,
+}));
+ok(antesDeForcar.hostname === 'holohacking.com.br', 'o teste roda mesmo contra o hostname real: ' + antesDeForcar.hostname);
+ok(antesDeForcar.blocoExiste && !antesDeForcar.blocoVisivel,
+   'o bloco do atalho fica escondido (hidden) fora de localhost');
+
+// Simula alguem reabrindo o bloco pelo devtools e clicando mesmo assim — a
+// defesa que importa de verdade nao e o CSS, e o clique recusar.
+const depoisDeForcar = await pProd.evaluate(() => {
+  var bloco = document.querySelector('.login-dev');
+  if (bloco) bloco.hidden = false;
+  var botao = document.getElementById('saida-dev');
+  if (botao) botao.click();
+  return {
+    telaAindaAberta: !document.getElementById('tela-login').hidden,
+    appAindaEscondido: document.getElementById('app').getAttribute('aria-hidden') === 'true',
+  };
+});
+ok(depoisDeForcar.telaAindaAberta && depoisDeForcar.appAindaEscondido,
+   'mesmo reexibido via devtools e clicado, o app NAO libera fora de localhost');
+ok(ruimProd.length === 0, 'sem erro de JS ao carregar com o hostname de producao' + (ruimProd.length ? ': ' + ruimProd[0] : ''));
+
+await navProd.close();
 console.log(ruim.length ? '\n  ERRO: ' + ruim[0] : '\n  sem erro de JS');
 process.exit(falhou ? 1 : 0);
