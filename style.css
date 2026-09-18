@@ -212,16 +212,6 @@ input,textarea,select{font-family:inherit}
 .pac-cabeca-acoes{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 
 .acoes-topo{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
-.btn-novo{
-  display:inline-flex;align-items:center;gap:9px;
-  padding:13px 24px;border:none;border-radius:999px;
-  background:linear-gradient(135deg,#d8b979,var(--dourado) 55%,#a9853f);
-  color:#241b08;font-weight:600;font-size:.7rem;
-  letter-spacing:.18em;text-transform:uppercase;
-  box-shadow:0 8px 22px rgba(201,163,90,.24);
-  transition:transform .2s, filter .2s;
-}
-.btn-novo:hover{transform:translateY(-2px);filter:brightness(1.06)}
 .lista-pacientes{display:flex;flex-direction:column;gap:10px}
 .card-paciente{
   display:grid;grid-template-columns:auto auto 1fr auto auto;
@@ -578,7 +568,12 @@ mark{background:rgba(201,163,90,.32);color:inherit;border-radius:3px;padding:0 2
 }
 .linha-dupla{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .acoes-form{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px}
+/* Acao primaria da plataforma — um estilo so, para nao ter "Novo paciente"
+   parecendo um botao diferente de "Nova consulta"/"Iniciar HOLOSCOPE"
+   dependendo da tela. inline-flex+gap nao muda nada nos botoes so-texto
+   (ja eram a maioria) e deixa os com icone (ex.: #btn-abrir-novo) alinhados. */
 .btn-verde{
+  display:inline-flex;align-items:center;gap:9px;
   padding:13px 30px;border:none;border-radius:10px;
   background:linear-gradient(135deg,var(--verde-medio),var(--verde-escuro));
   color:var(--dourado-claro);font-weight:500;font-size:.74rem;
@@ -1659,7 +1654,7 @@ body.escuro .btn-tema .icone-lua{display:none}
 .dash-pendente{
   display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;
   background:var(--sup-card);border:1px solid var(--borda-suave);
-  border-left:2px solid var(--dourado-suave);
+  border-left:2px solid var(--dourado-suave);border-radius:10px;
   padding:14px 18px;
 }
 .dash-pendente.abrir{border-left-color:var(--dourado)}
@@ -1717,7 +1712,7 @@ body.escuro .btn-tema .icone-lua{display:none}
 .dash-jornada-passo{
   display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;
   background:var(--sup-card);border:1px solid var(--borda-suave);
-  border-left:2px solid var(--dourado-suave);padding:14px 18px;
+  border-left:2px solid var(--dourado-suave);border-radius:10px;padding:14px 18px;
 }
 .dash-jornada-seta{
   text-align:center;color:var(--dourado-suave);font-size:.85rem;line-height:1;

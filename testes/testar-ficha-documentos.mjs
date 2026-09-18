@@ -91,23 +91,23 @@ conferir(vazio.texto === 'Adicione arquivos e materiais relacionados à jornada 
 conferir(vazio.total === '', 'sem documento, o contador fica em branco — não "0 documentos"');
 conferir(!vazio.tabelaVazia, 'não é mais um parágrafo solto — é o mesmo convite das outras abas');
 
-/* --------------------------- os dois botões acionam o MESMO input ------- */
+/* ------------------------- o CTA do topo aciona o input já existente ----- */
+/* Rodada de consistencia: o card vazio nao repete mais o botao do topo —
+   um so CTA, como Consultas/HOLOSCOPE/HOLOSCAN ja faziam. */
 
-const botoes = await p.evaluate(async () => {
-  const testar = (seletor) => new Promise(resolve => {
-    const campo = document.getElementById('doc-arquivo');
+const semBotaoDuplicado = await p.evaluate(() => !document.querySelector('#doc-lista .lista-vazia button'));
+conferir(semBotaoDuplicado, 'sem CTA duplicado dentro do card vazio — o botão do topo já é o convite');
+
+const topoAciona = await p.evaluate(async () => {
+  const campo = document.getElementById('doc-arquivo');
+  return new Promise(resolve => {
     const ouvinte = () => { campo.removeEventListener('click', ouvinte); resolve(true); };
     campo.addEventListener('click', ouvinte);
-    document.querySelector(seletor).click();
+    document.querySelector('.fic-consultas-topo [data-acao="adicionar-documento"]').click();
     setTimeout(() => { campo.removeEventListener('click', ouvinte); resolve(false); }, 400);
   });
-  return {
-    topo: await testar('.fic-consultas-topo [data-acao="adicionar-documento"]'),
-    vazio: await testar('#doc-lista [data-acao="adicionar-documento"]'),
-  };
 });
-conferir(botoes.topo, '"Adicionar documento" do topo aciona o seletor de arquivo já existente');
-conferir(botoes.vazio, 'e o do estado vazio também — nenhum fluxo de upload novo foi inventado');
+conferir(topoAciona, '"Adicionar documento" do topo aciona o seletor de arquivo já existente');
 
 /* ------------------------------------------ upload de verdade (o input) - */
 

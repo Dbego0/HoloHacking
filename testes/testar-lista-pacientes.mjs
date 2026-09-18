@@ -46,7 +46,10 @@ const vazia = await p.evaluate(() => {
   return {
     titulo: v?.querySelector('strong')?.textContent,
     texto: v?.querySelector('span')?.textContent,
-    temCta: !!v?.querySelector('#btn-vazio-cadastrar'),
+    // Rodada de consistencia: o CTA duplicado (cabecalho + dentro do card
+    // vazio) foi para so um — o mesmo padrao que Consultas/HOLOSCOPE/
+    // HOLOSCAN na ficha ja usavam.
+    semBotaoDuplicado: !v?.querySelector('button'),
     total: document.getElementById('pac-total-cabeca').textContent.trim(),
     buscaEscondida: document.querySelector('.acoes-topo').classList.contains('hidden'),
     chipsEscondidos: document.getElementById('pac-chips').classList.contains('hidden'),
@@ -55,19 +58,19 @@ const vazia = await p.evaluate(() => {
 conferir(vazia.titulo === 'Nenhum paciente cadastrado ainda', 'título do estado vazio: ' + vazia.titulo);
 conferir(vazia.texto === 'Cadastre o primeiro paciente para iniciar a jornada clínica.',
   'texto do estado vazio: ' + vazia.texto);
-conferir(vazia.temCta, 'e vem com o botão "Cadastrar primeiro paciente"');
+conferir(vazia.semBotaoDuplicado, 'sem CTA duplicado — o botão do cabeçalho já é o convite');
 conferir(vazia.total === '0 pacientes', 'contador no cabeçalho: ' + vazia.total);
 conferir(vazia.buscaEscondida && vazia.chipsEscondidos,
   'busca e filtros somem sem carteira — sem tabela vazia sem contexto');
 
-const abriuPeloVazio = await p.evaluate(async () => {
-  document.getElementById('btn-vazio-cadastrar').click();
+const abriuPeloCabecalho = await p.evaluate(async () => {
+  document.getElementById('btn-abrir-novo').click();
   await new Promise(r => setTimeout(r, 120));
   const aberto = !document.getElementById('painel-novo').classList.contains('hidden');
   document.getElementById('btn-cancelar-paciente').click();
   return aberto;
 });
-conferir(abriuPeloVazio, 'o CTA do estado vazio abre o mesmo formulário de cadastro');
+conferir(abriuPeloCabecalho, 'e o botão do cabeçalho abre o formulário de cadastro normalmente');
 
 /* ---------------------------------------------- montar uma carteira ------ */
 

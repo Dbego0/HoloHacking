@@ -589,9 +589,12 @@
       // primeiros itens dela.
       if (itens.length === 0) {
         if (total) total.textContent = "";
+        // Rodada de consistencia: o CTA do topo (.fic-consultas-topo) ja
+        // cobre o "Adicionar documento" — um segundo botao igual dentro do
+        // card vazio so duplicava (era a unica aba assim; Consultas/
+        // HOLOSCOPE/HOLOSCAN ja usavam um so).
         alvo.innerHTML = '<div class="lista-vazia"><strong>Nenhum documento adicionado</strong>' +
-          "<span>Adicione arquivos e materiais relacionados à jornada deste paciente.</span>" +
-          '<button type="button" class="btn-verde" data-acao="adicionar-documento">Adicionar documento</button></div>';
+          "<span>Adicione arquivos e materiais relacionados à jornada deste paciente.</span></div>";
         desenharAtalhosDeExame(itens);
       } else {
         if (total) total.textContent = itens.length + (itens.length === 1 ? " documento" : " documentos");

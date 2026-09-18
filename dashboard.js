@@ -61,6 +61,9 @@
     return '<div class="secao-cabeca dash-cabeca">' +
         '<span class="eyebrow">Plataforma clínica</span>' +
         "<h2>Bom dia, <em>Nutricionista</em></h2>" +
+        // Rodada de consistencia: Pacientes e a ficha ja tinham titulo +
+        // subtitulo curto; o Dashboard so tinha o titulo.
+        "<p>Resumo do seu dia e acesso rápido às ferramentas.</p>" +
         (ativo ? '<p>Paciente aberta: <b>' + escapar(ativo) + "</b>.</p>" : "") +
       "</div>" +
       '<div class="dash-numeros dash-resumo">' +

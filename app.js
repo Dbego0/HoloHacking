@@ -605,9 +605,12 @@
     });
 
     if(semCarteira){
+      // O CTA fica so no cabecalho (#btn-abrir-novo, sempre visivel): duas
+      // vezes o mesmo botao na tela — cabecalho e dentro do card vazio —
+      // era a unica tela assim; as outras (Consultas, HOLOSCOPE, HOLOSCAN)
+      // ja usavam so um.
       lista.innerHTML = '<div class="lista-vazia"><strong>Nenhum paciente cadastrado ainda</strong>'
         + "<span>Cadastre o primeiro paciente para iniciar a jornada clínica.</span>"
-        + '<button type="button" class="btn-verde" id="btn-vazio-cadastrar">Cadastrar primeiro paciente</button>'
         + "</div>";
     } else if(!visiveis.length){
       lista.innerHTML = '<div class="lista-vazia"><strong>Nenhum paciente aqui</strong>'
@@ -824,8 +827,6 @@
   /* ---------- os cliques ---------- */
 
   $("#painel-pac-lista").addEventListener("click", e => {
-    if(e.target.closest("#btn-vazio-cadastrar")){ $("#btn-abrir-novo").click(); return; }
-
     // marcar nao e navegar: a caixa de selecao nao pode abrir a ficha
     const caixa = e.target.closest("[data-sel]");
     if(caixa){
