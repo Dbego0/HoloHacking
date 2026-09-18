@@ -97,9 +97,39 @@
   var sessaoAtual = null;   // objeto Session do supabase-js, ou null
   var prontoParaAvisar = false;
 
+  /* O terceiro estado que faltava: "pendente" nao e "sem sessao". Antes
+     desta correcao, app.js e perfil.js tratavam "getSession() ainda nao
+     respondeu" como se fosse "ninguem logado" — carregavam a lista de
+     pacientes (e desenhavam a aba Conta) direto do DadosLocais, uma unica
+     vez, no load da pagina. Quando a sessao real chegava um instante
+     depois, nada mandava recarregar: o paciente cadastrado no Supabase
+     ficava fora da tela ate a pessoa navegar manualmente, e o botao Sair
+     nunca aparecia. aoMudarEstado() e o gancho que faltava: quem depende de
+     "estou logado?" se inscreve aqui, e roda de novo toda vez que isso
+     muda — inclusive na primeira vez que deixa de ser "pendente". */
+  var estadoAuth = "pendente";   // "pendente" | "autenticado" | "nao_autenticado"
+  var ouvintesDeEstado = [];
+
+  function definirEstadoAuth(novo) {
+    if (estadoAuth === novo) return;
+    estadoAuth = novo;
+    ouvintesDeEstado.forEach(function (fn) {
+      try { fn(estadoAuth); } catch (e) { /* um ouvinte quebrado nao pode travar os outros */ }
+    });
+  }
+
   window.HoloAuth = {
-    sessaoAtiva: function () { return !!sessaoAtual; },
+    estado: function () { return estadoAuth; },
+    sessaoAtiva: function () { return estadoAuth === "autenticado"; },
     usuarioAtual: function () { return sessaoAtual ? sessaoAtual.user : null; },
+    /* Chama fn(estado) toda vez que o estado mudar. Se o estado ja saiu de
+       "pendente" quando alguem se inscreve, avisa na hora — ninguem que
+       chegar depois perde a resolucao inicial (e o proprio app.js chega
+       DEPOIS, porque carrega antes de login.js no index.html). */
+    aoMudarEstado: function (fn) {
+      ouvintesDeEstado.push(fn);
+      if (estadoAuth !== "pendente") fn(estadoAuth);
+    },
     sair: function () {
       if (!window.supabaseClient) return Promise.resolve({ ok: false });
       return window.supabaseClient.auth.signOut().then(function (r) {
@@ -250,11 +280,12 @@
   /* ---------- sessao: restaurar, reagir a mudanca ----------------------- */
 
   function verificarSessaoInicial() {
-    if (!window.supabaseClient) { campoEmail.focus(); return; }
+    if (!window.supabaseClient) { definirEstadoAuth("nao_autenticado"); campoEmail.focus(); return; }
     window.supabaseClient.auth.getSession().then(function (r) {
       var sessao = r && r.data && r.data.session;
       sessaoAtual = sessao || null;
       prontoParaAvisar = true;
+      definirEstadoAuth(sessao ? "autenticado" : "nao_autenticado");
       if (sessao) liberarApp();
       else campoEmail.focus();
     });
@@ -266,8 +297,10 @@
       sessaoAtual = sessao || null;
       if (!prontoParaAvisar) return; // INITIAL_SESSION ja tratado por verificarSessaoInicial
       if (evento === "SIGNED_OUT") {
+        definirEstadoAuth("nao_autenticado");
         bloquearApp();
       } else if (sessao && (evento === "SIGNED_IN" || evento === "TOKEN_REFRESHED" || evento === "USER_UPDATED")) {
+        definirEstadoAuth("autenticado");
         liberarApp();
       }
     });

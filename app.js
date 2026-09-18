@@ -2584,6 +2584,28 @@
     };
   }
 
-  carregarTudo();
+  /* carregarTudo() nao pode rodar antes de se saber se ha sessao Supabase:
+     era exatamente essa corrida que fazia o paciente cadastrado sumir apos
+     o refresh — carregava do DadosLocais vazio (window.HoloAuth ainda nem
+     existia: login.js so carrega DEPOIS de app.js no index.html) e nada
+     mandava recarregar quando a sessao real chegava um instante depois.
+
+     DOMContentLoaded garante que login.js — o ultimo <script> — ja rodou e
+     definiu window.HoloAuth. aoMudarEstado() cobre os dois casos com o
+     mesmo gancho: se o estado ja saiu de "pendente" nesse momento, avisa na
+     hora; se nao, avisa assim que sair. E dispara de novo a cada mudanca
+     real depois (login pela tela, logout) — e por isso que a carteira, o
+     dashboard e a ficha (via avisarTrocaDePaciente, ja chamado no fim de
+     carregarTudo) se atualizam sozinhos quando a sessao muda, sem precisar
+     de refresh manual. */
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.HoloAuth && window.HoloAuth.aoMudarEstado) {
+      window.HoloAuth.aoMudarEstado(function (estado) {
+        if (estado !== "pendente") carregarTudo();
+      });
+    } else {
+      carregarTudo();
+    }
+  });
 
 })();

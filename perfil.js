@@ -1112,6 +1112,16 @@
     carregar().then(function () {
       desenhar();
       trocarAba(aba);
+      /* a aba Conta le window.HoloAuth.usuarioAtual() — que so tem valor de
+         verdade depois que getSession() resolve. Sem isto, um refresh com
+         sessao restaurada desenhava a aba antes da sessao ser conhecida, e
+         o botao "Sair da conta" nunca aparecia ate a pessoa trocar de aba
+         na mao. aoMudarEstado ja avisa na hora se o estado ja resolveu. */
+      if (window.HoloAuth && window.HoloAuth.aoMudarEstado) {
+        window.HoloAuth.aoMudarEstado(function (estado) {
+          if (estado !== "pendente") window.redesenharPerfil();
+        });
+      }
     });
   });
 

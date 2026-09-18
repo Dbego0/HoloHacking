@@ -19,9 +19,18 @@
  *      paciente cadastrado pela conta A — testado contra o Postgres real via
  *      RLS, nao simulado.
  *
- * B e C ficam PULADOS, com aviso explicito, se as variaveis de ambiente nao
- * existirem — nunca fingem ter passado. Ver testes/testar-login.mjs para
- * como criar esses usuarios (nao invento credencial nenhuma aqui).
+ *   D  REFRESH COM SESSAO (bug de reidratacao corrigido nesta rodada):
+ *      login, cadastra paciente, da refresh na pagina, confere que o
+ *      paciente, o botao "Sair da conta" e a sessao continuam ali. Cobre os
+ *      Cenarios A e B do relato original.
+ *
+ *   E  LOGOUT + REFRESH: signOut() real bloqueia o app, e o refresh depois
+ *      dele continua bloqueado. Cenario C do relato.
+ *
+ * B, C, D e E ficam PULADOS, com aviso explicito, se as variaveis de
+ * ambiente nao existirem — nunca fingem ter passado. Ver testes/
+ * testar-login.mjs para como criar esses usuarios (nao invento credencial
+ * nenhuma aqui).
  */
 import puppeteer from 'puppeteer-core';
 
@@ -179,6 +188,116 @@ if (!pacienteDeA) {
     await window.supabaseClient.from('patients').delete().eq('id', id);
   }, pacienteDeA.id);
   await cLimpa.close();
+}
+
+/* ==================================================================== */
+console.log('\n  D — REFRESH COM SESSAO: PACIENTE E BOTAO SAIR CONTINUAM\n');
+/* ==================================================================== */
+// Reproduz o bug relatado em producao: carregarTudo() (app.js) e a aba
+// Conta (perfil.js) desenhavam uma unica vez, antes de window.HoloAuth
+// saber se havia sessao — apos o refresh, o paciente cadastrado sumia e o
+// botao Sair nunca aparecia, mesmo com a sessao real continuando ativa.
+// Cobre ao mesmo tempo os Cenarios A e B do relato: um refresh COM sessao
+// persistida E' "abrir o app ja com sessao persistida".
+
+if (!EMAIL_A || !SENHA_A) {
+  pulado('paciente cadastrado continua visivel depois do refresh');
+  pulado('botao "Sair da conta" continua visivel depois do refresh');
+  pulado('sessao continua ativa depois do refresh');
+} else {
+  const { contexto, p, ruim } = await novaAba(browser);
+  const entrou = await p.evaluate(async (email, senha) => {
+    document.getElementById('login-email').value = email;
+    document.getElementById('login-senha').value = senha;
+    document.getElementById('form-login').requestSubmit();
+    await new Promise(r => setTimeout(r, 1500));
+    return document.getElementById('app').getAttribute('aria-hidden') !== 'true';
+  }, EMAIL_A, SENHA_A);
+  ok(entrou, 'login com HOLO_TESTE_EMAIL entra de verdade');
+
+  let pidRefresh = null;
+  if (entrou) {
+    const nome = 'Paciente Refresh Fase1.1 ' + Date.now();
+    pidRefresh = await cadastrar(p, nome);
+    ok(!!pidRefresh, 'cadastro antes do refresh ganhou um id: ' + pidRefresh);
+
+    // o refresh de verdade: navega de novo para a mesma origem. A sessao
+    // persistida pelo supabase-js precisa sobreviver, e a UI precisa
+    // reidratar sozinha, sem clique nenhum de quem usa o app.
+    await p.reload({ waitUntil: 'networkidle2' });
+    await p.waitForFunction(() => window.pacientesCarregados && window.pacientesCarregados());
+    // getSession() apos reload nao e instantaneo de verdade (le e valida o
+    // token) — uma folga pequena antes de conferir o estado final.
+    await new Promise(r => setTimeout(r, 800));
+
+    const depois = await p.evaluate((nomeEsperado) => {
+      document.querySelector('.nav-item[data-secao="pacientes"]').click();
+      return {
+        sessaoAtiva: !!(window.HoloAuth && window.HoloAuth.sessaoAtiva()),
+        appLiberado: document.getElementById('app').getAttribute('aria-hidden') !== 'true',
+        pacienteNaLista: document.body.textContent.includes(nomeEsperado),
+      };
+    }, nome);
+    ok(depois.sessaoAtiva, 'apos refresh, a sessao continua ativa: HoloAuth.sessaoAtiva() = true');
+    ok(depois.appLiberado, 'e o app continua liberado (nao caiu de volta pro login)');
+    ok(depois.pacienteNaLista, 'e o paciente cadastrado antes do refresh continua visivel na lista');
+
+    const conta = await p.evaluate(async () => {
+      document.querySelector('.nav-item[data-secao="perfil"]').click();
+      await new Promise(r => setTimeout(r, 200));
+      document.querySelector('[data-aba-perfil="conta"]').click();
+      await new Promise(r => setTimeout(r, 200));
+      return { temBotaoSair: !!document.getElementById('btn-sair') };
+    });
+    ok(conta.temBotaoSair, 'e o botão "Sair da conta" continua aparecendo na aba Conta');
+  }
+  ok(ruim.length === 0, 'sem erro de JS' + (ruim.length ? ': ' + ruim[0] : ''));
+
+  if (pidRefresh) {
+    await p.evaluate(async (id) => { await window.supabaseClient.from('patients').delete().eq('id', id); }, pidRefresh);
+  }
+  await contexto.close();
+}
+
+/* ==================================================================== */
+console.log('\n  E — LOGOUT + REFRESH: O APP PERMANECE BLOQUEADO\n');
+/* ==================================================================== */
+// Cenario C do relato: logout real, depois refresh — o app nao pode voltar
+// a mostrar dado nenhum so porque a pagina recarregou.
+
+if (!EMAIL_A || !SENHA_A) {
+  pulado('signOut() real bloqueia o app de volta para o login');
+  pulado('refresh depois do logout continua deslogado');
+} else {
+  const { contexto, p, ruim } = await novaAba(browser);
+  await p.evaluate(async (email, senha) => {
+    document.getElementById('login-email').value = email;
+    document.getElementById('login-senha').value = senha;
+    document.getElementById('form-login').requestSubmit();
+    await new Promise(r => setTimeout(r, 1500));
+  }, EMAIL_A, SENHA_A);
+
+  const saiu = await p.evaluate(async () => {
+    await window.HoloAuth.sair();
+    await new Promise(r => setTimeout(r, 500));
+    return {
+      loginAberto: !document.getElementById('tela-login').hidden,
+      appBloqueado: document.getElementById('app').getAttribute('aria-hidden') === 'true',
+    };
+  });
+  ok(saiu.loginAberto && saiu.appBloqueado, 'signOut() real bloqueia o app de volta para o login');
+
+  await p.reload({ waitUntil: 'networkidle2' });
+  await new Promise(r => setTimeout(r, 800));
+  const depoisDoRefresh = await p.evaluate(() => ({
+    loginAberto: !document.getElementById('tela-login').hidden,
+    appBloqueado: document.getElementById('app').getAttribute('aria-hidden') === 'true',
+    sessaoAtiva: !!(window.HoloAuth && window.HoloAuth.sessaoAtiva()),
+  }));
+  ok(depoisDoRefresh.loginAberto && depoisDoRefresh.appBloqueado && !depoisDoRefresh.sessaoAtiva,
+     'refresh depois do logout continua bloqueado, sem sessão');
+  ok(ruim.length === 0, 'sem erro de JS' + (ruim.length ? ': ' + ruim[0] : ''));
+  await contexto.close();
 }
 
 await browser.close();
