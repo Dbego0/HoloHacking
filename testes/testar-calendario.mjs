@@ -19,6 +19,7 @@
  */
 import puppeteer from 'puppeteer-core';
 import { readFileSync } from 'node:fs';
+import { congelarRelogio } from './relogio-fixo.mjs';
 
 const caso = JSON.parse(readFileSync(new URL('caso.json', import.meta.url), 'utf8'));
 
@@ -27,6 +28,13 @@ const nav = await puppeteer.launch({
   headless: 'new', args: ['--hide-scrollbars'] });
 const p = await nav.newPage();
 await p.setViewport({ width: 1500, height: 1300 });
+/* A flakiness historica daqui: "Marina, aplicacao ha 26 dias" espera que o
+   retorno de 4 semanas (hoje+2) caia dentro da semana exibida (domingo a
+   sabado). So e assim quando "hoje" e domingo-quinta — numa sexta ou sabado,
+   hoje+2 cai na semana seguinte e a sugestao nunca aparece no grid. Congelar
+   o relogio numa quarta-feira fixa elimina essa dependencia do horario real
+   sem mudar nenhum calculo de agenda.js/panorama.js. */
+await congelarRelogio(p, '2026-09-16T12:00:00');
 const ruim = []; p.on('pageerror', e => ruim.push(e.message));
 await p.goto('http://127.0.0.1:5500/', { waitUntil: 'networkidle2' });
 await p.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
